@@ -1,0 +1,46 @@
+name: MELEO Quality Gate
+on:
+  push:
+    branches: [main, master, develop]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  quality:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci
+      - run: npm run ci:gate
+      - run: npm audit --audit-level=high
+      - run: docker build -t meleo:${{ github.sha }} .
+  integration:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: {node-version: '22', cache: npm}
+      - run: npm ci
+      - run: docker compose -f docker-compose.dev.yml up -d --build
+      - name: Wait for readiness
+        run: |
+          for i in {1..60}; do curl -fsS http://127.0.0.1:8787/api/ready >/dev/null && exit 0; sleep 2; done
+          docker compose -f docker-compose.dev.yml logs; exit 1
+      - name: Critical E2E
+        env: {BASE_URL: 'http://127.0.0.1:8787', ORIGIN_URL: 'http://localhost:5173'}
+        run: npm run e2e
+      - name: Baseline load gate
+        env: {BASE_URL: 'http://127.0.0.1:8787', CONCURRENCY: '10', DURATION_SECONDS: '8', WARMUP_SECONDS: '1', P95_MAX_MS: '750', ERROR_RATE_MAX: '0.01', MIN_RPS: '5'}
+        run: npm run loadtest
+      - if: failure()
+        run: docker compose -f docker-compose.dev.yml logs --no-color
+      - if: always()
+        run: docker compose -f docker-compose.dev.yml down -v
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with: {name: meleo-test-reports, path: reports/, if-no-files-found: ignore, retention-days: 14}

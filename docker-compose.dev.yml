@@ -1,0 +1,56 @@
+services:
+  redis:
+    image: redis:7.4-alpine
+    ports:
+      - "127.0.0.1:63799:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  db:
+    image: postgres:16-alpine
+    environment:
+      POSTGRES_DB: meleo
+      POSTGRES_USER: meleo
+      POSTGRES_PASSWORD: meleo_dev
+    ports:
+      - "127.0.0.1:54329:5432"
+    volumes:
+      - meleo-v5-dev-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U meleo -d meleo"]
+      interval: 3s
+      timeout: 3s
+      retries: 20
+
+  api:
+    build: .
+    command: ["node","server/index.js"]
+    depends_on:
+      db:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    environment:
+      NODE_ENV: development
+      PORT: 8787
+      APP_URL: http://localhost:5173
+      DATABASE_URL: postgres://meleo:meleo_dev@db:5432/meleo
+      REDIS_URL: redis://redis:6379/0
+      REDIS_REQUIRED: 0
+      SEED_DEMO: 1
+      DEMO_AUTH: 1
+      DEMO_CHECKOUT: 1
+      SENSITIVE_DATA_KEY: development-only-key-change-before-production-123456
+      STORAGE_DRIVER: local
+      VERIFICATION_STORAGE_DIR: /app/secure_uploads
+    ports:
+      - "127.0.0.1:8787:8787"
+    volumes:
+      - meleo-v5-dev-uploads:/app/secure_uploads
+
+volumes:
+  meleo-v5-dev-db:
+  meleo-v5-dev-uploads:

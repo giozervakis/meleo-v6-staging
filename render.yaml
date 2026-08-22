@@ -1,0 +1,80 @@
+services:
+  - type: keyvalue
+    name: meleo-staging-redis
+    plan: free
+    region: frankfurt
+    maxmemoryPolicy: allkeys-lru
+    ipAllowList: []
+
+  - type: web
+    name: meleo-v6-staging
+    runtime: node
+    plan: free
+    region: frankfurt
+    buildCommand: npm ci && npm run build
+    startCommand: node scripts/render-staging-start.mjs
+    healthCheckPath: /api/health
+    autoDeployTrigger: commit
+    envVars:
+      - key: NODE_ENV
+        value: staging
+      - key: TRUST_PROXY
+        value: "1"
+      - key: DATABASE_URL
+        fromDatabase:
+          name: meleo-staging-db
+          property: connectionString
+      - key: DATABASE_SSL
+        value: "0"
+      - key: DATABASE_POOL_MAX
+        value: "5"
+      - key: REDIS_URL
+        fromService:
+          type: keyvalue
+          name: meleo-staging-redis
+          property: connectionString
+      - key: REDIS_REQUIRED
+        value: "1"
+      - key: REDIS_KEY_PREFIX
+        value: "meleo:staging:v60:"
+      - key: STORAGE_DRIVER
+        value: local
+      - key: SEED_DEMO
+        value: "1"
+      - key: DEMO_AUTH
+        value: "1"
+      - key: DEMO_CHECKOUT
+        value: "1"
+      - key: ADMIN_EMAIL
+        value: admin@meleo.gr
+      - key: ADMIN_PASSWORD
+        value: admin123
+      - key: SENSITIVE_DATA_KEY
+        generateValue: true
+      - key: OBSERVABILITY_TOKEN
+        generateValue: true
+      - key: WORKER_CONCURRENCY
+        value: "2"
+      - key: WORKER_POLL_MS
+        value: "1500"
+      - key: MAIL_FROM
+        value: "MELEO Staging <no-reply@meleo.gr>"
+      - key: SUPPORT_EMAIL
+        value: support@meleo.gr
+      - key: STRIPE_SECRET_KEY
+        sync: false
+      - key: STRIPE_WEBHOOK_SECRET
+        sync: false
+      - key: STRIPE_PRICE_BASIC
+        sync: false
+      - key: STRIPE_PRICE_PREMIUM
+        sync: false
+
+databases:
+  - name: meleo-staging-db
+    plan: free
+    region: frankfurt
+    postgresMajorVersion: "16"
+    databaseName: meleo_staging
+    user: meleo_staging
+    ipAllowList: []
