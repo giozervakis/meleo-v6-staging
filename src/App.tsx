@@ -45,12 +45,125 @@ function LiveEvents({user,setToast}:any){
 }
 
 function CalendarActions({booking}:any){
- if(!['accepted','completed'].includes(booking.status))return null
- const start=new Date(`${booking.date}T${booking.time}:00`),end=new Date(start.getTime()+60*60000);const iso=(d:Date)=>d.toISOString();const compact=(d:Date)=>iso(d).replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');const title=`MELEO · ${booking.service}`;const loc=booking.address||'';const desc=`MELEO booking · ${booking.professionalName||booking.patientName||''}`
- const google=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${compact(start)}/${compact(end)}&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(loc)}`
- const outlook=`https://outlook.live.com/calendar/0/deeplink/compose?subject=${encodeURIComponent(title)}&startdt=${encodeURIComponent(iso(start))}&enddt=${encodeURIComponent(iso(end))}&body=${encodeURIComponent(desc)}&location=${encodeURIComponent(loc)}`
- const yahoo=`https://calendar.yahoo.com/?v=60&view=d&type=20&title=${encodeURIComponent(title)}&st=${compact(start)}&dur=0100&desc=${encodeURIComponent(desc)}&in_loc=${encodeURIComponent(loc)}`
- return <div className="calendar-actions"><span>Προσθήκη στο ημερολόγιο</span><a href={google} target="_blank" rel="noreferrer">Google</a><a href={outlook} target="_blank" rel="noreferrer">Outlook</a><a href={yahoo} target="_blank" rel="noreferrer">Yahoo</a><a href={`/api/bookings/${booking.id}/calendar.ics`}>Apple / .ics</a></div>
+
+  if(!['accepted','completed'].includes(booking?.status)){
+    return null
+  }
+
+  const dateValue = String(booking?.date || '').trim()
+  const timeValue = String(booking?.time || '').trim()
+
+  if(!dateValue || !timeValue){
+    return null
+  }
+
+  const normalizedTime =
+    /^\d{2}:\d{2}$/.test(timeValue)
+      ? `${timeValue}:00`
+      : timeValue
+
+  const start = new Date(`${dateValue}T${normalizedTime}`)
+
+  if(Number.isNaN(start.getTime())){
+    console.warn(
+      '[MELEO] Invalid booking date/time for calendar',
+      {
+        bookingId: booking?.id,
+        date: booking?.date,
+        time: booking?.time
+      }
+    )
+
+    return null
+  }
+
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+
+  const iso = (d:Date) => d.toISOString()
+
+  const compact = (d:Date) =>
+    iso(d)
+      .replace(/[-:]/g,'')
+      .replace(/\.\d{3}Z$/,'Z')
+
+  const title =
+    `MELEO · ${booking?.service || 'Επίσκεψη'}`
+
+  const loc = booking?.address || ''
+
+  const desc =
+    `MELEO booking · ${
+      booking?.professionalName ||
+      booking?.patientName ||
+      ''
+    }`
+
+  const google =
+    `https://calendar.google.com/calendar/render` +
+    `?action=TEMPLATE` +
+    `&text=${encodeURIComponent(title)}` +
+    `&dates=${compact(start)}/${compact(end)}` +
+    `&details=${encodeURIComponent(desc)}` +
+    `&location=${encodeURIComponent(loc)}`
+
+  const outlook =
+    `https://outlook.live.com/calendar/0/deeplink/compose` +
+    `?subject=${encodeURIComponent(title)}` +
+    `&startdt=${encodeURIComponent(iso(start))}` +
+    `&enddt=${encodeURIComponent(iso(end))}` +
+    `&body=${encodeURIComponent(desc)}` +
+    `&location=${encodeURIComponent(loc)}`
+
+  const yahoo =
+    `https://calendar.yahoo.com/` +
+    `?v=60` +
+    `&view=d` +
+    `&type=20` +
+    `&title=${encodeURIComponent(title)}` +
+    `&st=${compact(start)}` +
+    `&dur=0100` +
+    `&desc=${encodeURIComponent(desc)}` +
+    `&in_loc=${encodeURIComponent(loc)}`
+
+  return (
+    <div className="calendar-actions">
+
+      <span>
+        Προσθήκη στο ημερολόγιο
+      </span>
+
+      <a
+        href={google}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Google
+      </a>
+
+      <a
+        href={outlook}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Outlook
+      </a>
+
+      <a
+        href={yahoo}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Yahoo
+      </a>
+
+      <a
+        href={`/api/bookings/${booking.id}/calendar.ics`}
+      >
+        Apple / .ics
+      </a>
+
+    </div>
+  )
 }
 
 export default function App(){
