@@ -1,5 +1,6 @@
 import express from 'express'
 import crypto from 'node:crypto'
+import path from 'node:path'
 import { config, root, assertProductionReady } from '../config.js'
 import { mail } from '../mail.js'
 import { encryptSensitive, decryptSensitive, matchTotpStep } from '../security.js'
