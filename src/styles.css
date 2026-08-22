@@ -276,3 +276,5 @@
 .two label {
   overflow: visible;
 }
+
+.smart-recovery{margin-top:18px;padding:20px;border:1px solid rgba(27,103,124,.16);border-radius:20px;background:linear-gradient(135deg,#f2f8f8,#fffaf0)}.recovery-head>span{font-size:10px;letter-spacing:.14em;font-weight:900;color:#17677c}.recovery-head h4{font-family:Georgia,serif;font-size:22px;margin:7px 0}.recovery-head p{color:#61737c;line-height:1.55;margin:0 0 14px}.recovery-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:13px 0;border-top:1px solid rgba(19,42,69,.09)}.recovery-card>div:nth-child(2){display:flex;flex-direction:column;gap:3px}.recovery-card span,.recovery-card small{color:#667983}@media(max-width:680px){.recovery-card{grid-template-columns:auto 1fr}.recovery-card .btn{grid-column:1/-1;width:100%}}
