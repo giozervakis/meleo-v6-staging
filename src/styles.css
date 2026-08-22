@@ -278,3 +278,447 @@
 }
 
 .smart-recovery{margin-top:18px;padding:20px;border:1px solid rgba(27,103,124,.16);border-radius:20px;background:linear-gradient(135deg,#f2f8f8,#fffaf0)}.recovery-head>span{font-size:10px;letter-spacing:.14em;font-weight:900;color:#17677c}.recovery-head h4{font-family:Georgia,serif;font-size:22px;margin:7px 0}.recovery-head p{color:#61737c;line-height:1.55;margin:0 0 14px}.recovery-card{display:grid;grid-template-columns:auto 1fr auto;gap:12px;align-items:center;padding:13px 0;border-top:1px solid rgba(19,42,69,.09)}.recovery-card>div:nth-child(2){display:flex;flex-direction:column;gap:3px}.recovery-card span,.recovery-card small{color:#667983}@media(max-width:680px){.recovery-card{grid-template-columns:auto 1fr}.recovery-card .btn{grid-column:1/-1;width:100%}}
+
+/* =========================================================
+   MELEO PREMIUM BOOKING CARDS
+   ========================================================= */
+
+.booking-card-premium{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:auto minmax(0,1fr) auto;
+  align-items:center;
+  gap:20px;
+
+  padding:22px 22px 22px 26px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(255,255,255,.96),
+      rgba(252,248,239,.96)
+    );
+
+  border:1px solid rgba(20,49,64,.09);
+  border-radius:24px;
+
+  box-shadow:
+    0 14px 35px rgba(39,49,44,.07),
+    0 3px 10px rgba(39,49,44,.04);
+
+  transition:
+    transform .25s ease,
+    box-shadow .25s ease,
+    border-color .25s ease;
+}
+
+.booking-card-premium:hover{
+  transform:translateY(-2px);
+
+  box-shadow:
+    0 20px 45px rgba(39,49,44,.11),
+    0 5px 14px rgba(39,49,44,.05);
+}
+
+
+/* Accent bar */
+
+.booking-accent{
+  position:absolute;
+  left:0;
+  top:14px;
+  bottom:14px;
+
+  width:5px;
+
+  border-radius:0 6px 6px 0;
+
+  background:#b9a57b;
+}
+
+
+/* Status-specific accents */
+
+.booking-card-premium.booking-completed .booking-accent{
+  background:#5e9b6f;
+}
+
+.booking-card-premium.booking-accepted .booking-accent{
+  background:#438a9a;
+}
+
+.booking-card-premium.booking-quoted .booking-accent,
+.booking-card-premium.booking-clarification .booking-accent{
+  background:#c79238;
+}
+
+.booking-card-premium.booking-pending .booking-accent{
+  background:#b9a57b;
+}
+
+.booking-card-premium.booking-cancelled .booking-accent{
+  background:#b97570;
+}
+
+
+/* Date tile */
+
+.premium-date{
+  min-width:76px;
+  min-height:82px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:18px;
+
+  background:
+    linear-gradient(
+      145deg,
+      rgba(231,241,241,.95),
+      rgba(244,239,226,.95)
+    );
+
+  border:1px solid rgba(20,49,64,.06);
+}
+
+.premium-date b{
+  font-size:27px;
+  line-height:1;
+
+  color:#102f40;
+
+  font-weight:800;
+}
+
+.premium-date span{
+  margin-top:7px;
+
+  font-size:12px;
+  font-weight:700;
+
+  color:#718087;
+
+  letter-spacing:.06em;
+}
+
+
+/* Main content */
+
+.premium-booking-info{
+  min-width:0;
+}
+
+.booking-service{
+  display:block;
+
+  color:#102f40;
+
+  font-size:18px;
+  line-height:1.25;
+
+  font-weight:800;
+}
+
+.booking-professional{
+  display:block;
+
+  margin-top:5px;
+
+  color:#758188;
+
+  font-size:15px;
+}
+
+.booking-meta{
+  display:flex;
+  flex-wrap:wrap;
+
+  gap:5px 14px;
+
+  margin-top:8px;
+
+  color:#8a938f;
+
+  font-size:13px;
+}
+
+.booking-meta span{
+  display:flex;
+  align-items:center;
+  gap:4px;
+}
+
+
+/* Right side */
+
+.booking-card-right{
+  display:flex;
+  flex-direction:column;
+
+  align-items:flex-end;
+
+  gap:10px;
+
+  min-width:145px;
+}
+
+.booking-price{
+  color:#102f40;
+
+  font-size:21px;
+
+  font-weight:850;
+}
+
+
+/* Premium status pills */
+
+.premium-status{
+  display:inline-flex;
+
+  align-items:center;
+  justify-content:center;
+
+  min-height:30px;
+
+  padding:6px 13px;
+
+  border-radius:999px;
+
+  font-size:12px;
+  font-weight:800;
+
+  white-space:nowrap;
+}
+
+.premium-status.completed{
+  color:#377347;
+  background:#e8f4e9;
+}
+
+.premium-status.accepted{
+  color:#236b78;
+  background:#e5f2f4;
+}
+
+.premium-status.pending{
+  color:#7c6845;
+  background:#f4eddd;
+}
+
+.premium-status.quoted,
+.premium-status.clarification{
+  color:#91641d;
+  background:#fff1d6;
+}
+
+.premium-status.cancelled{
+  color:#a45750;
+  background:#f8e6e3;
+}
+
+
+/* Details button */
+
+.premium-details-btn{
+  display:flex;
+
+  align-items:center;
+  justify-content:center;
+
+  gap:10px;
+
+  min-width:138px;
+
+  min-height:42px;
+
+  border-radius:13px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(255,255,255,.98),
+      rgba(250,245,236,.98)
+    );
+
+  border:1px solid rgba(20,49,64,.14);
+
+  color:#243d49;
+
+  font-weight:700;
+
+  box-shadow:
+    0 5px 14px rgba(60,57,47,.05);
+
+  transition:.2s ease;
+}
+
+.premium-details-btn:hover{
+  border-color:rgba(181,137,63,.5);
+
+  transform:translateY(-1px);
+}
+
+.details-arrow{
+  color:#a9782d;
+
+  font-size:20px;
+
+  line-height:1;
+}
+
+
+/* Open details panel */
+
+.patient-request-wrap{
+  margin-bottom:18px;
+}
+
+.patient-request-detail{
+  margin-top:-4px;
+
+  padding:26px;
+
+  background:
+    linear-gradient(
+      180deg,
+      rgba(250,247,239,.98),
+      rgba(255,253,248,.98)
+    );
+
+  border:
+    1px solid rgba(20,49,64,.08);
+
+  border-top:0;
+
+  border-radius:
+    0 0 24px 24px;
+
+  box-shadow:
+    0 16px 35px rgba(43,48,43,.07);
+}
+
+
+/* =========================================================
+   MOBILE PREMIUM VERSION
+   ========================================================= */
+
+@media(max-width:700px){
+
+  .patient-request-wrap{
+    margin-bottom:22px;
+  }
+
+  .booking-card-premium{
+    display:grid;
+
+    grid-template-columns:68px minmax(0,1fr);
+
+    gap:14px;
+
+    padding:
+      18px 16px 16px 20px;
+
+    border-radius:25px;
+
+    box-shadow:
+      0 18px 38px rgba(55,52,43,.09),
+      0 4px 12px rgba(55,52,43,.04);
+  }
+
+  .booking-accent{
+    top:12px;
+    bottom:12px;
+
+    width:5px;
+  }
+
+  .premium-date{
+    width:68px;
+    min-width:68px;
+    min-height:82px;
+
+    border-radius:17px;
+  }
+
+  .premium-date b{
+    font-size:27px;
+  }
+
+  .booking-service{
+    font-size:18px;
+  }
+
+  .booking-professional{
+    font-size:15px;
+  }
+
+  .booking-meta{
+    flex-direction:column;
+
+    gap:3px;
+
+    font-size:13px;
+  }
+
+  .booking-card-right{
+    grid-column:1 / -1;
+
+    display:grid;
+
+    grid-template-columns:1fr auto;
+
+    align-items:center;
+
+    gap:10px;
+
+    width:100%;
+
+    margin-top:5px;
+
+    padding-left:82px;
+  }
+
+  .booking-price{
+    grid-column:2;
+    grid-row:1;
+
+    font-size:20px;
+
+    text-align:right;
+  }
+
+  .premium-status{
+    grid-column:1;
+    grid-row:1;
+
+    justify-self:start;
+
+    font-size:12px;
+  }
+
+  .premium-details-btn{
+    grid-column:1 / -1;
+
+    width:100%;
+    min-height:48px;
+
+    border-radius:15px;
+
+    font-size:16px;
+  }
+
+  .patient-request-detail{
+    margin-top:-8px;
+
+    padding:22px 18px;
+
+    border-radius:
+      0 0 24px 24px;
+  }
+
+}
