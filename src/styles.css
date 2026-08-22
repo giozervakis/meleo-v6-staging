@@ -253,3 +253,26 @@
 
 /* MELEO v5.4 route-level lazy loading */
 .route-loading{min-height:36vh;display:flex;align-items:center;justify-content:center;gap:12px;font-weight:700;color:#4f5a61}.route-spinner{width:22px;height:22px;border:2px solid rgba(26,35,40,.18);border-top-color:#1a2328;border-radius:50%;animation:meleo-spin .75s linear infinite}@keyframes meleo-spin{to{transform:rotate(360deg)}}
+
+/* MELEO booking time selector fix */
+
+.form-card select {
+  width: 100%;
+  min-height: 52px;
+  height: 52px;
+  line-height: 1.4;
+  padding: 0 16px;
+  overflow: visible;
+}
+
+.form-card select option {
+  min-height: 36px;
+  padding: 8px 12px;
+}
+
+.booking-flow,
+.form-card,
+.two,
+.two label {
+  overflow: visible;
+}
