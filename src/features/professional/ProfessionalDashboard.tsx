@@ -18,7 +18,90 @@ function VerifyEmailBanner({user,token,cfg,setToast}:any){
  async function resend(){setBusy(true);try{const r=await api('/auth/resend-verification',{method:'POST'},token);setToast(r.message||'Στάλθηκε νέο email επαλήθευσης.')}catch(e:any){setToast(e.message)}finally{setBusy(false)}}
  return <div className="verify-email-banner"><div><b>Επιβεβαίωσε το email σου</b><span>Για πλήρη ασφάλεια λογαριασμού και ειδοποιήσεις, επιβεβαίωσε τη διεύθυνση {user.email}.</span></div><button onClick={resend} disabled={busy}>{busy?'Αποστολή…':'Νέο email επαλήθευσης'}</button></div>
 }
-function CalendarActions({booking}:any){ if(!['accepted','completed'].includes(booking.status))return null; const start=new Date(`${booking.date}T${booking.time}:00`),end=new Date(start.getTime()+60*60000);const iso=(d:Date)=>d.toISOString();const compact=(d:Date)=>iso(d).replace(/[-:]/g,'').replace(/\.\d{3}Z$/,'Z');const title=`MELEO · ${booking.service}`;const loc=booking.address||'';const desc=`MELEO booking · ${booking.professionalName||booking.patientName||''}`;const google=`https://calendar.google.com/calendar/render?action=TEMPLATE&text=${encodeURIComponent(title)}&dates=${compact(start)}/${compact(end)}&details=${encodeURIComponent(desc)}&location=${encodeURIComponent(loc)}`;return <div className="calendar-actions"><span>Προσθήκη στο ημερολόγιο</span><a href={google} target="_blank" rel="noreferrer">Google</a><a href={`/api/bookings/${booking.id}/calendar.ics`}>Apple / .ics</a></div> }
+function CalendarActions({booking}:any){
+
+  if(!['accepted','completed'].includes(booking.status)){
+    return null
+  }
+
+  const dateValue = String(booking?.date || '').trim()
+  const timeValue = String(booking?.time || '').trim()
+
+  if(!dateValue || !timeValue){
+    return null
+  }
+
+  const normalizedTime =
+    /^\d{2}:\d{2}$/.test(timeValue)
+      ? `${timeValue}:00`
+      : timeValue
+
+  const start = new Date(`${dateValue}T${normalizedTime}`)
+
+  if(Number.isNaN(start.getTime())){
+    console.warn(
+      '[MELEO] Invalid booking date/time for calendar',
+      {
+        bookingId: booking?.id,
+        date: booking?.date,
+        time: booking?.time
+      }
+    )
+
+    return null
+  }
+
+  const end = new Date(start.getTime() + 60 * 60 * 1000)
+
+  const compact = (d:Date) =>
+    d
+      .toISOString()
+      .replace(/[-:]/g,'')
+      .replace(/\.\d{3}Z$/,'Z')
+
+  const title = `MELEO · ${booking.service || 'Επίσκεψη'}`
+
+  const loc = booking.address || ''
+
+  const desc =
+    `MELEO booking · ${
+      booking.professionalName ||
+      booking.patientName ||
+      ''
+    }`
+
+  const google =
+    `https://calendar.google.com/calendar/render` +
+    `?action=TEMPLATE` +
+    `&text=${encodeURIComponent(title)}` +
+    `&dates=${compact(start)}/${compact(end)}` +
+    `&details=${encodeURIComponent(desc)}` +
+    `&location=${encodeURIComponent(loc)}`
+
+  return (
+    <div className="calendar-actions">
+
+      <span>
+        Προσθήκη στο ημερολόγιο
+      </span>
+
+      <a
+        href={google}
+        target="_blank"
+        rel="noreferrer"
+      >
+        Google
+      </a>
+
+      <a
+        href={`/api/bookings/${booking.id}/calendar.ics`}
+      >
+        Apple / .ics
+      </a>
+
+    </div>
+  )
+}
 function Conversation({messages}:any){if(!messages?.length)return null;return <div className="conversation"><div className="conversation-title">Ιστορικό επικοινωνίας</div>{messages.map((m:any)=><div key={m.id} className={'conversation-msg '+m.fromRole}><div><b>{m.fromName}</b><small>{new Date(m.createdAt).toLocaleString('el-GR')}</small></div><p>{m.text}</p></div>)}</div>}
 
 function ProfessionalDashboard({user,professional,token,onRefresh,setToast,cfg,setView}:any){
