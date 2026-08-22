@@ -64,7 +64,7 @@ app.post('/api/webhooks/stripe',express.raw({type:'application/json',limit:'1mb'
  }catch(err){await sql(`UPDATE webhook_events SET status='failed',error=$2 WHERE id=$1`,[event.id,String(err?.message||err).slice(0,1000)]);res.status(500).json({error:'Processing failed'})}
 })
 
-app.use(express.json({limit:'256kb'}))
+app.use(express.json({ limit: '12mb' }))
 
 // Persistent Postgres rate limiter. Works across instances.
 function rateLimit({windowMs,max,name,message='Πολλά αιτήματα. Δοκίμασε ξανά σε λίγο.',keyFn}){return async(req,res,next)=>{const rawKey=keyFn?String(keyFn(req)||'anonymous'):String(req.ip||'local');const bucket=`${name}:${sha256(rawKey).slice(0,24)}`;try{let count,ttlMs;if(config.redis.url){try{const r=await redisRateLimit(config.redis.keyPrefix+'rl:'+bucket,windowMs);count=r.count;ttlMs=r.ttlMs}catch(err){console.warn('[MELEO v5.1] Redis limiter fallback:',err.message)}}if(count==null){const row=await one(`INSERT INTO rate_limits(bucket_key,count,reset_at) VALUES($1,1,now()+($2||' milliseconds')::interval) ON CONFLICT(bucket_key) DO UPDATE SET count=CASE WHEN rate_limits.reset_at<=now() THEN 1 ELSE rate_limits.count+1 END,reset_at=CASE WHEN rate_limits.reset_at<=now() THEN now()+($2||' milliseconds')::interval ELSE rate_limits.reset_at END,updated_at=now() RETURNING count,reset_at`,[bucket,String(windowMs)]);count=row.count;ttlMs=Math.max(0,new Date(row.reset_at).getTime()-Date.now())}if(count>max){res.setHeader('Retry-After',Math.max(1,Math.ceil(ttlMs/1000)));return res.status(429).json({error:message})}next()}catch(e){next(e)}}}
@@ -246,7 +246,28 @@ if(config.isHosted&&fs.existsSync(dist)){
  app.get(/.*/,(_req,res)=>res.sendFile(path.join(dist,'index.html')))
 }else app.get('/',(_req,res)=>res.json({service:'MELEO API',status:'online',version:APP_VERSION,releaseChannel:RELEASE_CHANNEL,architecture:'PostgreSQL relational + Redis multi-instance + background worker + observability + secure S3 object storage'}))
 
-app.use((err,req,res,_next)=>{log.error('http.unhandled_error',{requestId:req.requestId,error:err});res.status(500).json({error:'Εσωτερικό σφάλμα. Δοκίμασε ξανά.'})})
+app.use((err,req,res,_next)=>{
+  if(err?.type==='entity.too.large'){
+    log.warn('http.payload_too_large',{
+      requestId:req.requestId,
+      path:req.path,
+      method:req.method
+    })
+
+    return res.status(413).json({
+      error:'Το αρχείο είναι πολύ μεγάλο.'
+    })
+  }
+
+  log.error('http.unhandled_error',{
+    requestId:req.requestId,
+    error:err
+  })
+
+  res.status(500).json({
+    error:'Εσωτερικό σφάλμα. Δοκίμασε ξανά.'
+  })
+})
 
 // sweeps without global lock
 setInterval(async()=>{try{
