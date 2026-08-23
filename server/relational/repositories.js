@@ -760,8 +760,736 @@ export const Admin={
     const registrations14=await many(`SELECT d::date::text date,count(u.id)::int count FROM generate_series(current_date-13,current_date,interval '1 day') d LEFT JOIN users u ON u.created_at::date=d::date AND u.deleted_at IS NULL GROUP BY d ORDER BY d`)
     const bookings14=await many(`SELECT d::date::text date,count(b.id)::int count FROM generate_series(current_date-13,current_date,interval '1 day') d LEFT JOIN bookings b ON b.created_at::date=d::date GROUP BY d ORDER BY d`)
     delete accounts.active30; delete accounts.suspendedUsers
-    return {accounts,professionals,bookings,revenue,marketplace,specialties,cities,registrations14,bookings14}
+    return {
+  accounts,
+  professionals,
+  bookings,
+  revenue,
+  marketplace,
+  specialties,
+  cities,
+  registrations14,
+  bookings14
+}
+  },
+
+  async commandCenter(){
+
+    const base=await this.stats()
+
+    const [
+      booking30,
+      repeat30,
+      trustCoverage,
+      operations,
+      growth,
+      bookingsTrend30,
+      registrationsTrend30,
+      revenueTrend30,
+      specialtyHealth,
+      cityHealth
+    ]=await Promise.all([
+
+      one(`
+        SELECT
+          count(*)::int total,
+
+          count(*) FILTER(
+            WHERE status='pending'
+          )::int pending,
+
+          count(*) FILTER(
+            WHERE status='clarification'
+          )::int clarification,
+
+          count(*) FILTER(
+            WHERE status='quoted'
+          )::int quoted,
+
+          count(*) FILTER(
+            WHERE status='accepted'
+          )::int accepted,
+
+          count(*) FILTER(
+            WHERE status='completed'
+          )::int completed,
+
+          count(*) FILTER(
+            WHERE status='cancelled'
+          )::int cancelled,
+
+          count(DISTINCT patient_id)::int
+            "uniquePatients",
+
+          count(DISTINCT professional_id)::int
+            "engagedProfessionals",
+
+          coalesce(
+            sum(
+              coalesce(agreed_price,base_price)
+            ) FILTER(
+              WHERE status='completed'
+            ),
+            0
+          )::numeric "gmv"
+
+        FROM bookings
+
+        WHERE
+          created_at>=now()-interval '30 days'
+      `),
+
+
+      one(`
+        SELECT
+          count(*)::int "uniquePatients",
+
+          count(*) FILTER(
+            WHERE booking_count>1
+          )::int "repeatPatients"
+
+        FROM (
+          SELECT
+            patient_id,
+            count(*)::int booking_count
+
+          FROM bookings
+
+          WHERE
+            created_at>=now()-interval '30 days'
+
+          GROUP BY patient_id
+        ) x
+      `),
+
+
+      one(`
+        WITH professional_activity AS (
+
+          SELECT
+            p.id,
+            p.verified,
+            p.admin_suspended,
+            p.subscription_status,
+
+            count(
+              DISTINCT b.id
+            ) FILTER(
+              WHERE b.status='completed'
+            )::int completed,
+
+            count(
+              DISTINCT r.id
+            )::int reviews
+
+          FROM professionals p
+
+          LEFT JOIN bookings b
+            ON b.professional_id=p.id
+
+          LEFT JOIN reviews r
+            ON r.professional_id=p.id
+
+          GROUP BY
+            p.id,
+            p.verified,
+            p.admin_suspended,
+            p.subscription_status
+        )
+
+        SELECT
+
+          count(*) FILTER(
+            WHERE
+              verified=true
+              AND admin_suspended=false
+              AND subscription_status='active'
+          )::int visible,
+
+          count(*) FILTER(
+            WHERE
+              verified=true
+              AND admin_suspended=false
+              AND subscription_status='active'
+              AND completed>=5
+              AND reviews>=3
+          )::int "trustEligible"
+
+        FROM professional_activity
+      `),
+
+
+      one(`
+        SELECT
+
+          (
+            SELECT count(*)
+            FROM verification_requests
+            WHERE status='pending'
+          )::int "pendingVerifications",
+
+          (
+            SELECT count(*)
+            FROM subscriptions
+            WHERE status='past_due'
+          )::int "pastDueSubscriptions",
+
+          (
+            SELECT count(*)
+            FROM payments
+            WHERE
+              status='failed'
+              AND created_at>=date_trunc('month',now())
+          )::int "failedPayments",
+
+          (
+            SELECT count(*)
+            FROM users
+            WHERE
+              deleted_at IS NULL
+              AND account_status='suspended'
+          )::int "suspendedAccounts",
+
+          (
+            SELECT count(*)
+            FROM users
+            WHERE
+              deleted_at IS NULL
+              AND deletion_pending=true
+          )::int "deletionPending",
+
+          (
+            SELECT count(*)
+            FROM reports
+            WHERE
+              coalesce(status,'open')<>'closed'
+          )::int "openReports"
+      `),
+
+
+      one(`
+        SELECT
+
+          count(*) FILTER(
+            WHERE
+              created_at>=now()-interval '30 days'
+          )::int "usersCurrent30",
+
+          count(*) FILTER(
+            WHERE
+              created_at>=now()-interval '60 days'
+              AND created_at<now()-interval '30 days'
+          )::int "usersPrevious30",
+
+          (
+            SELECT count(*)
+            FROM bookings
+            WHERE
+              created_at>=now()-interval '30 days'
+          )::int "bookingsCurrent30",
+
+          (
+            SELECT count(*)
+            FROM bookings
+            WHERE
+              created_at>=now()-interval '60 days'
+              AND created_at<now()-interval '30 days'
+          )::int "bookingsPrevious30"
+
+        FROM users
+
+        WHERE deleted_at IS NULL
+      `),
+
+
+      many(`
+        SELECT
+          d::date::text date,
+          count(b.id)::int count
+
+        FROM generate_series(
+          current_date-29,
+          current_date,
+          interval '1 day'
+        ) d
+
+        LEFT JOIN bookings b
+          ON b.created_at::date=d::date
+
+        GROUP BY d
+
+        ORDER BY d
+      `),
+
+
+      many(`
+        SELECT
+          d::date::text date,
+          count(u.id)::int count
+
+        FROM generate_series(
+          current_date-29,
+          current_date,
+          interval '1 day'
+        ) d
+
+        LEFT JOIN users u
+          ON u.created_at::date=d::date
+          AND u.deleted_at IS NULL
+
+        GROUP BY d
+
+        ORDER BY d
+      `),
+
+
+      many(`
+        SELECT
+          d::date::text date,
+
+          coalesce(
+            sum(p.amount) FILTER(
+              WHERE p.status='paid'
+            ),
+            0
+          )::numeric amount
+
+        FROM generate_series(
+          current_date-29,
+          current_date,
+          interval '1 day'
+        ) d
+
+        LEFT JOIN payments p
+          ON p.created_at::date=d::date
+
+        GROUP BY d
+
+        ORDER BY d
+      `),
+
+
+      many(`
+        SELECT
+          coalesce(
+            nullif(p.specialty,''),
+            'Χωρίς ειδικότητα'
+          ) name,
+
+          count(
+            DISTINCT p.id
+          )::int "activeProfessionals",
+
+          count(b.id) FILTER(
+            WHERE
+              b.created_at>=now()-interval '30 days'
+          )::int "bookings30",
+
+          count(b.id) FILTER(
+            WHERE
+              b.created_at>=now()-interval '30 days'
+              AND b.status='completed'
+          )::int "completed30"
+
+        FROM professionals p
+
+        LEFT JOIN bookings b
+          ON b.professional_id=p.id
+
+        WHERE
+          p.verified=true
+          AND p.admin_suspended=false
+          AND p.subscription_status='active'
+
+        GROUP BY 1
+
+        ORDER BY
+          "bookings30" DESC,
+          "activeProfessionals" DESC
+
+        LIMIT 10
+      `),
+
+
+      many(`
+        SELECT
+          coalesce(
+            nullif(p.city,''),
+            'Μη ορισμένη'
+          ) name,
+
+          count(
+            DISTINCT p.id
+          )::int "activeProfessionals",
+
+          count(b.id) FILTER(
+            WHERE
+              b.created_at>=now()-interval '30 days'
+          )::int "bookings30",
+
+          count(b.id) FILTER(
+            WHERE
+              b.created_at>=now()-interval '30 days'
+              AND b.status='completed'
+          )::int "completed30"
+
+        FROM professionals p
+
+        LEFT JOIN bookings b
+          ON b.professional_id=p.id
+
+        WHERE
+          p.verified=true
+          AND p.admin_suspended=false
+          AND p.subscription_status='active'
+
+        GROUP BY 1
+
+        ORDER BY
+          "bookings30" DESC,
+          "activeProfessionals" DESC
+
+        LIMIT 10
+      `)
+
+    ])
+
+
+    const percent=(n,d)=>
+      d
+        ? Number(
+            (
+              (Number(n||0)/Number(d))*100
+            ).toFixed(1)
+          )
+        : 0
+
+
+    const growthPercent=(current,previous)=>{
+
+      current=Number(current||0)
+      previous=Number(previous||0)
+
+      if(previous===0){
+        return current>0
+          ? 100
+          : 0
+      }
+
+      return Number(
+        (
+          ((current-previous)/previous)*100
+        ).toFixed(1)
+      )
+    }
+
+
+    const activeSubscriptions=
+      Number(base.professionals?.basic||0)+
+      Number(base.professionals?.premium||0)
+
+
+    const resolvedBookings=
+      Number(booking30.completed||0)+
+      Number(booking30.cancelled||0)
+
+
+    const marketplaceHealth={
+
+      bookingCompletionRate:
+        percent(
+          booking30.completed,
+          resolvedBookings
+        ),
+
+      requestFulfillmentRate:
+        percent(
+          Number(booking30.accepted||0)+
+          Number(booking30.completed||0),
+          booking30.total
+        ),
+
+      repeatCareRate:
+        percent(
+          repeat30.repeatPatients,
+          repeat30.uniquePatients
+        ),
+
+      trustCoverage:
+        percent(
+          trustCoverage.trustEligible,
+          trustCoverage.visible
+        ),
+
+      premiumShare:
+        percent(
+          base.professionals?.premium,
+          activeSubscriptions
+        ),
+
+      patientActivationRate:
+        Number(
+          base.marketplace?.patientActivationRate||0
+        ),
+
+      reviewCoverage:
+        Number(
+          base.marketplace?.reviewCoverage||0
+        ),
+
+      engagedProfessionals30:
+        Number(
+          booking30.engagedProfessionals||0
+        ),
+
+      uniquePatients30:
+        Number(
+          booking30.uniquePatients||0
+        )
+    }
+
+
+    const growthMetrics={
+
+      users30:
+        Number(
+          growth.usersCurrent30||0
+        ),
+
+      usersGrowth:
+        growthPercent(
+          growth.usersCurrent30,
+          growth.usersPrevious30
+        ),
+
+      bookings30:
+        Number(
+          growth.bookingsCurrent30||0
+        ),
+
+      bookingsGrowth:
+        growthPercent(
+          growth.bookingsCurrent30,
+          growth.bookingsPrevious30
+        )
+    }
+
+
+    const alerts=[]
+
+    if(Number(operations.pendingVerifications||0)>0){
+      alerts.push({
+        key:'verification',
+        severity:'warning',
+        count:Number(
+          operations.pendingVerifications
+        ),
+        title:'Αιτήματα επαλήθευσης',
+        text:'Επαγγελματίες περιμένουν έλεγχο.'
+      })
+    }
+
+    if(Number(operations.pastDueSubscriptions||0)>0){
+      alerts.push({
+        key:'past_due',
+        severity:'warning',
+        count:Number(
+          operations.pastDueSubscriptions
+        ),
+        title:'Past-due συνδρομές',
+        text:'Απαιτείται έλεγχος κατάστασης χρέωσης.'
+      })
+    }
+
+    if(Number(operations.failedPayments||0)>0){
+      alerts.push({
+        key:'payments',
+        severity:'critical',
+        count:Number(
+          operations.failedPayments
+        ),
+        title:'Αποτυχημένες πληρωμές',
+        text:'Αποτυχίες πληρωμών μέσα στον τρέχοντα μήνα.'
+      })
+    }
+
+    if(Number(operations.suspendedAccounts||0)>0){
+      alerts.push({
+        key:'suspended',
+        severity:'critical',
+        count:Number(
+          operations.suspendedAccounts
+        ),
+        title:'Suspended accounts',
+        text:'Λογαριασμοί βρίσκονται σε αναστολή.'
+      })
+    }
+
+    if(Number(operations.openReports||0)>0){
+      alerts.push({
+        key:'reports',
+        severity:'critical',
+        count:Number(
+          operations.openReports
+        ),
+        title:'Ανοιχτές αναφορές',
+        text:'Υπάρχουν reports που χρειάζονται διαχειριστικό έλεγχο.'
+      })
+    }
+
+    if(Number(operations.deletionPending||0)>0){
+      alerts.push({
+        key:'deletions',
+        severity:'info',
+        count:Number(
+          operations.deletionPending
+        ),
+        title:'Αιτήματα διαγραφής',
+        text:'Λογαριασμοί περιμένουν ολοκλήρωση διαδικασίας διαγραφής.'
+      })
+    }
+
+
+    const revenueTrend=
+      revenueTrend30.map(x=>({
+        date:x.date,
+        amount:Number(x.amount||0)
+      }))
+
+
+    return {
+
+      generatedAt:
+        new Date().toISOString(),
+
+      executive:{
+        mrr:
+          Number(
+            base.revenue?.subscriptionMrr||0
+          ),
+
+        arr:
+          Number(
+            base.revenue?.subscriptionArr||0
+          ),
+
+        activeSubscriptions,
+
+        activeProfessionals:
+          Number(
+            base.professionals?.publiclyVisible||0
+          ),
+
+        patients:
+          Number(
+            base.accounts?.patients||0
+          ),
+
+        bookings30:
+          Number(
+            booking30.total||0
+          ),
+
+        gmv30:
+          Number(
+            booking30.gmv||0
+          ),
+
+        collectedThisMonth:
+          Number(
+            base.revenue?.collectedRevenue||0
+          )
+      },
+
+      subscriptionHealth:{
+        basic:
+          Number(
+            base.professionals?.basic||0
+          ),
+
+        premium:
+          Number(
+            base.professionals?.premium||0
+          ),
+
+        active:
+          activeSubscriptions,
+
+        pastDue:
+          Number(
+            base.professionals?.pastDue||0
+          ),
+
+        cancelled:
+          Number(
+            base.professionals?.churned||0
+          ),
+
+        premiumShare:
+          marketplaceHealth.premiumShare
+      },
+
+      marketplaceHealth,
+
+      growth:growthMetrics,
+
+      operations:{
+        pendingVerifications:
+          Number(
+            operations.pendingVerifications||0
+          ),
+
+        pastDueSubscriptions:
+          Number(
+            operations.pastDueSubscriptions||0
+          ),
+
+        failedPayments:
+          Number(
+            operations.failedPayments||0
+          ),
+
+        suspendedAccounts:
+          Number(
+            operations.suspendedAccounts||0
+          ),
+
+        deletionPending:
+          Number(
+            operations.deletionPending||0
+          ),
+
+        openReports:
+          Number(
+            operations.openReports||0
+          )
+      },
+
+      alerts,
+
+      trends:{
+        bookings30:
+          bookingsTrend30,
+
+        registrations30:
+          registrationsTrend30,
+
+        revenue30:
+          revenueTrend
+      },
+
+      marketplace:{
+        specialties:
+          specialtyHealth,
+
+        cities:
+          cityHealth
+      },
+
+      base
+    }
   }
 }
+
 
 export async function audit(actorId,action,meta={}){await sql(`INSERT INTO audit_logs(id,actor_id,action,meta) VALUES($1,$2,$3,$4)`,[id('log'),actorId||null,action,meta])}
