@@ -656,20 +656,18 @@ const activeConversation=
 
         <div className="inbox-chat-person">
 
-          <div className="inbox-avatar large">
-            {initials(
-              activeConversation.patientName||
-              activeConversation.patient?.name||
-              'Ασθενής'
-            )}
-          </div>
+<div className="inbox-avatar large">
+  {initials(
+    activeConversation.patientName||
+    'Ασθενής'
+  )}
+</div>
 
-          <div>
-            <strong>
-              {activeConversation.patientName||
-               activeConversation.patient?.name||
-               'Ασθενής MELEO'}
-            </strong>
+<div>
+  <strong>
+    {activeConversation.patientName||
+     'Ασθενής MELEO'}
+  </strong>
 
             <span>
               {activeConversation.service||

@@ -1,5 +1,55 @@
-export type User = { id:string; role:'patient'|'professional'|'admin'; name:string; email:string; phone?:string }
-export type Professional = { id:string; userId:string; name:string; title:string; specialty?:string; verified:boolean; featured:boolean; subscriptionPlan?:'basic'|'premium'; subscriptionPrice?:number; subscriptionStatus?:'none'|'pending'|'active'|'past_due'|'cancelled'; onboardingCompleted?:boolean; onboardingStage?:string; rating:number; reviews:number; distance:number; city:string; area:string; region?:string; countryCode?:string; latitude?:number; longitude?:number; serviceRadiusKm?:number; available:string; bio:string; years:number; price:number; pricingMode?:'from'|'contact'; services:string[]; availability:string[]; languages?:string[]; credentials?:string[]; responseTime?:string; phone?:string; email?:string; showPhone?:boolean; showEmail?:boolean; preferPlatformContact?:boolean; contactPreference?:'platform'|'direct' }
+export type User = {
+  id:string
+  role:'patient'|'professional'|'admin'
+  name:string
+  email:string
+  phone?:string
+  profilePhotoUrl?:string
+  avatarKey?:string
+}
+
+export type Professional = {
+  id:string
+  userId:string
+  name:string
+  title:string
+  specialty?:string
+  verified:boolean
+  featured:boolean
+  subscriptionPlan?:'basic'|'premium'
+  subscriptionPrice?:number
+  subscriptionStatus?:'none'|'pending'|'active'|'past_due'|'cancelled'
+  onboardingCompleted?:boolean
+  onboardingStage?:string
+  rating:number
+  reviews:number
+  distance:number
+  city:string
+  area:string
+  region?:string
+  countryCode?:string
+  latitude?:number
+  longitude?:number
+  serviceRadiusKm?:number
+  available:string
+  bio:string
+  years:number
+  price:number
+  pricingMode?:'from'|'contact'
+  services:string[]
+  availability:string[]
+  languages?:string[]
+  credentials?:string[]
+  responseTime?:string
+  phone?:string
+  email?:string
+  showPhone?:boolean
+  showEmail?:boolean
+  preferPlatformContact?:boolean
+  contactPreference?:'platform'|'direct'
+  profilePhotoUrl?:string
+  avatarKey?:string
+}
 export type BookingMessage = { id:string; fromRole:string; fromName:string; text:string; createdAt:string }
 export type Booking = { id:string; patientId:string; professionalId:string; service:string; date:string; time:string; address:string; notes:string; repeat:string; status:string; price:number; agreedPrice?:number|null; proposedPrice?:number|null; professionalName?:string; patientName?:string; patientEmail?:string; patientPhone?:string; professionalEmail?:string; professionalPhone?:string; messages?:BookingMessage[]; reviewed?:boolean; review?:any; specialty?:string; subscriptionPlan?:string }
 export type Plan={id:'basic'|'premium';name:string;price:number;currency:string;interval:string;recommended:boolean;features:string[]}
