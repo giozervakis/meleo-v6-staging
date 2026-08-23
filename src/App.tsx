@@ -1595,63 +1595,1064 @@ function PatientDashboard({user,token,openPro,startBooking,cfg,setView,setToast}
  async function sendReply(id:string){if(!reply.trim())return;await api('/bookings/'+id+'/message',{method:'POST',body:JSON.stringify({text:reply})},token);setReply('');refresh()}
  async function quoteDecision(id:string,decision:string){await api('/bookings/'+id+'/quote-decision',{method:'POST',body:JSON.stringify({decision})},token);refresh()}
  async function bookAgain(b:any){try{const d=await api('/professionals/'+b.professionalId);const p=d.professional||d;startBooking(p,{service:b.service,address:b.address,repeat:b.repeat||'once'});setToast('Έτοιμο — επίλεξε νέα ημερομηνία και ώρα.')}catch(e:any){setToast(e.message)}}
+const now = new Date()
 
- return <section className="page dashboard-page"><div className="container"><VerifyEmailBanner user={user} token={token} cfg={cfg} setToast={setToast}/><DashboardHead eyebrow="Ο ΛΟΓΑΡΙΑΣΜΟΣ ΜΟΥ" title={`Καλησπέρα, ${user.name.split(' ')[0]}`} subtitle="Οι κρατήσεις, οι διευκρινίσεις και οι αξιολογήσεις σου σε ένα σημείο."/><div className="dash-grid"><div className="dash-main">{careTeam.length>0&&<section className="care-team-section"><div className="care-team-head"><div><span>Η ΟΜΑΔΑ ΦΡΟΝΤΙΔΑΣ ΜΟΥ</span><h3>Οι άνθρωποι που εμπιστεύεσαι.</h3><p>Αγαπημένοι επαγγελματίες και γρήγορη επανάληψη φροντίδας χωρίς νέα αναζήτηση.</p></div></div><div className="care-team-grid">{careTeam.slice(0,6).map((p:any)=><article className="care-team-card" key={p.id}><div className="care-team-top"><div className="avatar">{initials(p.name)}</div><div><b>{p.name}</b><span>{p.title} · {p.city}</span></div>{p.trust?.eligible?<strong className="care-trust">{p.trust.score}</strong>:<strong className="care-trust new">NEW</strong>}</div><div className="care-team-meta"><span>★ {p.rating||'Νέο'}</span>{p.lastCompleted&&<span>Τελευταία επίσκεψη · {new Date(p.lastCompleted.date).toLocaleDateString('el-GR')}</span>}</div><div className="care-team-actions"><button className="btn btn-dark" onClick={()=>startBooking(p,p.lastCompleted?{service:p.lastCompleted.service,address:p.lastCompleted.address,repeat:'once'}:null)}>Ζήτησε ξανά επίσκεψη</button><button className="btn btn-outline" onClick={()=>openPro(p)}>Προφίλ</button></div></article>)}</div></section>}<h3>Οι κρατήσεις μου</h3>{bookings.length?bookings.map(b=><div className="patient-request-wrap" key={b.id}><div
-  className={`booking-row booking-card-premium clickable booking-${b.status}`}
-  onClick={()=>setOpen(open===b.id?'':b.id)}
->
-  <div className="booking-accent"/>
+const upcomingBookings = bookings
+  .filter((b:any)=>
+    ['pending','clarification','quoted','accepted'].includes(b.status)
+  )
+  .sort((a:any,b:any)=>{
+    const ad = new Date(`${a.date}T${a.time||'00:00'}`).getTime()
+    const bd = new Date(`${b.date}T${b.time||'00:00'}`).getTime()
+    return ad-bd
+  })
 
-  <div className="date-tile premium-date">
-    <b>{b.date.slice(8,10)}</b>
-    <span>{b.date.slice(5,7)}</span>
-  </div>
+const completedBookings = bookings.filter(
+  (b:any)=>b.status==='completed'
+)
 
-  <div className="booking-info premium-booking-info">
-    <b className="booking-service">{b.service}</b>
+const pendingBookings = bookings.filter(
+  (b:any)=>b.status==='pending'
+)
 
-    <span className="booking-professional">
-      {b.professionalName}
-    </span>
+const clarificationBookings = bookings.filter(
+  (b:any)=>b.status==='clarification'
+)
 
-    <div className="booking-meta">
-      <span>◷ {b.time}</span>
-      {b.address && <span>⌖ {b.address}</span>}
+const quotedBookings = bookings.filter(
+  (b:any)=>b.status==='quoted'
+)
+
+const acceptedBookings = bookings.filter(
+  (b:any)=>b.status==='accepted'
+)
+
+const cancelledBookings = bookings.filter(
+  (b:any)=>b.status==='cancelled'
+)
+
+const pendingReviews = completedBookings.filter(
+  (b:any)=>!b.reviewed
+)
+
+const nextBooking =
+  upcomingBookings.find((b:any)=>{
+    const when = new Date(
+      `${b.date}T${b.time||'00:00'}`
+    )
+
+    return when.getTime() >= now.getTime()
+  }) || upcomingBookings[0] || null
+
+const activeRequests =
+  pendingBookings.length +
+  clarificationBookings.length +
+  quotedBookings.length +
+  acceptedBookings.length
+
+const needsAttention =
+  clarificationBookings.length +
+  quotedBookings.length +
+  pendingReviews.length
+
+const uniqueProfessionals =
+  new Set(
+    completedBookings
+      .map((b:any)=>b.professionalId)
+      .filter(Boolean)
+  ).size
+
+const careActivity = [
+  ...bookings
+]
+  .sort((a:any,b:any)=>{
+    const ad = new Date(
+      `${a.date||''}T${a.time||'00:00'}`
+    ).getTime()
+
+    const bd = new Date(
+      `${b.date||''}T${b.time||'00:00'}`
+    ).getTime()
+
+    return bd-ad
+  })
+  .slice(0,5)
+
+const patientJourneyLevel =
+  completedBookings.length>=10
+    ? 'MELEO Regular'
+    : completedBookings.length>=5
+      ? 'Active Care'
+      : completedBookings.length>=1
+        ? 'Care Started'
+        : 'Getting Started'
+
+const careContinuity =
+  completedBookings.length
+    ? Math.min(
+        100,
+        Math.round(
+          (
+            Math.min(completedBookings.length,10)*6 +
+            Math.min(careTeam.length,5)*8
+          )
+        )
+      )
+    : 0
+
+const attentionMessage =
+  quotedBookings.length>0
+    ? `Έχεις ${quotedBookings.length} ${
+        quotedBookings.length===1
+          ? 'πρόταση κόστους'
+          : 'προτάσεις κόστους'
+      } για έλεγχο.`
+    : clarificationBookings.length>0
+      ? `Υπάρχουν ${clarificationBookings.length} ${
+          clarificationBookings.length===1
+            ? 'αίτημα'
+            : 'αιτήματα'
+        } που χρειάζονται διευκρίνιση.`
+      : pendingReviews.length>0
+        ? `Έχεις ${pendingReviews.length} ${
+            pendingReviews.length===1
+              ? 'ολοκληρωμένη επίσκεψη'
+              : 'ολοκληρωμένες επισκέψεις'
+          } που περιμένουν αξιολόγηση.`
+        : activeRequests>0
+          ? 'Η MELEO παρακολουθεί τα ενεργά αιτήματά σου.'
+          : completedBookings.length>0
+            ? 'Η φροντίδα σου είναι ενημερωμένη.'
+            : 'Ξεκίνα βρίσκοντας τον κατάλληλο επαγγελματία.'
+			
+return (
+  <section className="page patient-care-page">
+    <div className="container">
+
+      <VerifyEmailBanner
+        user={user}
+        token={token}
+        cfg={cfg}
+        setToast={setToast}
+      />
+
+      <div className="patient-care-hero">
+
+        <div className="patient-care-hero-copy">
+          <span className="patient-care-kicker">
+            MELEO PERSONAL CARE
+          </span>
+
+          <h1>
+            Καλησπέρα, {user.name.split(' ')[0]}
+          </h1>
+
+          <p>
+            Η φροντίδα σου, οι άνθρωποί σου και οι επόμενες κινήσεις
+            σου σε ένα προσωπικό κέντρο.
+          </p>
+
+          <div className="patient-care-hero-status">
+            <span>{patientJourneyLevel}</span>
+
+            {needsAttention>0
+              ? <b>{needsAttention} χρειάζονται προσοχή</b>
+              : <b>Όλα ενημερωμένα</b>
+            }
+          </div>
+        </div>
+
+        <div className="patient-care-identity">
+          <IdentityAvatar
+            name={user.name}
+            photoUrl={user.profilePhotoUrl}
+            avatarKey={user.avatarKey}
+            size="xl"
+          />
+
+          <div>
+            <b>{user.name}</b>
+            <small>{user.email}</small>
+            <span>Personal Care Member</span>
+          </div>
+        </div>
+
+      </div>
+
+
+      <div className="patient-care-metrics">
+
+        <div className="patient-care-metric">
+          <span>💬</span>
+          <strong>{activeRequests}</strong>
+          <b>Ενεργά αιτήματα</b>
+          <small>σε εξέλιξη</small>
+        </div>
+
+        <div className="patient-care-metric">
+          <span>✓</span>
+          <strong>{completedBookings.length}</strong>
+          <b>Ολοκληρωμένες</b>
+          <small>επισκέψεις</small>
+        </div>
+
+        <div className="patient-care-metric">
+          <span>♡</span>
+          <strong>{careTeam.length}</strong>
+          <b>Ομάδα Φροντίδας</b>
+          <small>αγαπημένοι επαγγελματίες</small>
+        </div>
+
+        <div className="patient-care-metric">
+          <span>★</span>
+          <strong>{pendingReviews.length}</strong>
+          <b>Αξιολογήσεις</b>
+          <small>σε αναμονή</small>
+        </div>
+
+        <div className="patient-care-metric">
+          <span>◎</span>
+          <strong>{uniqueProfessionals}</strong>
+          <b>Επαγγελματίες</b>
+          <small>που σε εξυπηρέτησαν</small>
+        </div>
+
+        <div className="patient-care-metric">
+          <span>↻</span>
+          <strong>{careContinuity}%</strong>
+          <b>Care Continuity</b>
+          <small>συνέχεια φροντίδας</small>
+        </div>
+
+      </div>
+
+
+      <div className="patient-care-grid">
+
+        <div className="patient-care-main">
+
+
+          <section className="patient-command-panel next-care-panel">
+
+            <div className="patient-panel-head">
+              <div>
+                <small>NEXT CARE</small>
+                <h3>Η επόμενη φροντίδα σου</h3>
+              </div>
+
+              {nextBooking&&
+                <span className={`status premium-status ${nextBooking.status}`}>
+                  {statusLabel(nextBooking.status)}
+                </span>
+              }
+            </div>
+
+            {nextBooking
+              ? <div className="next-care-content">
+
+                  <div className="next-care-date">
+                    <strong>
+                      {nextBooking.date.slice(8,10)}
+                    </strong>
+
+                    <span>
+                      {new Date(
+                        `${nextBooking.date}T00:00:00`
+                      ).toLocaleDateString(
+                        'el-GR',
+                        {month:'short'}
+                      )}
+                    </span>
+
+                    <small>
+                      {nextBooking.time}
+                    </small>
+                  </div>
+
+                  <div className="next-care-info">
+                    <small>ΕΠΑΓΓΕΛΜΑΤΙΑΣ</small>
+
+                    <h4>
+                      {nextBooking.professionalName}
+                    </h4>
+
+                    <b>
+                      {nextBooking.service}
+                    </b>
+
+                    {nextBooking.address&&
+                      <span>
+                        ⌖ {nextBooking.address}
+                      </span>
+                    }
+
+                    <div className="next-care-actions">
+
+                      <button
+                        className="btn btn-dark"
+                        onClick={()=>
+                          setOpen(nextBooking.id)
+                        }
+                      >
+                        Προβολή αιτήματος
+                      </button>
+
+                      {nextBooking.professionalPhone&&
+                        <a
+                          className="btn btn-outline"
+                          href={`tel:${nextBooking.professionalPhone}`}
+                        >
+                          ☎ Επικοινωνία
+                        </a>
+                      }
+
+                    </div>
+                  </div>
+
+                </div>
+
+              : <div className="next-care-empty">
+
+                  <div>✦</div>
+
+                  <div>
+                    <h4>
+                      Δεν υπάρχει προγραμματισμένη φροντίδα
+                    </h4>
+
+                    <p>
+                      Βρες τον κατάλληλο επαγγελματία ή
+                      χρησιμοποίησε το Smart Request.
+                    </p>
+
+                    <div>
+                      <button
+                        className="btn btn-dark"
+                        onClick={()=>setView('search')}
+                      >
+                        Αναζήτηση επαγγελματία
+                      </button>
+
+                      <button
+                        className="btn btn-outline"
+                        onClick={()=>setView('smart')}
+                      >
+                        Smart Request
+                      </button>
+                    </div>
+                  </div>
+
+                </div>
+            }
+
+          </section>
+
+
+          {needsAttention>0&&
+            <section className="patient-attention-panel">
+
+              <div className="patient-attention-icon">
+                !
+              </div>
+
+              <div>
+                <small>ΧΡΕΙΑΖΕΤΑΙ ΕΝΕΡΓΕΙΑ</small>
+                <h3>{attentionMessage}</h3>
+
+                <p>
+                  Άνοιξε τις κρατήσεις σου για να συνεχίσει
+                  ομαλά η διαδικασία φροντίδας.
+                </p>
+              </div>
+
+            </section>
+          }
+
+
+          {careTeam.length>0&&
+            <section className="patient-command-panel">
+
+              <div className="patient-panel-head">
+                <div>
+                  <small>MY CARE TEAM</small>
+                  <h3>Η Ομάδα Φροντίδας μου</h3>
+                </div>
+
+                <span>
+                  {careTeam.length} επαγγελματίες
+                </span>
+              </div>
+
+              <p className="patient-panel-intro">
+                Οι άνθρωποι που ήδη γνωρίζεις και εμπιστεύεσαι.
+                Μπορείς να ζητήσεις ξανά φροντίδα χωρίς νέα αναζήτηση.
+              </p>
+
+              <div className="patient-care-team-grid">
+
+                {careTeam.slice(0,6).map((p:any)=>
+                  <article
+                    className="patient-care-team-card"
+                    key={p.id}
+                  >
+
+                    <div className="patient-care-team-top">
+
+                      <IdentityAvatar
+                        name={p.name}
+                        photoUrl={p.profilePhotoUrl}
+                        avatarKey={p.avatarKey}
+                        size="md"
+                      />
+
+                      <div>
+                        <b>{p.name}</b>
+                        <span>
+                          {p.title}
+                          {p.city ? ` · ${p.city}` : ''}
+                        </span>
+                      </div>
+
+                      {p.trust?.eligible
+                        ? <strong className="patient-care-trust">
+                            {p.trust.score}
+                          </strong>
+                        : <strong className="patient-care-trust new">
+                            NEW
+                          </strong>
+                      }
+
+                    </div>
+
+                    <div className="patient-care-team-meta">
+
+                      <span>
+                        ★ {p.rating||'Νέο'}
+                      </span>
+
+                      {p.lastCompleted&&
+                        <span>
+                          Τελευταία επίσκεψη ·{' '}
+                          {new Date(
+                            p.lastCompleted.date
+                          ).toLocaleDateString('el-GR')}
+                        </span>
+                      }
+
+                    </div>
+
+                    <div className="patient-care-team-actions">
+
+                      <button
+                        className="btn btn-dark"
+                        onClick={()=>
+                          startBooking(
+                            p,
+                            p.lastCompleted
+                              ? {
+                                  service:p.lastCompleted.service,
+                                  address:p.lastCompleted.address,
+                                  repeat:'once'
+                                }
+                              : null
+                          )
+                        }
+                      >
+                        Ζήτησε ξανά
+                      </button>
+
+                      <button
+                        className="btn btn-outline"
+                        onClick={()=>openPro(p)}
+                      >
+                        Προφίλ
+                      </button>
+
+                    </div>
+
+                  </article>
+                )}
+
+              </div>
+
+            </section>
+          }
+
+
+          <section className="patient-command-panel">
+
+            <div className="patient-panel-head">
+              <div>
+                <small>MY REQUESTS</small>
+                <h3>Οι κρατήσεις μου</h3>
+              </div>
+
+              <span>
+                {bookings.length} συνολικά
+              </span>
+            </div>
+
+            {bookings.length
+              ? bookings.map(b=>
+
+                  <div
+                    className="patient-request-wrap"
+                    key={b.id}
+                  >
+
+                    <div
+                      className={`booking-row booking-card-premium clickable booking-${b.status}`}
+                      onClick={()=>
+                        setOpen(
+                          open===b.id
+                            ? ''
+                            : b.id
+                        )
+                      }
+                    >
+
+                      <div className="booking-accent"/>
+
+                      <div className="date-tile premium-date">
+                        <b>{b.date.slice(8,10)}</b>
+                        <span>{b.date.slice(5,7)}</span>
+                      </div>
+
+                      <div className="booking-info premium-booking-info">
+
+                        <b className="booking-service">
+                          {b.service}
+                        </b>
+
+                        <span className="booking-professional">
+                          {b.professionalName}
+                        </span>
+
+                        <div className="booking-meta">
+                          <span>◷ {b.time}</span>
+
+                          {b.address&&
+                            <span>
+                              ⌖ {b.address}
+                            </span>
+                          }
+                        </div>
+
+                      </div>
+
+                      <div className="booking-card-right">
+
+                        <b className="booking-price">
+                          {b.agreedPrice
+                            ? `${b.agreedPrice}€`
+                            : b.proposedPrice
+                              ? `${b.proposedPrice}€`
+                              : b.price
+                                ? `Από ${b.price}€`
+                                : '—'
+                          }
+                        </b>
+
+                        <span
+                          className={
+                            'status premium-status '+
+                            b.status
+                          }
+                        >
+                          {statusLabel(b.status)}
+                        </span>
+
+                        <button
+                          className="small-action premium-details-btn"
+                          onClick={e=>{
+                            e.stopPropagation()
+
+                            setOpen(
+                              open===b.id
+                                ? ''
+                                : b.id
+                            )
+                          }}
+                        >
+                          {open===b.id
+                            ? 'Κλείσιμο'
+                            : 'Λεπτομέρειες'
+                          }
+
+                          <span className="details-arrow">
+                            {open===b.id
+                              ? '↑'
+                              : '›'
+                            }
+                          </span>
+                        </button>
+
+                      </div>
+                    </div>
+
+
+                    {open===b.id&&
+                      <div className="patient-request-detail">
+
+                        <div className="request-detail-grid">
+
+                          <div>
+                            <small>Επαγγελματίας</small>
+                            <b>{b.professionalName}</b>
+                            <span>{b.professionalEmail}</span>
+                            <span>{b.professionalPhone}</span>
+                          </div>
+
+                          <div>
+                            <small>Αίτημα</small>
+                            <b>{b.service}</b>
+                            <span>
+                              {b.date} · {b.time}
+                            </span>
+                            <span>
+                              {repeatLabel(b.repeat)}
+                            </span>
+                          </div>
+
+                        </div>
+
+                        {b.notes&&
+                          <div className="request-description">
+                            <small>Περιγραφή ανάγκης</small>
+                            <p>{b.notes}</p>
+                          </div>
+                        }
+
+                        <Conversation
+                          messages={b.messages||[]}
+                        />
+
+                        <CalendarActions
+                          booking={b}
+                        />
+
+                        {b.status==='quoted'&&
+                          <div className="quote-box">
+
+                            <span>
+                              Προτεινόμενο τελικό κόστος
+                            </span>
+
+                            <strong>
+                              {b.proposedPrice}€
+                            </strong>
+
+                            <small>
+                              Επιβεβαίωσε μόνο εφόσον έχεις
+                              συμφωνήσει με τον επαγγελματία.
+                            </small>
+
+                            <div>
+
+                              <button
+                                className="accept"
+                                onClick={()=>
+                                  quoteDecision(
+                                    b.id,
+                                    'accept'
+                                  )
+                                }
+                              >
+                                Αποδοχή & επιβεβαίωση
+                              </button>
+
+                              <button
+                                className="small-action"
+                                onClick={()=>
+                                  quoteDecision(
+                                    b.id,
+                                    'reject'
+                                  )
+                                }
+                              >
+                                Δεν συμφωνώ
+                              </button>
+
+                            </div>
+                          </div>
+                        }
+
+                        {[
+                          'pending',
+                          'clarification',
+                          'quoted'
+                        ].includes(b.status)&&
+                          <div className="reply-box">
+
+                            <textarea
+                              placeholder="Απάντησε ή πρόσθεσε διευκρινίσεις…"
+                              value={reply}
+                              onChange={e=>
+                                setReply(e.target.value)
+                              }
+                            />
+
+                            <button
+                              className="btn btn-dark"
+                              onClick={()=>
+                                sendReply(b.id)
+                              }
+                            >
+                              Αποστολή απάντησης
+                            </button>
+
+                          </div>
+                        }
+
+                        {[
+                          'pending',
+                          'clarification',
+                          'quoted',
+                          'accepted'
+                        ].includes(b.status)&&
+                          <button
+                            className="text-btn danger"
+                            onClick={()=>cancel(b.id)}
+                          >
+                            Ακύρωση αιτήματος
+                          </button>
+                        }
+
+
+                        {b.status==='cancelled'&&
+                          <div className="smart-recovery">
+
+                            <div className="recovery-head">
+                              <span>
+                                MELEO SMART RECOVERY
+                              </span>
+
+                              <h4>
+                                Η φροντίδα σου μπορεί να συνεχιστεί
+                                χωρίς νέα αναζήτηση.
+                              </h4>
+
+                              <p>
+                                Η MELEO μπορεί να προτείνει έως 3
+                                άλλους κατάλληλους επαγγελματίες
+                                για την ίδια υπηρεσία.
+                              </p>
+                            </div>
+
+                            {!recovery[b.id]&&
+                              <button
+                                className="btn btn-dark"
+                                disabled={
+                                  recoveryBusy===b.id
+                                }
+                                onClick={()=>
+                                  loadRecovery(b.id)
+                                }
+                              >
+                                {recoveryBusy===b.id
+                                  ? 'Αναζήτηση…'
+                                  : 'Βρες νέους επαγγελματίες'
+                                }
+                              </button>
+                            }
+
+                            {recovery[b.id]?.length===0&&
+                              <p className="muted">
+                                Δεν βρέθηκαν αυτή τη στιγμή
+                                άλλοι συμβατοί επαγγελματίες.
+                              </p>
+                            }
+
+                            {recovery[b.id]?.map((p:any)=>
+                              <div
+                                className="recovery-card"
+                                key={p.id}
+                              >
+
+                                <IdentityAvatar
+                                  name={p.name}
+                                  photoUrl={p.profilePhotoUrl}
+                                  avatarKey={p.avatarKey}
+                                  size="sm"
+                                />
+
+                                <div>
+                                  <b>{p.name}</b>
+                                  <span>
+                                    {p.title} · {p.city}
+                                  </span>
+                                  <small>
+                                    ★ {p.rating||'Νέο'} · {priceLabel(p,true)}
+                                  </small>
+                                </div>
+
+                                <button
+                                  className="btn btn-outline"
+                                  disabled={
+                                    recoveryBusy===b.id
+                                  }
+                                  onClick={()=>
+                                    recover(b.id,p.id)
+                                  }
+                                >
+                                  Αποστολή ίδιου αιτήματος
+                                </button>
+
+                              </div>
+                            )}
+
+                          </div>
+                        }
+
+
+                        {b.status==='completed'&&
+                          <>
+                            <div className="call-again-box">
+
+                              <div>
+                                <span>
+                                  ΓΝΩΡΙΜΗ ΦΡΟΝΤΙΔΑ
+                                </span>
+
+                                <b>
+                                  Χρειάζεσαι ξανά τον ίδιο επαγγελματία;
+                                </b>
+
+                                <small>
+                                  Η υπηρεσία και η διεύθυνση
+                                  θα συμπληρωθούν αυτόματα.
+                                </small>
+                              </div>
+
+                              <button
+                                className="btn btn-dark"
+                                onClick={()=>bookAgain(b)}
+                              >
+                                Ζήτησε ξανά επίσκεψη
+                              </button>
+
+                            </div>
+
+                            <ReviewComposer
+                              booking={b}
+                              token={token}
+                              onDone={refresh}
+                              setToast={setToast}
+                            />
+                          </>
+                        }
+
+                      </div>
+                    }
+
+                  </div>
+                )
+
+              : <Empty
+                  title="Δεν έχεις ακόμη κρατήσεις"
+                  text="Η επόμενη φροντίδα σου απέχει λίγα clicks."
+                />
+            }
+
+          </section>
+
+        </div>
+
+
+        <aside className="patient-care-side">
+
+
+          <section className="patient-command-panel care-status-panel">
+
+            <div className="patient-panel-head">
+              <div>
+                <small>CARE STATUS</small>
+                <h3>Η φροντίδα σου</h3>
+              </div>
+            </div>
+
+            <div className="care-continuity-score">
+
+              <strong>
+                {careContinuity}%
+              </strong>
+
+              <span>
+                Care Continuity
+              </span>
+
+            </div>
+
+            <div className="care-status-list">
+
+              <div>
+                <span>Ενεργά αιτήματα</span>
+                <b>{activeRequests}</b>
+              </div>
+
+              <div>
+                <span>Επιβεβαιωμένες</span>
+                <b>{acceptedBookings.length}</b>
+              </div>
+
+              <div>
+                <span>Ολοκληρωμένες</span>
+                <b>{completedBookings.length}</b>
+              </div>
+
+              <div>
+                <span>Ομάδα Φροντίδας</span>
+                <b>{careTeam.length}</b>
+              </div>
+
+            </div>
+
+          </section>
+
+
+          {careActivity.length>0&&
+            <section className="patient-command-panel">
+
+              <div className="patient-panel-head">
+                <div>
+                  <small>CARE ACTIVITY</small>
+                  <h3>Πρόσφατη δραστηριότητα</h3>
+                </div>
+              </div>
+
+              <div className="patient-activity-list">
+
+                {careActivity.map((b:any)=>
+                  <div
+                    className="patient-activity-item"
+                    key={b.id}
+                  >
+
+                    <span
+                      className={`activity-dot ${b.status}`}
+                    />
+
+                    <div>
+                      <b>{b.service}</b>
+
+                      <span>
+                        {b.professionalName}
+                      </span>
+
+                      <small>
+                        {new Date(
+                          `${b.date}T${b.time||'00:00'}`
+                        ).toLocaleDateString('el-GR')}
+                        {' · '}
+                        {statusLabel(b.status)}
+                      </small>
+                    </div>
+
+                  </div>
+                )}
+
+              </div>
+
+            </section>
+          }
+
+
+          <section className="patient-command-panel patient-quick-actions">
+
+            <div className="patient-panel-head">
+              <div>
+                <small>QUICK ACTIONS</small>
+                <h3>Τι θέλεις να κάνεις;</h3>
+              </div>
+            </div>
+
+            <button
+              onClick={()=>setView('search')}
+            >
+              <span>⌕</span>
+
+              <div>
+                <b>Βρες επαγγελματία</b>
+                <small>
+                  Αναζήτηση ανά ειδικότητα και περιοχή
+                </small>
+              </div>
+
+              <em>›</em>
+            </button>
+
+            <button
+              onClick={()=>setView('smart')}
+            >
+              <span>✦</span>
+
+              <div>
+                <b>Smart Request</b>
+                <small>
+                  Περιέγραψε τι χρειάζεσαι
+                </small>
+              </div>
+
+              <em>›</em>
+            </button>
+
+            <button
+              onClick={()=>setView('now')}
+            >
+              <span>⚡</span>
+
+              <div>
+                <b>MELEO Now</b>
+                <small>
+                  Βρες διαθέσιμο επαγγελματία
+                </small>
+              </div>
+
+              <em>›</em>
+            </button>
+
+            <button
+              onClick={()=>setView('account')}
+            >
+              <span>⚙</span>
+
+              <div>
+                <b>Ρυθμίσεις λογαριασμού</b>
+                <small>
+                  Προφίλ, ασφάλεια και εικόνα
+                </small>
+              </div>
+
+              <em>›</em>
+            </button>
+
+          </section>
+
+
+          <section className="patient-safety-card">
+
+            <b>
+              Ασφάλεια πρώτα
+            </b>
+
+            <p>
+              Σε επείγουσα κατάσταση κάλεσε{' '}
+              <strong>
+                {cfg?.emergencyNumber||'112'}
+              </strong>.
+              Η MELEO δεν είναι υπηρεσία επειγόντων
+              και δεν παρέχει ιατρικές συμβουλές.
+            </p>
+
+          </section>
+
+        </aside>
+
+      </div>
+
     </div>
-  </div>
-
-  <div className="booking-card-right">
-
-    <b className="booking-price">
-      {b.agreedPrice
-        ? `${b.agreedPrice}€`
-        : b.proposedPrice
-        ? `${b.proposedPrice}€`
-        : b.price
-        ? `Από ${b.price}€`
-        : '—'}
-    </b>
-
-    <span className={'status premium-status '+b.status}>
-      {statusLabel(b.status)}
-    </span>
-
-    <button
-      className="small-action premium-details-btn"
-      onClick={e=>{
-        e.stopPropagation()
-        setOpen(open===b.id?'':b.id)
-      }}
-    >
-      {open===b.id ? 'Κλείσιμο' : 'Λεπτομέρειες'}
-
-      <span className="details-arrow">
-        {open===b.id ? '↑' : '›'}
-      </span>
-    </button>
-
-  </div>
-</div>{open===b.id&&<div className="patient-request-detail"><div className="request-detail-grid"><div><small>Επαγγελματίας</small><b>{b.professionalName}</b><span>{b.professionalEmail}</span><span>{b.professionalPhone}</span></div><div><small>Αίτημα</small><b>{b.service}</b><span>{b.date} · {b.time}</span><span>{repeatLabel(b.repeat)}</span></div></div>{b.notes&&<div className="request-description"><small>Περιγραφή ανάγκης</small><p>{b.notes}</p></div>}<Conversation messages={b.messages||[]}/><CalendarActions booking={b}/>{b.status==='quoted'&&<div className="quote-box"><span>Προτεινόμενο τελικό κόστος</span><strong>{b.proposedPrice}€</strong><small>Επιβεβαίωσε μόνο εφόσον έχεις συμφωνήσει με τον επαγγελματία.</small><div><button className="accept" onClick={()=>quoteDecision(b.id,'accept')}>Αποδοχή & επιβεβαίωση</button><button className="small-action" onClick={()=>quoteDecision(b.id,'reject')}>Δεν συμφωνώ</button></div></div>}{['pending','clarification','quoted'].includes(b.status)&&<div className="reply-box"><textarea placeholder="Απάντησε ή πρόσθεσε διευκρινίσεις…" value={reply} onChange={e=>setReply(e.target.value)}/><button className="btn btn-dark" onClick={()=>sendReply(b.id)}>Αποστολή απάντησης</button></div>}{['pending','clarification','quoted','accepted'].includes(b.status)&&<button className="text-btn danger" onClick={()=>cancel(b.id)}>Ακύρωση αιτήματος</button>}{b.status==='cancelled'&&<div className="smart-recovery"><div className="recovery-head"><span>MELEO SMART RECOVERY</span><h4>Η φροντίδα σου μπορεί να συνεχιστεί χωρίς νέα αναζήτηση.</h4><p>Δεν έχει σημασία που δεν προχώρησε η συνεργασία με τον συγκεκριμένο επαγγελματία. Η MELEO μπορεί να προτείνει έως 3 άλλους κατάλληλους επαγγελματίες για την ίδια υπηρεσία, με προτεραιότητα στην ίδια περιοχή.</p></div>{!recovery[b.id]&&<button className="btn btn-dark" disabled={recoveryBusy===b.id} onClick={()=>loadRecovery(b.id)}>{recoveryBusy===b.id?'Αναζήτηση…':'Βρες νέους επαγγελματίες'}</button>}{recovery[b.id]?.length===0&&<p className="muted">Δεν βρέθηκαν αυτή τη στιγμή άλλοι συμβατοί επαγγελματίες. Μπορείς να κάνεις νέα αναζήτηση.</p>}{recovery[b.id]?.map((p:any)=><div className="recovery-card" key={p.id}><div className="avatar">{initials(p.name)}</div><div><b>{p.name}</b><span>{p.title} · {p.city}</span><small>★ {p.rating||'Νέο'} · {priceLabel(p,true)}</small></div><button className="btn btn-outline" disabled={recoveryBusy===b.id} onClick={()=>recover(b.id,p.id)}>Αποστολή ίδιου αιτήματος</button></div>)}</div>}{b.status==='completed'&&<><div className="call-again-box"><div><span>ΓΝΩΡΙΜΗ ΦΡΟΝΤΙΔΑ</span><b>Χρειάζεσαι ξανά τον ίδιο επαγγελματία;</b><small>Η υπηρεσία και η διεύθυνση θα συμπληρωθούν αυτόματα. Εσύ επιλέγεις νέα ημερομηνία και ώρα.</small></div><button className="btn btn-dark" onClick={()=>bookAgain(b)}>Ζήτησε ξανά επίσκεψη</button></div><ReviewComposer booking={b} token={token} onDone={refresh} setToast={setToast}/></>}</div>}</div>):<Empty title="Δεν έχεις ακόμη κρατήσεις" text="Η επόμενη φροντίδα σου απέχει λίγα clicks."/>}</div><aside className="dash-side"><div className="identity-card"><div className="avatar large">{initials(user.name)}</div><h3>{user.name}</h3><p>{user.email}</p><p>{user.phone}</p><span>Λογαριασμός συνοδού / ασθενή</span></div><div className="safety-card"><b>Ασφάλεια πρώτα</b><p>Σε επείγουσα κατάσταση κάλεσε <b>{cfg?.emergencyNumber||'112'}</b>. Η MELEO δεν είναι υπηρεσία επειγόντων και δεν παρέχει ιατρικές συμβουλές.</p></div><button className="btn btn-outline wide" onClick={()=>setView('account')}>Ρυθμίσεις λογαριασμού</button></aside></div></div></section>
+  </section>
+)
 }
 
 function ReviewComposer({booking,token,onDone,setToast}:any){
