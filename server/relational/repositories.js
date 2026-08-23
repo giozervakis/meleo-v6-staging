@@ -4,19 +4,80 @@ import { decryptSensitive, encryptSensitive } from '../security.js'
 const arr=v=>Array.isArray(v)?v:[]
 export function professionalFromRow(r, user=null){
   if(!r)return null
+
   return {
-    id:r.id,userId:r.user_id,name:user?.name||r.user_name,title:r.title,specialty:r.specialty,
-    verified:r.verified,featured:r.featured,rating:Number(r.rating||0),reviews:Number(r.reviews_count||0),
-    city:r.city,area:r.area,region:r.region,countryCode:r.country_code,latitude:r.latitude,longitude:r.longitude,
-    serviceRadiusKm:r.service_radius_km,subscriptionPlan:r.subscription_plan,subscriptionPrice:Number(r.subscription_price||0),
-    subscriptionStatus:r.subscription_status,billingMode:r.billing_mode,onboardingCompleted:r.onboarding_completed,
-    onboardingStage:r.onboarding_stage,subscriptionSince:r.subscription_since,available:r.available,bio:r.bio,
-    languages:arr(r.languages),credentials:arr(r.credentials),responseTime:r.response_time,years:r.years,
-    price:Number(r.price||0),pricingMode:r.pricing_mode,services:arr(r.services),availability:arr(r.availability),
-    showPhone:r.show_phone,showEmail:r.show_email,preferPlatformContact:r.prefer_platform_contact,
-    phone:r.show_phone?(user?.phone||r.user_phone):undefined,email:r.show_email?(user?.email||r.user_email):undefined,
-    stripeSubscriptionId:r.stripe_subscription_id,currentPeriodEnd:r.current_period_end,cancelAtPeriodEnd:r.cancel_at_period_end,
-    pastDueSince:r.past_due_since,adminSuspended:r.admin_suspended
+    id:r.id,
+    userId:r.user_id,
+    name:user?.name||r.user_name,
+    title:r.title,
+    specialty:r.specialty,
+
+    avatarKey:
+      user?.avatar_key||
+      r.avatar_key||
+      null,
+
+    profilePhotoUrl:
+      (user?.profile_photo_key||r.profile_photo_key)
+        ? `/api/profile-photo/${encodeURIComponent(r.user_id)}?v=${Number(
+            user?.profile_photo_version||
+            r.profile_photo_version||
+            0
+          )}`
+        : null,
+
+    verified:r.verified,
+    featured:r.featured,
+    rating:Number(r.rating||0),
+    reviews:Number(r.reviews_count||0),
+
+    city:r.city,
+    area:r.area,
+    region:r.region,
+    countryCode:r.country_code,
+    latitude:r.latitude,
+    longitude:r.longitude,
+
+    serviceRadiusKm:r.service_radius_km,
+    subscriptionPlan:r.subscription_plan,
+    subscriptionPrice:Number(r.subscription_price||0),
+
+    subscriptionStatus:r.subscription_status,
+    billingMode:r.billing_mode,
+    onboardingCompleted:r.onboarding_completed,
+    onboardingStage:r.onboarding_stage,
+    subscriptionSince:r.subscription_since,
+
+    available:r.available,
+    bio:r.bio,
+
+    languages:arr(r.languages),
+    credentials:arr(r.credentials),
+    responseTime:r.response_time,
+    years:r.years,
+
+    price:Number(r.price||0),
+    pricingMode:r.pricing_mode,
+    services:arr(r.services),
+    availability:arr(r.availability),
+
+    showPhone:r.show_phone,
+    showEmail:r.show_email,
+    preferPlatformContact:r.prefer_platform_contact,
+
+    phone:r.show_phone
+      ? (user?.phone||r.user_phone)
+      : undefined,
+
+    email:r.show_email
+      ? (user?.email||r.user_email)
+      : undefined,
+
+    stripeSubscriptionId:r.stripe_subscription_id,
+    currentPeriodEnd:r.current_period_end,
+    cancelAtPeriodEnd:r.cancel_at_period_end,
+    pastDueSince:r.past_due_since,
+    adminSuspended:r.admin_suspended
   }
 }
 
@@ -25,7 +86,27 @@ export const Users={
   byId: userId=>one('SELECT * FROM users WHERE id=$1 AND deleted_at IS NULL',[userId]),
   async create(u){ await sql(`INSERT INTO users(id,role,name,email,phone,password_hash,email_verified,accepted_terms_at,terms_version,created_at) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,now())`,[u.id,u.role,u.name,u.email,u.phone||'',u.passwordHash,!!u.emailVerified,u.acceptedTermsAt||null,u.termsVersion||null]); return this.byId(u.id) },
   async update(id, patch){
-    const allowed={role:'role',name:'name',phone:'phone',email_verified:'email_verified',stripe_customer_id:'stripe_customer_id',last_login_at:'last_login_at',last_totp_step:'last_totp_step',account_status:'account_status',suspended_at:'suspended_at',suspension_reason:'suspension_reason',deletion_pending:'deletion_pending',deletion_requested_at:'deletion_requested_at',deleted_at:'deleted_at',password_hash:'password_hash'}
+    const allowed={
+  role:'role',
+  name:'name',
+  phone:'phone',
+  email_verified:'email_verified',
+  stripe_customer_id:'stripe_customer_id',
+  last_login_at:'last_login_at',
+  last_totp_step:'last_totp_step',
+  account_status:'account_status',
+  suspended_at:'suspended_at',
+  suspension_reason:'suspension_reason',
+  deletion_pending:'deletion_pending',
+  deletion_requested_at:'deletion_requested_at',
+  deleted_at:'deleted_at',
+  password_hash:'password_hash',
+
+  avatar_key:'avatar_key',
+  profile_photo_key:'profile_photo_key',
+  profile_photo_mime:'profile_photo_mime',
+  profile_photo_version:'profile_photo_version'
+}
     const sets=[],vals=[]; let i=1
     for(const [k,v] of Object.entries(patch)){const col=allowed[k];if(!col)continue;sets.push(`${col}=$${i++}`);vals.push(v)}
     if(!sets.length)return this.byId(id); vals.push(id); await sql(`UPDATE users SET ${sets.join(',')},updated_at=now() WHERE id=$${i}`,[...vals]); return this.byId(id)
@@ -43,8 +124,63 @@ export const Sessions={
 }
 
 export const Professionals={
-  byUser: async userId=>{const r=await one(`SELECT p.*,u.name user_name,u.email user_email,u.phone user_phone FROM professionals p JOIN users u ON u.id=p.user_id WHERE p.user_id=$1`,[userId]);return professionalFromRow(r)},
-  byId: async pid=>{const r=await one(`SELECT p.*,u.name user_name,u.email user_email,u.phone user_phone FROM professionals p JOIN users u ON u.id=p.user_id WHERE p.id=$1 AND u.deleted_at IS NULL`,[pid]);return professionalFromRow(r)},
+
+  byUser: async userId=>{
+    const r=await one(`
+      SELECT
+        p.*,
+        u.name user_name,
+        u.email user_email,
+        u.phone user_phone,
+        u.avatar_key,
+        u.profile_photo_key,
+        u.profile_photo_version
+      FROM professionals p
+      JOIN users u ON u.id=p.user_id
+      WHERE p.user_id=$1
+    `,[userId])
+
+    return professionalFromRow(r)
+  },
+
+  byId: async pid=>{
+    const r=await one(`
+      SELECT
+        p.*,
+        u.name user_name,
+        u.email user_email,
+        u.phone user_phone,
+        u.avatar_key,
+        u.profile_photo_key,
+        u.profile_photo_version
+      FROM professionals p
+      JOIN users u ON u.id=p.user_id
+      WHERE p.id=$1
+        AND u.deleted_at IS NULL
+    `,[pid])
+
+    return professionalFromRow(r)
+  },
+
+
+byId: async pid=>{
+  const r=await one(`
+    SELECT
+      p.*,
+      u.name user_name,
+      u.email user_email,
+      u.phone user_phone,
+      u.avatar_key,
+      u.profile_photo_key,
+      u.profile_photo_version
+    FROM professionals p
+    JOIN users u ON u.id=p.user_id
+    WHERE p.id=$1
+      AND u.deleted_at IS NULL
+  `,[pid])
+
+  return professionalFromRow(r)
+},
   async createForUser(userId){const pid=id('pro');await sql(`INSERT INTO professionals(id,user_id,onboarding_stage) VALUES($1,$2,'plan') ON CONFLICT(user_id) DO NOTHING`,[pid,userId]);return this.byUser(userId)},
   async update(pid, patch){
     const map={title:'title',specialty:'specialty',verified:'verified',featured:'featured',adminSuspended:'admin_suspended',city:'city',area:'area',region:'region',countryCode:'country_code',latitude:'latitude',longitude:'longitude',serviceRadiusKm:'service_radius_km',subscriptionPlan:'subscription_plan',subscriptionPrice:'subscription_price',subscriptionStatus:'subscription_status',billingMode:'billing_mode',onboardingCompleted:'onboarding_completed',onboardingStage:'onboarding_stage',subscriptionSince:'subscription_since',stripeSubscriptionId:'stripe_subscription_id',currentPeriodEnd:'current_period_end',cancelAtPeriodEnd:'cancel_at_period_end',pastDueSince:'past_due_since',available:'available',bio:'bio',languages:'languages',credentials:'credentials',responseTime:'response_time',years:'years',price:'price',pricingMode:'pricing_mode',services:'services',availability:'availability',showPhone:'show_phone',showEmail:'show_email',preferPlatformContact:'prefer_platform_contact'}
@@ -219,9 +355,12 @@ const smartScoreExpr=`
   SELECT
     p.*,
     u.name user_name,
-    u.email user_email,
-    u.phone user_phone,
-    ${distanceExpr},
+	u.email user_email,
+	u.phone user_phone,
+	u.avatar_key,
+	u.profile_photo_key,
+	u.profile_photo_version,
+	${distanceExpr},
 
     coalesce(bs.total,0)::int AS trust_total,
     coalesce(bs.completed,0)::int AS trust_completed,

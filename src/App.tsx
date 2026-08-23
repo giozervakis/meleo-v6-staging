@@ -13,11 +13,442 @@ function RouteFallback(){return <div className="route-loading" role="status" ari
 
 
 function initials(name:string){ return name.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase() }
+function IdentityAvatar({
+  name,
+  photoUrl,
+  avatarKey,
+  size='md',
+  className=''
+}:any){
+  if(photoUrl){
+    return (
+      <div className={`identity-avatar ${size} ${className}`}>
+        <img
+          src={photoUrl}
+          alt={name||'MELEO profile'}
+          loading="lazy"
+        />
+      </div>
+    )
+  }
+
+  if(avatarKey){
+    return (
+      <div
+        className={`identity-avatar ${size} meleo-avatar ${avatarKey} ${className}`}
+        aria-label={name||'MELEO avatar'}
+      >
+        <span/>
+      </div>
+    )
+  }
+
+  return (
+    <div className={`identity-avatar ${size} initials-avatar ${className}`}>
+      {initials(name)}
+    </div>
+  )
+}
+function ProfileIdentityModal({
+  user,
+  onClose,
+  onUpdated,
+  setToast
+}:any){
+  const avatars=[
+    'care-01','care-02','care-03','care-04',
+    'care-05','care-06','care-07','care-08',
+    'care-09','care-10','care-11','care-12'
+  ]
+
+  const [selectedAvatar,setSelectedAvatar]=useState(
+    user?.avatarKey||''
+  )
+
+  const [imageSrc,setImageSrc]=useState('')
+  const [zoom,setZoom]=useState(1)
+  const [offsetX,setOffsetX]=useState(0)
+  const [offsetY,setOffsetY]=useState(0)
+  const [busy,setBusy]=useState(false)
+
+  async function chooseAvatar(key:string){
+    try{
+      setBusy(true)
+
+      const r=await api(
+        '/me/avatar',
+        {
+          method:'PUT',
+          body:JSON.stringify({
+            avatarKey:key
+          })
+        }
+      )
+
+      setSelectedAvatar(key)
+      onUpdated?.(r.user)
+
+      setToast(
+        'Το avatar ενημερώθηκε.'
+      )
+    }
+    catch(e:any){
+      setToast(e.message)
+    }
+    finally{
+      setBusy(false)
+    }
+  }
+
+  function pickFile(file?:File){
+    if(!file)return
+
+    if(![
+      'image/jpeg',
+      'image/png',
+      'image/webp'
+    ].includes(file.type)){
+      setToast(
+        'Επίλεξε JPG, PNG ή WEBP.'
+      )
+      return
+    }
+
+    if(file.size>6_000_000){
+      setToast(
+        'Η αρχική εικόνα είναι πολύ μεγάλη.'
+      )
+      return
+    }
+
+    const reader=new FileReader()
+
+    reader.onload=()=>{
+      setImageSrc(
+        String(reader.result||'')
+      )
+
+      setZoom(1)
+      setOffsetX(0)
+      setOffsetY(0)
+    }
+
+    reader.readAsDataURL(file)
+  }
+
+  async function savePhoto(){
+    if(!imageSrc)return
+
+    try{
+      setBusy(true)
+
+      const data=
+        await cropImageToBase64(
+          imageSrc,
+          zoom,
+          offsetX,
+          offsetY
+        )
+
+      const r=await api(
+        '/me/profile-photo',
+        {
+          method:'POST',
+          body:JSON.stringify({
+            data
+          })
+        }
+      )
+
+      onUpdated?.(r.user)
+
+      setToast(
+        'Η φωτογραφία προφίλ αποθηκεύτηκε.'
+      )
+
+      setImageSrc('')
+    }
+    catch(e:any){
+      setToast(e.message)
+    }
+    finally{
+      setBusy(false)
+    }
+  }
+
+  async function removePhoto(){
+    try{
+      setBusy(true)
+
+      const r=await api(
+        '/me/profile-photo',
+        {
+          method:'DELETE'
+        }
+      )
+
+      onUpdated?.(r.user)
+
+      setToast(
+        'Η φωτογραφία αφαιρέθηκε.'
+      )
+    }
+    catch(e:any){
+      setToast(e.message)
+    }
+    finally{
+      setBusy(false)
+    }
+  }
+
+  return (
+    <div
+      className="identity-modal-backdrop"
+      onClick={onClose}
+    >
+      <div
+        className="identity-modal"
+        onClick={e=>e.stopPropagation()}
+      >
+
+        <div className="identity-modal-head">
+          <div>
+            <small>MELEO PROFILE IDENTITY</small>
+            <h2>Η εικόνα προφίλ μου</h2>
+            <p>
+              Πρόσθεσε φωτογραφία ή επίλεξε ένα MELEO avatar.
+            </p>
+          </div>
+
+          <button
+            className="identity-close"
+            onClick={onClose}
+            aria-label="Κλείσιμο"
+          >
+            ×
+          </button>
+        </div>
+
+        <div className="identity-current">
+
+          <IdentityAvatar
+            name={user?.name}
+            photoUrl={user?.profilePhotoUrl}
+            avatarKey={user?.avatarKey}
+            size="xl"
+          />
+
+          <div>
+            <b>{user?.name}</b>
+            <small>
+              Η φωτογραφία είναι προαιρετική.
+            </small>
+          </div>
+
+        </div>
+
+        <div className="identity-section">
+          <h3>Επίλεξε avatar</h3>
+
+          <div className="identity-avatar-grid">
+            {avatars.map(key=>
+              <button
+                key={key}
+                className={
+                  'identity-avatar-choice '+
+                  (selectedAvatar===key
+                    ? 'selected'
+                    : '')
+                }
+                onClick={()=>chooseAvatar(key)}
+                disabled={busy}
+              >
+                <IdentityAvatar
+                  name={user?.name}
+                  avatarKey={key}
+                  size="md"
+                />
+              </button>
+            )}
+          </div>
+        </div>
+
+        <div className="identity-divider">
+          <span>ή</span>
+        </div>
+
+        <div className="identity-section">
+          <h3>Ανέβασε φωτογραφία</h3>
+
+          <label className="identity-upload-btn">
+            Επιλογή φωτογραφίας
+
+            <input
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
+              hidden
+              onChange={e=>
+                pickFile(
+                  e.target.files?.[0]
+                )
+              }
+            />
+          </label>
+
+          {imageSrc&&
+            <div className="identity-crop-box">
+
+              <div className="identity-crop-preview">
+                <img
+                  src={imageSrc}
+                  alt=""
+                  style={{
+                    transform:
+                      `translate(${offsetX}px,${offsetY}px) scale(${zoom})`
+                  }}
+                />
+
+                <div className="identity-crop-mask"/>
+              </div>
+
+              <label>
+                Zoom
+                <input
+                  type="range"
+                  min="1"
+                  max="2.5"
+                  step=".05"
+                  value={zoom}
+                  onChange={e=>
+                    setZoom(
+                      Number(e.target.value)
+                    )
+                  }
+                />
+              </label>
+
+              <div className="identity-position-controls">
+                <button
+                  onClick={()=>setOffsetY(v=>v-10)}
+                >
+                  ↑
+                </button>
+
+                <button
+                  onClick={()=>setOffsetX(v=>v-10)}
+                >
+                  ←
+                </button>
+
+                <button
+                  onClick={()=>setOffsetX(v=>v+10)}
+                >
+                  →
+                </button>
+
+                <button
+                  onClick={()=>setOffsetY(v=>v+10)}
+                >
+                  ↓
+                </button>
+              </div>
+
+              <button
+                className="btn btn-dark wide"
+                onClick={savePhoto}
+                disabled={busy}
+              >
+                {busy
+                  ? 'Αποθήκευση…'
+                  : 'Αποθήκευση φωτογραφίας'
+                }
+              </button>
+
+            </div>
+          }
+
+          {user?.profilePhotoUrl&&
+            <button
+              className="btn btn-outline wide identity-remove-photo"
+              onClick={removePhoto}
+              disabled={busy}
+            >
+              Αφαίρεση φωτογραφίας
+            </button>
+          }
+        </div>
+
+      </div>
+    </div>
+  )
+}
 function statusLabel(s:string){ return ({pending:'Σε αναμονή',clarification:'Χρειάζονται διευκρινίσεις',quoted:'Πρόταση κόστους',accepted:'Επιβεβαιωμένη',completed:'Ολοκληρώθηκε',cancelled:'Ακυρώθηκε'} as any)[s]||s }
 function professionalLifecycleLabel(s:string){return ({approved:'Verified',pending_verification:'Pending Verification',verification_rejected:'Verification Rejected',awaiting_subscription:'Αναμονή συνδρομής',profile_incomplete:'Ελλιπές προφίλ',verification_required:'Αναμονή υποβολής verification',deletion_pending:'Διαγραφή σε αναμονή'} as any)[s]||'—'}
 function professionalLifecycleClass(s:string){return s==='approved'?'yes':s==='pending_verification'?'pending':s==='verification_rejected'?'no':'neutral'}
 async function fileToBase64(file:File){return await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||'').split(',')[1]||'');r.onerror=()=>reject(new Error('Αδυναμία ανάγνωσης αρχείου'));r.readAsDataURL(file)})}
+async function cropImageToBase64(
+  src:string,
+  zoom:number,
+  offsetX:number,
+  offsetY:number
+){
+  return await new Promise<string>((resolve,reject)=>{
+    const img=new Image()
 
+    img.onload=()=>{
+      const canvas=document.createElement('canvas')
+      const size=640
+
+      canvas.width=size
+      canvas.height=size
+
+      const ctx=canvas.getContext('2d')
+
+      if(!ctx){
+        reject(new Error('Canvas unavailable'))
+        return
+      }
+
+      const scale=Math.max(
+        size/img.width,
+        size/img.height
+      )*zoom
+
+      const w=img.width*scale
+      const h=img.height*scale
+
+      const x=(size-w)/2 + offsetX
+      const y=(size-h)/2 + offsetY
+
+      ctx.fillStyle='#ffffff'
+      ctx.fillRect(0,0,size,size)
+
+      ctx.drawImage(
+        img,
+        x,
+        y,
+        w,
+        h
+      )
+
+      const dataUrl=
+        canvas.toDataURL(
+          'image/jpeg',
+          .86
+        )
+
+      resolve(
+        dataUrl.split(',')[1]||''
+      )
+    }
+
+    img.onerror=()=>reject(
+      new Error('Η εικόνα δεν μπόρεσε να φορτωθεί.')
+    )
+
+    img.src=src
+  })
+}
 function analyticsSessionId(){
   try{let v=sessionStorage.getItem('meleo_analytics_session');if(!v){v=(crypto?.randomUUID?.()||Math.random().toString(36).slice(2));sessionStorage.setItem('meleo_analytics_session',v)}return v}catch{return 'session'}
 }
@@ -183,6 +614,7 @@ export default function App(){
   const [bookingSeed,setBookingSeed]=useState<any>(null)
   const setView=(next:string, replace=false)=>{setViewState(next);pushView(next,selected?.id,replace)}
   useEffect(()=>{const onPop=()=>{const v=viewFromPath(window.location.pathname);setViewState(v);if(v==='profile'){const pid=window.location.pathname.split('/')[2];api('/professionals/'+pid).then((d:any)=>setSelected(d.professional||d)).catch(()=>setViewState('search'))}};window.addEventListener('popstate',onPop);if(viewFromPath(window.location.pathname)==='profile'){const pid=window.location.pathname.split('/')[2];api('/professionals/'+pid).then((d:any)=>setSelected(d.professional||d)).catch(()=>setViewState('search'))}return()=>window.removeEventListener('popstate',onPop)},[])
+  const [identityOpen,setIdentityOpen]=useState(false)
 
   async function refreshMe(t=token){ try{const d=await api('/me',{},t);setUser(d.user);setProfessional(d.professional);if(['patient','professional'].includes(d.user.role))setFavorites(await api('/favorites',{},t))}catch{setUser(null);setProfessional(null)}finally{setLoading(false)} }
   async function loadPros(params=search){const qs=new URLSearchParams();if(params.specialty)qs.set('specialty',params.specialty);if(params.service)qs.set('service',params.service);if(params.lat&&params.lon){qs.set('lat',String(params.lat));qs.set('lon',String(params.lon))}else if(params.locationQuery){qs.set('location',params.locationQuery)};qs.set('limit','30');const d=await api('/professionals?'+qs.toString());setPros(Array.isArray(d)?d:(d.items||[]))}
@@ -249,13 +681,36 @@ export default function App(){
       {view==='reset-password'&&<ResetPassword token={resetToken} setView={setView} setToast={setToast}/>}
       {view==='notifications'&&user&&<Suspense fallback={<RouteFallback/>}><NotificationsPage user={user} token={token} setToast={setToast}/></Suspense>}
       {view==='help'&&<Suspense fallback={<RouteFallback/>}><HelpCenter user={user} token={token} setToast={setToast} cfg={cfg}/></Suspense>}
-      {view==='account'&&user&&<Suspense fallback={<RouteFallback/>}><AccountSettingsView user={user} token={token} logout={logout} setToast={setToast} cfg={cfg} api={api}/></Suspense>}
+{view==='account'&&user&&
+  <Suspense fallback={<RouteFallback/>}>
+    <AccountSettingsView
+      user={user}
+      token={token}
+      logout={logout}
+      setToast={setToast}
+      cfg={cfg}
+      api={api}
+      onEditIdentity={()=>setIdentityOpen(true)}
+    />
+  </Suspense>
+}
       {view==='terms'&&<Suspense fallback={<RouteFallback/>}><LegalView doc="terms" cfg={cfg} setView={setView}/></Suspense>}
       {view==='privacy'&&<Suspense fallback={<RouteFallback/>}><LegalView doc="privacy" cfg={cfg} setView={setView}/></Suspense>}
       {view==='cookies'&&<Suspense fallback={<RouteFallback/>}><LegalView doc="cookies" cfg={cfg} setView={setView}/></Suspense>}
     </main>
     <Footer cfg={cfg} setView={setView}/>
     <MobileNav user={user} view={view} setView={setView}/>
+	{identityOpen&&user&&
+  <ProfileIdentityModal
+    user={user}
+    onClose={()=>setIdentityOpen(false)}
+    onUpdated={(updatedUser:any)=>{
+      setUser(updatedUser)
+      setIdentityOpen(false)
+    }}
+    setToast={setToast}
+  />
+}
     {toast&&<Toast text={toast} onClose={()=>setToast('')}/>}
   </div>
 }
@@ -321,10 +776,38 @@ function Header({user,professional,view,setView,logout}:{user:User|null;professi
   const accountView=user?.role==='admin'?'admin':user?.role==='professional'?'pro-dashboard':'patient-dashboard'
   const accountLabel=user?.role==='admin'?'Admin Control Center':user?.role==='professional'?(professionalReady?'Professional Dashboard':'Ολοκλήρωση επαγγελματικής εγγραφής'):'Οι κρατήσεις μου'
   return <>
-    <header className="topbar"><div className="container navrow"><button className="brand-btn" onClick={()=>go('home')}><Mark/></button><nav className="desktop-nav"><button className={view==='home'?'active':''} onClick={()=>go('home')}>Αρχική</button><button onClick={()=>go('search')}>Αναζήτηση</button><button onClick={()=>go('smart')}>Smart Request</button><button onClick={()=>go('now')}>MELEO Now</button><button onClick={()=>go('pricing')}>Συνδρομές</button><button onClick={()=>go('become-pro')}>Για επαγγελματίες</button></nav><div className="nav-actions">{user?<div className="account-menu-wrap" onClick={e=>e.stopPropagation()}><button   className={'user-pill '+(accountOpen?'open':'')}   onClick={()=>{     if(window.innerWidth > 980){       setAccountOpen(v=>!v)     }   }}   aria-haspopup="menu"   aria-expanded={accountOpen} >   <span className="mini-avatar">{initials(user.name)}</span>   <span className="desktop-only">{user.name.split(' ')[0]}</span>   <span className="profile-chevron desktop-only">⌄</span> </button>{accountOpen&&<div className="account-dropdown" role="menu"><div className="account-dropdown-head"><span className="mini-avatar">{initials(user.name)}</span><div><b>{user.name}</b><small>{user.email}</small></div></div><button onClick={()=>go(accountView)}>⌂ <span>{accountLabel}</span></button>{user.role==='professional'&&<button onClick={()=>go('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button>}<button onClick={()=>go('notifications')}>🔔 <span>Ειδοποιήσεις</span></button><button onClick={()=>go('help')}>? <span>Help Center</span></button><button onClick={()=>go('account')}>⚙ <span>Ρυθμίσεις λογαριασμού</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>Αποσύνδεση</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>Σύνδεση</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label="Άνοιγμα μενού" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
+    <header className="topbar"><div className="container navrow"><button className="brand-btn" onClick={()=>go('home')}><Mark/></button><nav className="desktop-nav"><button className={view==='home'?'active':''} onClick={()=>go('home')}>Αρχική</button><button onClick={()=>go('search')}>Αναζήτηση</button><button onClick={()=>go('smart')}>Smart Request</button><button onClick={()=>go('now')}>MELEO Now</button><button onClick={()=>go('pricing')}>Συνδρομές</button><button onClick={()=>go('become-pro')}>Για επαγγελματίες</button></nav><div className="nav-actions">{user?<div className="account-menu-wrap" onClick={e=>e.stopPropagation()}><button   className={'user-pill '+(accountOpen?'open':'')}   onClick={()=>{     if(window.innerWidth > 980){       setAccountOpen(v=>!v)     }   }}   aria-haspopup="menu"   aria-expanded={accountOpen} >   <IdentityAvatar
+  name={user.name}
+  photoUrl={user.profilePhotoUrl}
+  avatarKey={user.avatarKey}
+  size="sm"
+  className="header-avatar"
+/>   <span className="desktop-only">{user.name.split(' ')[0]}</span>   <span className="profile-chevron desktop-only">⌄</span> </button>{accountOpen&&<div className="account-dropdown" role="menu"><div className="account-dropdown-head"><IdentityAvatar
+  name={user.name}
+  photoUrl={user.profilePhotoUrl}
+  avatarKey={user.avatarKey}
+  size="sm"
+  className="header-avatar"
+/><div><b>{user.name}</b><small>{user.email}</small></div></div><button onClick={()=>go(accountView)}>⌂ <span>{accountLabel}</span></button>{user.role==='professional'&&<button onClick={()=>go('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button>}<button onClick={()=>go('notifications')}>🔔 <span>Ειδοποιήσεις</span></button><button onClick={()=>go('help')}>? <span>Help Center</span></button><button onClick={()=>go('account')}>⚙ <span>Ρυθμίσεις λογαριασμού</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>Αποσύνδεση</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>Σύνδεση</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label="Άνοιγμα μενού" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
     {open&&<div className="mobile-menu-overlay" role="presentation" onClick={()=>setOpen(false)}><nav className="mobile-menu-panel" aria-label="Κύριο μενού" onClick={e=>e.stopPropagation()}>
       <div className="mobile-menu-head"><button className="mobile-menu-brand" onClick={()=>go('home')}><Mark/></button><button className="mobile-menu-close" aria-label="Κλείσιμο μενού" onClick={()=>setOpen(false)}>×</button></div>
-      {user&&<div className="mobile-menu-user"><span className="mini-avatar">{initials(user.name)}</span><div><b>{user.name}</b><small>{user.email}</small></div></div>}
+      {user&&
+  <div className="mobile-menu-user">
+    <IdentityAvatar
+      name={user.name}
+      photoUrl={user.profilePhotoUrl}
+      avatarKey={user.avatarKey}
+      size="sm"
+      className="header-avatar"
+    />
+
+    <div>
+      <b>{user.name}</b>
+      <small>{user.email}</small>
+    </div>
+  </div>
+}
+
       <div className="mobile-menu-links">
         <button className={view==='home'?'active':''} onClick={()=>go('home')}><span className="mobile-menu-icon">⌂</span><div><b>Αρχική</b><small>Επιστροφή στη MELEO</small></div><em>›</em></button>
         <button className={view==='search'?'active':''} onClick={()=>go('search')}><span className="mobile-menu-icon">⌕</span><div><b>Αναζήτηση</b><small>Βρες τον κατάλληλο επαγγελματία</small></div><em>›</em></button>
@@ -357,38 +840,232 @@ function NowRequest({pros,search,setSearch,loadPros,openPro,setView}:any){const 
 
 function SectionTitle({over,title,subtitle}:any){return <div className="section-title"><div className="eyebrow">{over}</div><h2>{title}</h2><p>{subtitle}</p></div>}
 function Step({n,icon,title,text}:any){return <div className="step"><div className="step-top"><span className="step-icon">{icon}</span><span className="step-num">{n}</span></div><h3>{title}</h3><p>{text}</p></div>}
-function MiniCard({p}:{p:Professional}){return <div className="mini-card"><div className="avatar pale">{initials(p.name)}</div><div className="mini-main"><b>{p.name} <span className="verify">✦</span></b><small>{p.title} · {p.services[0]}</small><div><span className="stars">★ {p.rating}</span><span> · {p.distance} χλμ</span></div></div><b className="mini-price">{priceLabel(p,true)}</b></div>}
+function MiniCard({p}:{p:Professional}){
+  const hasDistance=
+    p.distance!==undefined &&
+    p.distance!==null &&
+    Number.isFinite(Number(p.distance))
+
+  return (
+    <div className="mini-card">
+      <IdentityAvatar
+        name={p.name}
+        photoUrl={p.profilePhotoUrl}
+        avatarKey={p.avatarKey}
+        size="sm"
+      />
+
+      <div className="mini-main">
+        <b>
+          {p.name} <span className="verify">✦</span>
+        </b>
+
+        <small>
+          {p.title}
+          {p.services?.[0] ? ` · ${p.services[0]}` : ''}
+        </small>
+
+        <div>
+          <span className="stars">
+            ★ {p.rating || 'Νέο'}
+          </span>
+
+          {hasDistance && (
+            <span>
+              {' · '}
+              {Number(p.distance).toFixed(1)} χλμ
+            </span>
+          )}
+        </div>
+      </div>
+
+      <b className="mini-price">
+        {priceLabel(p,true)}
+      </b>
+    </div>
+  )
+}
 function ProCard({p,open,favorite,toggle}:any){
-  useEffect(()=>{trackProfessionalEvent(p.id,'impression')},[p.id])
-  return <article className="pro-card">
-{p.smartMatch?.rank<=3&&<>
-  <div className="smart-match-banner">
-    <span>✦ MELEO SMART MATCH</span>
-    <strong>#{p.smartMatch.rank}</strong>
-    <em>{Math.round(p.smartMatch.score)}% αντιστοίχιση</em>
-  </div>
+  useEffect(()=>{
+    trackProfessionalEvent(p.id,'impression')
+  },[p.id])
 
-  <div className="smart-match-why">
-    <div className="smart-match-why-head">
-      <b>Γιατί σου προτείνεται</b>
+  const smart=p.smartMatch?.rank<=3?p.smartMatch:null
 
-      {p.trust?.eligible
-        ? <span>MELEO Trust {p.trust.score}/100</span>
-        : <span>MELEO Verified</span>
+  const hasDistance=
+    p.distance!==undefined &&
+    p.distance!==null &&
+    Number.isFinite(Number(p.distance))
+
+  const reasons=(smart?.reasons||[]).slice(0,3)
+
+  return (
+    <article className={'pro-card unified-pro-card '+(smart?'has-smart-match':'')}>
+
+      {smart&&
+        <div className="smart-match-compact">
+          <div className="smart-match-brand">
+            <span>✦</span>
+            <b>MELEO SMART MATCH</b>
+          </div>
+
+          <span className="smart-rank">
+            #{smart.rank}
+          </span>
+
+          <strong>
+            {Math.round(smart.score)}%
+            <small> match</small>
+          </strong>
+        </div>
       }
-    </div>
 
-    <div className="smart-match-reasons">
-      {(p.smartMatch.reasons||[])
-        .slice(0,4)
-        .map((reason:string)=>
-          <span key={reason}>✓ {reason}</span>
-        )
-      }
-    </div>
-  </div>
-</>}
-    <div className="pro-card-top"><div className="avatar large">{initials(p.name)}</div><button className={'heart '+(favorite?'on':'')} onClick={toggle}>♡</button>{p.subscriptionPlan==='premium'&&<span className="featured">ΠΡΟΤΕΙΝΟΜΕΝΟΣ · PREMIUM</span>}</div><div className="pro-card-body"><div className="pro-name"><h3>{p.name}</h3>{p.verified&&<span className="verify-badge" title="Επαληθευμένος">✓</span>}</div><p className="muted">{p.title} · {p.services[0]}</p><div className="rating-row"><span className="stars">★ {p.rating||'Νέο'}</span><span>{p.reviews?`(${p.reviews} αξιολογήσεις)`:'Νέο προφίλ'}</span><span>· {p.distance} χλμ</span></div><div className="tag-row">{p.services.slice(0,2).map((x:string)=><span key={x}>{x}</span>)}</div><div className="card-footer"><div><span className="availability"><i/>{p.available}</span><small><b>{priceLabel(p,true)}</b><br/>{priceNote(p)}</small></div><button className="round-arrow" onClick={open}>→</button></div></div></article>
+      <div className="pro-card-top">
+
+<IdentityAvatar
+  name={p.name}
+  photoUrl={p.profilePhotoUrl}
+  avatarKey={p.avatarKey}
+  size="lg"
+/>
+
+        <button
+          className={'heart '+(favorite?'on':'')}
+          onClick={e=>{
+            e.stopPropagation()
+            toggle()
+          }}
+          aria-label={
+            favorite
+              ? 'Αφαίρεση από την Ομάδα Φροντίδας'
+              : 'Προσθήκη στην Ομάδα Φροντίδας'
+          }
+        >
+          {favorite?'♥':'♡'}
+        </button>
+
+        {p.subscriptionPlan==='premium'&&
+          <span className="featured">
+            ΠΡΟΤΕΙΝΟΜΕΝΟΣ · PREMIUM
+          </span>
+        }
+
+      </div>
+
+      <div className="pro-card-body">
+
+        <div className="pro-name">
+          <h3>{p.name}</h3>
+
+          {p.verified&&
+            <span
+              className="verify-badge"
+              title="Επαληθευμένος επαγγελματίας"
+            >
+              ✓
+            </span>
+          }
+        </div>
+
+        <p className="muted">
+          {p.title}
+          {p.services?.[0]?' · '+p.services[0]:''}
+        </p>
+
+        <div className="rating-row">
+
+          <span className="stars">
+            ★ {p.rating||'Νέο'}
+          </span>
+
+          <span>
+            {p.reviews
+              ? `(${p.reviews} αξιολογήσεις)`
+              : 'Νέο προφίλ'
+            }
+          </span>
+
+          {hasDistance&&
+            <span>
+              · {Number(p.distance).toFixed(1)} χλμ
+            </span>
+          }
+
+        </div>
+
+        <div className="tag-row">
+          {(p.services||[])
+            .slice(0,2)
+            .map((x:string)=>
+              <span key={x}>
+                {x}
+              </span>
+            )
+          }
+        </div>
+
+        {smart&&
+          <div className="smart-match-inline">
+
+            <div className="smart-match-inline-head">
+              <span>
+                Γιατί σου προτείνεται
+              </span>
+
+              {p.trust?.eligible
+                ? <b>
+                    Trust {p.trust.score}/100
+                  </b>
+                : <b>
+                    MELEO Verified
+                  </b>
+              }
+            </div>
+
+            {reasons.length>0&&
+              <div className="smart-match-inline-reasons">
+                {reasons.map((reason:string)=>
+                  <span key={reason}>
+                    ✓ {reason}
+                  </span>
+                )}
+              </div>
+            }
+
+          </div>
+        }
+
+        <div className="card-footer">
+
+          <div>
+
+            <span className="availability">
+              <i/>
+              {p.available}
+            </span>
+
+            <small>
+              <b>{priceLabel(p,true)}</b>
+              <br/>
+              {priceNote(p)}
+            </small>
+
+          </div>
+
+          <button
+            className="round-arrow"
+            onClick={open}
+            aria-label={`Προβολή προφίλ ${p.name}`}
+          >
+            →
+          </button>
+
+        </div>
+
+      </div>
+
+    </article>
+  )
 }
 
 
@@ -414,7 +1091,12 @@ function Profile({p,user,favorite,toggleFav,setView,startBooking}:any){
   const [tab,setTab]=useState('about');const [reviews,setReviews]=useState<any[]>([]);const [trust,setTrust]=useState<any>(p?.trust||null)
   useEffect(()=>{trackProfessionalEvent(p.id,'profile_view');api('/professionals/'+p.id+'/reviews?limit=50').then((d:any)=>setReviews(Array.isArray(d)?d:(d.items||[]))).catch(()=>setReviews([]));api('/professionals/'+p.id).then((d:any)=>setTrust((d.professional||d)?.trust||null)).catch(()=>{})},[p.id])
   const call=()=>{trackProfessionalEvent(p.id,'phone_click')}
-  return <section className="page"><div className="container profile-layout"><div className="profile-main"><button className="back" onClick={()=>setView('search')}>← Πίσω στην αναζήτηση</button><div className="profile-hero premium-profile"><div className="avatar xlarge">{initials(p.name)}</div><div className="profile-title"><div className="overline-row">{p.subscriptionPlan==='premium'&&<span className="featured inline">MELEO PREMIUM · ΠΡΟΤΕΙΝΟΜΕΝΟΣ</span>}{p.verified&&<span className="verified-text">✓ MELEO Verified</span>}</div><h1>{p.name}</h1><p>{p.title} · {p.area?p.area+', ':''}{p.city}{p.countryCode?' · '+p.countryCode.toUpperCase():''}</p><div className="rating-row big"><span className="stars">★ {p.rating||'Νέο'}</span><span>{p.reviews} αξιολογήσεις</span><span>· {p.years} έτη εμπειρίας</span>{p.responseTime&&<span>· Απαντά {p.responseTime}</span>}</div></div><button className={'heart standalone '+(favorite?'on':'')} title={favorite?'Στην Ομάδα Φροντίδας μου':'Προσθήκη στην Ομάδα Φροντίδας μου'} aria-label={favorite?'Αφαίρεση από την Ομάδα Φροντίδας':'Προσθήκη στην Ομάδα Φροντίδας'} onClick={()=>toggleFav(p.id)}>{favorite?'♥':'♡'}</button></div><div className="profile-trust-grid"><span><b>✓</b> Επαληθευμένη ιδιότητα</span><span><b>⌖</b> Έως {p.serviceRadiusKm||15} km</span><span><b>⚡</b> {p.available}</span><span><b>◷</b> {p.responseTime||'Συνήθως γρήγορη απάντηση'}</span></div>{trust&&<div className={'meleo-trust-card '+(trust.eligible?'ready':'new')}><div className="trust-mark">M</div><div className="trust-copy"><small>MELEO TRUST</small>{trust.eligible?<><strong>{trust.score}<em>/100</em></strong><b>{trust.label}</b><span>Ανεξάρτητο από το πακέτο συνδρομής · βασίζεται σε επαλήθευση, αξιολογήσεις, ολοκληρώσεις και συνέπεια.</span></>:<><strong className="trust-new">Verified</strong><b>Νέος επαγγελματίας</b><span>Το Trust Score ενεργοποιείται όταν υπάρχουν αρκετές πραγματικές ολοκληρωμένες συνεργασίες και αξιολογήσεις.</span></>}</div>{trust.eligible&&<div className="trust-mini"><span>★ {trust.rating}</span><span>✓ {trust.completionRate}% ολοκλήρωση</span><span>↗ {trust.responseRate}% ανταπόκριση</span></div>}</div>}<div className="profile-tabs">{[['about','Σχετικά'],['services','Υπηρεσίες'],['availability','Διαθεσιμότητα'],['credentials','Προσόντα'],['reviews','Αξιολογήσεις']].map(([k,l])=><button key={k} className={tab===k?'active':''} onClick={()=>setTab(k)}>{l}</button>)}</div>{tab==='about'&&<div className="content-card"><h3>Σχετικά με τον επαγγελματία</h3><p>{p.bio}</p><div className="detail-pills">{(p.languages||['Ελληνικά']).map((x:string)=><span key={x}>🌐 {x}</span>)}</div></div>}{tab==='services'&&<div className="content-card"><h3>Υπηρεσίες</h3><div className="service-list">{p.services.map((s:string)=><div className="service-item" key={s}><span className="service-mark">+</span><div><b>{s}</b><small>Η ακριβής χρέωση διαμορφώνεται από τις ανάγκες του περιστατικού και συμφωνείται πριν την επίσκεψη.</small></div><strong>{(p.pricingMode||'from')==='contact'?'Κατόπιν επικοινωνίας':'Από βασική επίσκεψη'}</strong></div>)}</div></div>}{tab==='availability'&&<div className="content-card"><h3>Επόμενη διαθεσιμότητα</h3><p className="muted">Ενδεικτικές διαθέσιμες ώρες. Η τελική ώρα επιβεβαιώνεται από τον επαγγελματία.</p><div className="time-grid">{p.availability.map((t:string)=><span key={t}>{t}</span>)}</div></div>}{tab==='credentials'&&<div className="content-card"><h3>Επαγγελματικά στοιχεία</h3><div className="credential-list">{(p.credentials||['Επαγγελματική ιδιότητα ελεγμένη από MELEO']).map((x:string)=><div key={x}>✓ <span>{x}</span></div>)}</div></div>}{tab==='reviews'&&<div className="content-card"><h3>{reviews.length?`${reviews.length} αξιολογήσεις`:'Δεν υπάρχουν αξιολογήσεις ακόμη'}</h3>{reviews.length>0&&<div className="review-highlight"><strong>{p.rating}</strong><span>★★★★★<small>Μέση βαθμολογία επαληθευμένων κρατήσεων</small></span></div>}<div className="public-reviews">{reviews.map((r:any)=><div className="public-review" key={r.id}><div><b>{r.patientName}</b><span>{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</span></div>{r.comment&&<p>{r.comment}</p>}<small>✓ Επαληθευμένη κράτηση · {new Date(r.createdAt).toLocaleDateString('el-GR')}</small></div>)}</div><p className="muted">Οι αξιολογήσεις επιτρέπονται μόνο μετά από ολοκληρωμένη κράτηση και επισημαίνονται ως verified booking.</p></div>}</div><aside className="booking-panel sticky-premium"><div className="availability-top"><span className="pulse-dot"/> {p.available}</div><div className="panel-price"><span>Βασικό κόστος επίσκεψης</span><strong>{priceLabel(p)}</strong><small>{priceNote(p)}</small></div><div className="panel-feature">✓ Verified professional</div><div className="panel-feature">✓ Συμφωνία τελικού κόστους πριν την επίσκεψη</div><div className="panel-feature">✓ Αξιολογήσεις μόνο από ολοκληρωμένες κρατήσεις</div>{p.phone&&<a className="btn btn-outline wide phone-cta" href={`tel:${p.phone}`} onClick={call}>☎ Κλήση επαγγελματία</a>}{p.email&&<a className="profile-email-link" href={`mailto:${p.email}`}>✉ {p.email}</a>}<button className="btn btn-dark wide" onClick={()=>user?startBooking():setView('auth')}>{user?'Ζήτησε επίσκεψη':'Συνδέσου για αίτημα'}</button><button className="btn btn-outline wide" onClick={()=>setView('now')}>⚡ Έλεγξε MELEO Now</button><small className="panel-note">Η MELEO είναι marketplace εύρεσης επαγγελματιών και δεν αποτελεί υπηρεσία επείγουσας ιατρικής βοήθειας.</small></aside></div></section>
+  return <section className="page"><div className="container profile-layout"><div className="profile-main"><button className="back" onClick={()=>setView('search')}>← Πίσω στην αναζήτηση</button><div className="profile-hero premium-profile"><IdentityAvatar
+  name={p.name}
+  photoUrl={p.profilePhotoUrl}
+  avatarKey={p.avatarKey}
+  size="xl"
+/><div className="profile-title"><div className="overline-row">{p.subscriptionPlan==='premium'&&<span className="featured inline">MELEO PREMIUM · ΠΡΟΤΕΙΝΟΜΕΝΟΣ</span>}{p.verified&&<span className="verified-text">✓ MELEO Verified</span>}</div><h1>{p.name}</h1><p>{p.title} · {p.area?p.area+', ':''}{p.city}{p.countryCode?' · '+p.countryCode.toUpperCase():''}</p><div className="rating-row big"><span className="stars">★ {p.rating||'Νέο'}</span><span>{p.reviews} αξιολογήσεις</span><span>· {p.years} έτη εμπειρίας</span>{p.responseTime&&<span>· Απαντά {p.responseTime}</span>}</div></div><button className={'heart standalone '+(favorite?'on':'')} title={favorite?'Στην Ομάδα Φροντίδας μου':'Προσθήκη στην Ομάδα Φροντίδας μου'} aria-label={favorite?'Αφαίρεση από την Ομάδα Φροντίδας':'Προσθήκη στην Ομάδα Φροντίδας'} onClick={()=>toggleFav(p.id)}>{favorite?'♥':'♡'}</button></div><div className="profile-trust-grid"><span><b>✓</b> Επαληθευμένη ιδιότητα</span><span><b>⌖</b> Έως {p.serviceRadiusKm||15} km</span><span><b>⚡</b> {p.available}</span><span><b>◷</b> {p.responseTime||'Συνήθως γρήγορη απάντηση'}</span></div>{trust&&<div className={'meleo-trust-card '+(trust.eligible?'ready':'new')}><div className="trust-mark">M</div><div className="trust-copy"><small>MELEO TRUST</small>{trust.eligible?<><strong>{trust.score}<em>/100</em></strong><b>{trust.label}</b><span>Ανεξάρτητο από το πακέτο συνδρομής · βασίζεται σε επαλήθευση, αξιολογήσεις, ολοκληρώσεις και συνέπεια.</span></>:<><strong className="trust-new">Verified</strong><b>Νέος επαγγελματίας</b><span>Το Trust Score ενεργοποιείται όταν υπάρχουν αρκετές πραγματικές ολοκληρωμένες συνεργασίες και αξιολογήσεις.</span></>}</div>{trust.eligible&&<div className="trust-mini"><span>★ {trust.rating}</span><span>✓ {trust.completionRate}% ολοκλήρωση</span><span>↗ {trust.responseRate}% ανταπόκριση</span></div>}</div>}<div className="profile-tabs">{[['about','Σχετικά'],['services','Υπηρεσίες'],['availability','Διαθεσιμότητα'],['credentials','Προσόντα'],['reviews','Αξιολογήσεις']].map(([k,l])=><button key={k} className={tab===k?'active':''} onClick={()=>setTab(k)}>{l}</button>)}</div>{tab==='about'&&<div className="content-card"><h3>Σχετικά με τον επαγγελματία</h3><p>{p.bio}</p><div className="detail-pills">{(p.languages||['Ελληνικά']).map((x:string)=><span key={x}>🌐 {x}</span>)}</div></div>}{tab==='services'&&<div className="content-card"><h3>Υπηρεσίες</h3><div className="service-list">{p.services.map((s:string)=><div className="service-item" key={s}><span className="service-mark">+</span><div><b>{s}</b><small>Η ακριβής χρέωση διαμορφώνεται από τις ανάγκες του περιστατικού και συμφωνείται πριν την επίσκεψη.</small></div><strong>{(p.pricingMode||'from')==='contact'?'Κατόπιν επικοινωνίας':'Από βασική επίσκεψη'}</strong></div>)}</div></div>}{tab==='availability'&&<div className="content-card"><h3>Επόμενη διαθεσιμότητα</h3><p className="muted">Ενδεικτικές διαθέσιμες ώρες. Η τελική ώρα επιβεβαιώνεται από τον επαγγελματία.</p><div className="time-grid">{p.availability.map((t:string)=><span key={t}>{t}</span>)}</div></div>}{tab==='credentials'&&<div className="content-card"><h3>Επαγγελματικά στοιχεία</h3><div className="credential-list">{(p.credentials||['Επαγγελματική ιδιότητα ελεγμένη από MELEO']).map((x:string)=><div key={x}>✓ <span>{x}</span></div>)}</div></div>}{tab==='reviews'&&<div className="content-card"><h3>{reviews.length?`${reviews.length} αξιολογήσεις`:'Δεν υπάρχουν αξιολογήσεις ακόμη'}</h3>{reviews.length>0&&<div className="review-highlight"><strong>{p.rating}</strong><span>★★★★★<small>Μέση βαθμολογία επαληθευμένων κρατήσεων</small></span></div>}<div className="public-reviews">{reviews.map((r:any)=><div className="public-review" key={r.id}><div><b>{r.patientName}</b><span>{'★'.repeat(r.rating)}{'☆'.repeat(5-r.rating)}</span></div>{r.comment&&<p>{r.comment}</p>}<small>✓ Επαληθευμένη κράτηση · {new Date(r.createdAt).toLocaleDateString('el-GR')}</small></div>)}</div><p className="muted">Οι αξιολογήσεις επιτρέπονται μόνο μετά από ολοκληρωμένη κράτηση και επισημαίνονται ως verified booking.</p></div>}</div><aside className="booking-panel sticky-premium"><div className="availability-top"><span className="pulse-dot"/> {p.available}</div><div className="panel-price"><span>Βασικό κόστος επίσκεψης</span><strong>{priceLabel(p)}</strong><small>{priceNote(p)}</small></div><div className="panel-feature">✓ Verified professional</div><div className="panel-feature">✓ Συμφωνία τελικού κόστους πριν την επίσκεψη</div><div className="panel-feature">✓ Αξιολογήσεις μόνο από ολοκληρωμένες κρατήσεις</div>{p.phone&&<a className="btn btn-outline wide phone-cta" href={`tel:${p.phone}`} onClick={call}>☎ Κλήση επαγγελματία</a>}{p.email&&<a className="profile-email-link" href={`mailto:${p.email}`}>✉ {p.email}</a>}<button className="btn btn-dark wide" onClick={()=>user?startBooking():setView('auth')}>{user?'Ζήτησε επίσκεψη':'Συνδέσου για αίτημα'}</button><button className="btn btn-outline wide" onClick={()=>setView('now')}>⚡ Έλεγξε MELEO Now</button><small className="panel-note">Η MELEO είναι marketplace εύρεσης επαγγελματιών και δεν αποτελεί υπηρεσία επείγουσας ιατρικής βοήθειας.</small></aside></div></section>
 }
 
 function BookingFlow({p,seed,user,token,setView,setToast}:any){

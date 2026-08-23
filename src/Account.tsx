@@ -11,7 +11,18 @@ import React, { useState } from 'react'
 
 type ApiFn = (path: string, options?: any, token?: string) => Promise<any>
 
-export function AccountSettings({ user, token, logout, setToast, cfg, api }: any & { api: ApiFn }) {
+export function AccountSettings({
+  user,
+  token,
+  logout,
+  setToast,
+  cfg,
+  api,
+  onEditIdentity
+}: any & {
+  api: ApiFn
+  onEditIdentity?: () => void
+}) {
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
   const [busy, setBusy] = useState('')
   const [error, setError] = useState('')
@@ -64,6 +75,29 @@ export function AccountSettings({ user, token, logout, setToast, cfg, api }: any
       </div>
     </div>
 
+    <div className="content-card">
+      <div className="profile-identity-setting">
+
+        <div className="profile-identity-setting-copy">
+          <b>Εικόνα προφίλ</b>
+
+          <span>
+            Πρόσθεσε προσωπική φωτογραφία ή επίλεξε ένα MELEO avatar.
+            Η επιλογή είναι προαιρετική.
+          </span>
+        </div>
+
+        <button
+          type="button"
+          className="btn btn-outline"
+          onClick={()=>onEditIdentity?.()}
+        >
+          Αλλαγή εικόνας
+        </button>
+
+      </div>
+    </div>
+	
     <div className="content-card">
       <h3>Αλλαγή κωδικού</h3>
       <form onSubmit={changePassword}>

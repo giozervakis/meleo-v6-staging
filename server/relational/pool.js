@@ -69,10 +69,29 @@ export function pagination(q, {defaultLimit=20,maxLimit=100}={}){
 
 export function publicUser(row){
   if(!row)return null
+
   return {
-    id:row.id, role:row.role, name:row.name, email:row.email, phone:row.phone,
-    emailVerified:row.email_verified, acceptedTermsAt:row.accepted_terms_at,
-    termsVersion:row.terms_version, accountStatus:row.account_status,
-    createdAt:row.created_at, lastLoginAt:row.last_login_at
+    id:row.id,
+    role:row.role,
+    name:row.name,
+    email:row.email,
+    phone:row.phone,
+
+    emailVerified:row.email_verified,
+    acceptedTermsAt:row.accepted_terms_at,
+    termsVersion:row.terms_version,
+    accountStatus:row.account_status,
+
+    avatarKey:row.avatar_key||null,
+
+    profilePhotoKey:row.profile_photo_key||null,
+    profilePhotoVersion:Number(row.profile_photo_version||0),
+
+    profilePhotoUrl:row.profile_photo_key
+      ? `/api/profile-photo/${encodeURIComponent(row.id)}?v=${Number(row.profile_photo_version||0)}`
+      : null,
+
+    createdAt:row.created_at,
+    lastLoginAt:row.last_login_at
   }
 }

@@ -883,3 +883,692 @@
     font-size:9.5px;
   }
 }
+
+/* =========================================================
+   MELEO SMART MATCH — UNIFIED PREMIUM CARD
+   ========================================================= */
+
+.unified-pro-card{
+  position:relative;
+  overflow:hidden;
+}
+
+.smart-match-compact{
+  min-height:54px;
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:0 16px;
+
+  background:
+    linear-gradient(
+      110deg,
+      #133d35 0%,
+      #214d43 100%
+    );
+
+  color:#fff;
+}
+
+.smart-match-brand{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  min-width:0;
+}
+
+.smart-match-brand span{
+  color:#e5ba58;
+  font-size:13px;
+}
+
+.smart-match-brand b{
+  font-size:11px;
+  font-weight:850;
+  letter-spacing:.035em;
+  white-space:nowrap;
+}
+
+.smart-rank{
+  min-width:30px;
+  height:30px;
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:
+    rgba(255,255,255,.13);
+
+  font-size:12px;
+  font-weight:800;
+}
+
+.smart-match-compact>strong{
+  margin-left:auto;
+
+  color:#f2c85f;
+
+  font-size:13px;
+  font-weight:900;
+  white-space:nowrap;
+}
+
+.smart-match-compact>strong small{
+  color:rgba(255,255,255,.74);
+  font-size:9px;
+  font-weight:700;
+  text-transform:uppercase;
+}
+
+.smart-match-inline{
+  margin-top:16px;
+  padding:11px 12px;
+
+  border:
+    1px solid rgba(27,62,53,.10);
+
+  border-radius:14px;
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(246,242,232,.84),
+      rgba(255,255,255,.88)
+    );
+}
+
+.smart-match-inline-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.smart-match-inline-head>span{
+  color:#1e4038;
+
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.035em;
+  text-transform:uppercase;
+}
+
+.smart-match-inline-head>b{
+  padding:5px 8px;
+
+  border-radius:999px;
+
+  background:#153f37;
+  color:#fff;
+
+  font-size:9px;
+  font-weight:850;
+  white-space:nowrap;
+}
+
+.smart-match-inline-reasons{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+
+  margin-top:9px;
+}
+
+.smart-match-inline-reasons span{
+  display:inline-flex;
+  align-items:center;
+
+  min-height:24px;
+
+  padding:4px 7px;
+
+  border-radius:999px;
+
+  background:#fff;
+
+  border:
+    1px solid rgba(20,61,52,.09);
+
+  color:#53615d;
+
+  font-size:9.5px;
+  font-weight:650;
+}
+
+.has-smart-match .pro-card-top{
+  border-top-left-radius:0;
+  border-top-right-radius:0;
+}
+
+@media(max-width:640px){
+
+  .smart-match-compact{
+    min-height:48px;
+    padding:0 12px;
+    gap:7px;
+  }
+
+  .smart-match-brand b{
+    font-size:9.5px;
+  }
+
+  .smart-rank{
+    min-width:27px;
+    height:27px;
+    font-size:10px;
+  }
+
+  .smart-match-compact>strong{
+    font-size:11px;
+  }
+
+  .smart-match-inline{
+    padding:10px;
+  }
+
+  .smart-match-inline-head{
+    align-items:flex-start;
+    flex-direction:column;
+    gap:6px;
+  }
+
+}
+
+/* =========================================================
+   MELEO PROFILE IDENTITY
+   ========================================================= */
+
+.identity-avatar{
+  position:relative;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 auto;
+
+  overflow:hidden;
+
+  border-radius:50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #edf3ef,
+      #dfe8e3
+    );
+
+  color:#173d35;
+
+  font-weight:800;
+
+  border:
+    1px solid rgba(22,61,53,.08);
+
+  box-shadow:
+    0 8px 24px rgba(22,61,53,.09);
+}
+
+.identity-avatar.sm{
+  width:42px;
+  height:42px;
+  font-size:12px;
+}
+
+.identity-avatar.md{
+  width:54px;
+  height:54px;
+  font-size:14px;
+}
+
+.identity-avatar.lg{
+  width:76px;
+  height:76px;
+  font-size:20px;
+}
+
+.identity-avatar.xl{
+  width:112px;
+  height:112px;
+  font-size:30px;
+}
+
+.identity-avatar img{
+  width:100%;
+  height:100%;
+  display:block;
+  object-fit:cover;
+}
+
+.initials-avatar{
+  letter-spacing:.03em;
+}
+
+/* MELEO preset avatars */
+
+.meleo-avatar{
+  background:
+    radial-gradient(
+      circle at 35% 30%,
+      #f8f4e9 0%,
+      #e4ece7 58%,
+      #ccddd5 100%
+    );
+}
+
+.meleo-avatar span{
+  width:52%;
+  height:52%;
+  border-radius:50% 50% 46% 46%;
+  background:#28584d;
+  position:relative;
+}
+
+.meleo-avatar span::after{
+  content:'';
+  position:absolute;
+  left:50%;
+  bottom:-62%;
+  transform:translateX(-50%);
+  width:145%;
+  height:85%;
+  border-radius:50% 50% 38% 38%;
+  background:#28584d;
+}
+
+.meleo-avatar.care-02 span{
+  transform:scale(.92);
+}
+
+.meleo-avatar.care-03{
+  background:linear-gradient(145deg,#f6e9dc,#ead6c4);
+}
+
+.meleo-avatar.care-03 span{
+  background:#7a5947;
+}
+
+.meleo-avatar.care-03 span::after{
+  background:#7a5947;
+}
+
+.meleo-avatar.care-04{
+  background:linear-gradient(145deg,#e7edf7,#d5e0f0);
+}
+
+.meleo-avatar.care-04 span{
+  background:#405c78;
+}
+
+.meleo-avatar.care-04 span::after{
+  background:#405c78;
+}
+
+.meleo-avatar.care-05{
+  background:linear-gradient(145deg,#eee6f4,#ddd1e8);
+}
+
+.meleo-avatar.care-05 span{
+  background:#62506e;
+}
+
+.meleo-avatar.care-05 span::after{
+  background:#62506e;
+}
+
+.meleo-avatar.care-06{
+  background:linear-gradient(145deg,#f2eadf,#e5d8c5);
+}
+
+.meleo-avatar.care-07{
+  background:linear-gradient(145deg,#e2f0ec,#cfe3dc);
+}
+
+.meleo-avatar.care-08{
+  background:linear-gradient(145deg,#f2e3e4,#e7cdcf);
+}
+
+.meleo-avatar.care-08 span{
+  background:#785255;
+}
+
+.meleo-avatar.care-08 span::after{
+  background:#785255;
+}
+
+.meleo-avatar.care-09{
+  background:linear-gradient(145deg,#e8e9f3,#d5d8e8);
+}
+
+.meleo-avatar.care-10{
+  background:linear-gradient(145deg,#f0ead8,#e4dcc2);
+}
+
+.meleo-avatar.care-11{
+  background:linear-gradient(145deg,#e3eff3,#d0e2e8);
+}
+
+.meleo-avatar.care-12{
+  background:linear-gradient(145deg,#e8f0dc,#d8e5c7);
+}
+
+/* =========================================================
+   MELEO PROFILE IDENTITY MODAL
+   ========================================================= */
+
+.identity-modal-backdrop{
+  position:fixed;
+  inset:0;
+  z-index:9999;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  padding:20px;
+
+  background:
+    rgba(10,25,21,.66);
+
+  backdrop-filter:
+    blur(8px);
+}
+
+.identity-modal{
+  width:min(720px,100%);
+  max-height:92vh;
+  overflow:auto;
+
+  border-radius:26px;
+
+  background:#fff;
+
+  box-shadow:
+    0 35px 100px rgba(0,0,0,.28);
+}
+
+.identity-modal-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+
+  padding:26px 28px 20px;
+
+  border-bottom:
+    1px solid rgba(20,55,47,.08);
+}
+
+.identity-modal-head small{
+  color:#b98f39;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.12em;
+}
+
+.identity-modal-head h2{
+  margin:5px 0 4px;
+}
+
+.identity-modal-head p{
+  margin:0;
+  color:#66736f;
+}
+
+.identity-close{
+  border:0;
+  background:#eef3f1;
+
+  width:38px;
+  height:38px;
+
+  border-radius:50%;
+
+  font-size:22px;
+  cursor:pointer;
+}
+
+.identity-current{
+  display:flex;
+  align-items:center;
+  gap:18px;
+
+  padding:22px 28px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #f4f7f5,
+      #faf8f2
+    );
+}
+
+.identity-current div:last-child{
+  display:flex;
+  flex-direction:column;
+  gap:3px;
+}
+
+.identity-current small{
+  color:#6d7875;
+}
+
+.identity-section{
+  padding:22px 28px;
+}
+
+.identity-section h3{
+  margin:0 0 14px;
+}
+
+.identity-avatar-grid{
+  display:grid;
+
+  grid-template-columns:
+    repeat(6,1fr);
+
+  gap:10px;
+}
+
+.identity-avatar-choice{
+  border:
+    1px solid rgba(20,55,47,.10);
+
+  border-radius:16px;
+
+  background:#fff;
+
+  padding:8px;
+
+  cursor:pointer;
+
+  transition:
+    .18s ease;
+}
+
+.identity-avatar-choice:hover{
+  transform:translateY(-2px);
+}
+
+.identity-avatar-choice.selected{
+  border-color:#173d35;
+
+  box-shadow:
+    0 0 0 2px
+    rgba(23,61,53,.08);
+}
+
+.identity-divider{
+  display:flex;
+  align-items:center;
+
+  padding:0 28px;
+}
+
+.identity-divider::before,
+.identity-divider::after{
+  content:'';
+  flex:1;
+  height:1px;
+  background:#e7ece9;
+}
+
+.identity-divider span{
+  padding:0 12px;
+  color:#86908d;
+  font-size:12px;
+}
+
+.identity-upload-btn{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  min-height:46px;
+
+  border:
+    1px dashed rgba(20,55,47,.28);
+
+  border-radius:14px;
+
+  background:#f8faf9;
+
+  color:#173d35;
+
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+.identity-crop-box{
+  margin-top:18px;
+}
+
+.identity-crop-preview{
+  position:relative;
+
+  width:min(360px,100%);
+  aspect-ratio:1;
+
+  margin:0 auto 16px;
+
+  overflow:hidden;
+
+  border-radius:22px;
+
+  background:#e8edeb;
+}
+
+.identity-crop-preview img{
+  width:100%;
+  height:100%;
+
+  object-fit:cover;
+
+  transform-origin:center;
+}
+
+.identity-crop-mask{
+  position:absolute;
+  inset:12%;
+
+  border:
+    2px solid rgba(255,255,255,.95);
+
+  border-radius:50%;
+
+  box-shadow:
+    0 0 0 999px
+    rgba(0,0,0,.34);
+
+  pointer-events:none;
+}
+
+.identity-crop-box label{
+  display:flex;
+  align-items:center;
+  gap:12px;
+
+  margin-bottom:12px;
+
+  font-weight:700;
+}
+
+.identity-crop-box input[type=range]{
+  flex:1;
+}
+
+.identity-position-controls{
+  display:flex;
+  justify-content:center;
+  gap:8px;
+
+  margin-bottom:14px;
+}
+
+.identity-position-controls button{
+  width:38px;
+  height:38px;
+
+  border:0;
+  border-radius:10px;
+
+  background:#edf2ef;
+
+  cursor:pointer;
+}
+
+.identity-remove-photo{
+  margin-top:10px;
+}
+
+@media(max-width:640px){
+
+  .identity-modal-backdrop{
+    padding:0;
+    align-items:flex-end;
+  }
+
+  .identity-modal{
+    border-radius:
+      24px 24px 0 0;
+
+    max-height:94vh;
+  }
+
+  .identity-avatar-grid{
+    grid-template-columns:
+      repeat(4,1fr);
+  }
+
+  .identity-modal-head,
+  .identity-current,
+  .identity-section{
+    padding-left:18px;
+    padding-right:18px;
+  }
+
+}
+
+.header-avatar{
+  width:34px !important;
+  height:34px !important;
+  min-width:34px;
+  box-shadow:none;
+}
+
+.user-pill .header-avatar{
+  margin-right:2px;
+}
+
+.account-dropdown-head .header-avatar{
+  width:42px !important;
+  height:42px !important;
+  min-width:42px;
+}
+
+.mobile-menu-user .header-avatar{
+  width:46px !important;
+  height:46px !important;
+  min-width:46px;
+}

@@ -72,6 +72,18 @@ export function verificationObjectKey(docId) {
   return `verification/${yyyy}/${mm}/${docId}.bin`
 }
 
+export function profilePhotoObjectKey(userId, version=1) {
+  const safeUserId = String(userId || '')
+    .replace(/[^a-zA-Z0-9_-]/g, '')
+
+  const safeVersion = Math.max(
+    1,
+    Number(version) || 1
+  )
+
+  return `profile-photos/${safeUserId}/v${safeVersion}.bin`
+}
+
 export async function putVerificationObject(key, encryptedBuffer) {
   if (config.storage.driver === 's3') {
     await s3Request('PUT', key, encryptedBuffer, { 'content-type': 'application/octet-stream' })
