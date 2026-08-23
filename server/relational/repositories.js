@@ -71,11 +71,173 @@ export const Professionals={
       where.push(`(6371 * acos(LEAST(1,GREATEST(-1,cos(radians($${a})) * cos(radians(p.latitude)) * cos(radians(p.longitude)-radians($${b})) + sin(radians($${a})) * sin(radians(p.latitude)))))) <= p.service_radius_km`)
       distanceOrder=', distance_km ASC'
     }
-    vals.push(limit,offset);const lim=i++,off=i++
+    /*
+     * MELEO SMART MATCH v1
+     *
+     * Ranking philosophy:
+     * - relevance / requested service remains a hard filter
+     * - distance matters strongly when GPS is available
+     * - real marketplace performance matters more than subscription
+     * - Premium receives a controlled commercial boost
+     * - new professionals are not buried because of missing history
+     *
+     * Smart Match is intentionally separate from MELEO Trust.
+     */
+
+    const hasGeo =
+      Number.isFinite(Number(q.lat)) &&
+      Number.isFinite(Number(q.lon))
+
+    const smartDistanceScore = hasGeo
+      ? `
+        CASE
+          WHEN distance_km IS NULL THEN 0
+          WHEN distance_km <= 2 THEN 24
+          WHEN distance_km <= 5 THEN 21
+          WHEN distance_km <= 10 THEN 17
+          WHEN distance_km <= 20 THEN 12
+          WHEN distance_km <= 35 THEN 7
+          ELSE 3
+        END
+      `
+      : '12'
+
+    const smartScoreExpr = `
+      LEAST(
+        100,
+        GREATEST(
+          0,
+
+          /* Verified identity / professional status */
+          10
+
+          /* Rating quality — max 20 */
+          + CASE
+              WHEN coalesce(reviews_count,0)=0 THEN 10
+              ELSE LEAST(20, GREATEST(0, coalesce(rating,0) * 4))
+            END
+
+          /* Review confidence — max 10 */
+          + CASE
+              WHEN coalesce(reviews_count,0) >= 20 THEN 10
+              WHEN coalesce(reviews_count,0) >= 10 THEN 8
+              WHEN coalesce(reviews_count,0) >= 5 THEN 6
+              WHEN coalesce(reviews_count,0) >= 1 THEN 4
+              ELSE 3
+            END
+
+          /* Distance / geographic relevance — max 24 */
+          + ${smartDistanceScore}
+
+          /* Availability — max 10 */
+          + CASE
+              WHEN lower(coalesce(available,'')) LIKE '%σήμερα%' THEN 10
+              WHEN lower(coalesce(available,'')) LIKE '%άμεσα%' THEN 10
+              WHEN lower(coalesce(available,'')) LIKE '%διαθέσ%' THEN 7
+              ELSE 4
+            END
+
+          /* Response behaviour proxy — max 10 */
+          + CASE
+              WHEN lower(coalesce(response_time,'')) LIKE '%λεπτ%' THEN 10
+              WHEN lower(coalesce(response_time,'')) LIKE '%ώρα%' THEN 8
+              WHEN lower(coalesce(response_time,'')) LIKE '%ωρ%' THEN 8
+              WHEN coalesce(response_time,'') <> '' THEN 6
+              ELSE 4
+            END
+
+          /* Experience — max 8 */
+          + CASE
+              WHEN coalesce(years,0) >= 10 THEN 8
+              WHEN coalesce(years,0) >= 5 THEN 6
+              WHEN coalesce(years,0) >= 2 THEN 4
+              WHEN coalesce(years,0) > 0 THEN 2
+              ELSE 1
+            END
+
+          /*
+           * Premium commercial boost — max 8.
+           * Deliberately limited so Premium cannot overpower
+           * a substantially better Basic professional.
+           */
+          + CASE
+              WHEN subscription_plan='premium'
+                   AND subscription_status='active'
+              THEN 8
+              ELSE 0
+            END
+
+          /* Existing featured flag — tiny legacy/tie boost */
+          + CASE WHEN featured=true THEN 2 ELSE 0 END
+        )
+      )
+    `
+
     const base=`FROM professionals p JOIN users u ON u.id=p.user_id WHERE ${where.join(' AND ')}`
-    const rows=await many(`SELECT p.*,u.name user_name,u.email user_email,u.phone user_phone,${distanceExpr} ${base} ORDER BY p.featured DESC,p.rating DESC${distanceOrder},p.created_at DESC LIMIT $${lim} OFFSET $${off}`,vals)
-    const countVals=vals.slice(0,-2);const c=await one(`SELECT count(*)::int total ${base}`,countVals)
-    return {items:rows.map(r=>({...professionalFromRow(r),distance:r.distance_km==null?undefined:Number(Number(r.distance_km).toFixed(1))})),page,limit,total:c?.total||0,totalPages:Math.ceil((c?.total||0)/limit)}
+
+    /*
+     * Distance is calculated in an inner query because PostgreSQL
+     * cannot safely reuse the distance_km SELECT alias inside another
+     * expression at the same SELECT level.
+     */
+    const candidateSql=`
+      SELECT
+        p.*,
+        u.name user_name,
+        u.email user_email,
+        u.phone user_phone,
+        ${distanceExpr}
+      ${base}
+    `
+
+    const countVals=[...vals]
+
+    vals.push(limit,offset)
+    const lim=i++,off=i++
+
+    const rows=await many(`
+      SELECT ranked.*,
+             ROUND((${smartScoreExpr})::numeric,1) AS smart_match_score
+      FROM (
+        ${candidateSql}
+      ) ranked
+      ORDER BY
+        smart_match_score DESC,
+        rating DESC,
+        reviews_count DESC,
+        distance_km ASC NULLS LAST,
+        created_at DESC
+      LIMIT $${lim}
+	  OFFSET $${off}
+    `,vals)
+
+    const c=await one(
+      `SELECT count(*)::int total ${base}`,
+      countVals
+    )
+
+    return {
+      items:rows.map((r,index)=>({
+        ...professionalFromRow(r),
+
+        distance:
+          r.distance_km==null
+            ? undefined
+            : Number(Number(r.distance_km).toFixed(1)),
+
+        smartMatch:{
+          score:Number(r.smart_match_score||0),
+          rank:offset+index+1,
+          version:'v1'
+        }
+      })),
+
+      page,
+      limit,
+      total:c?.total||0,
+      totalPages:Math.ceil((c?.total||0)/limit),
+      ranking:'smart-match-v1'
+    }
   }
 }
 

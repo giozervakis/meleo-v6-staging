@@ -741,3 +741,62 @@
 .call-again-box{display:flex;justify-content:space-between;align-items:center;gap:18px;margin:18px 0;padding:18px 20px;border:1px solid rgba(151,116,53,.16);border-radius:20px;background:linear-gradient(135deg,#fffdf9,#f4ecdc)}.call-again-box>div{display:flex;flex-direction:column;gap:4px}.call-again-box b{color:#173749;font-size:16px}.call-again-box small{color:#7e837e;line-height:1.4}
 @media(max-width:700px){.meleo-trust-card{grid-template-columns:auto 1fr;padding:17px;gap:13px}.trust-mini{grid-column:1/-1;flex-direction:row;align-items:center;justify-content:flex-start;flex-wrap:wrap;padding-top:8px;border-top:1px solid rgba(23,55,73,.08)}.care-team-section{padding:18px 14px;border-radius:24px;margin-left:-2px;margin-right:-2px}.care-team-grid{grid-template-columns:1fr}.care-team-card{border-radius:19px}.care-team-actions{flex-direction:column}.call-again-box{align-items:stretch;flex-direction:column}.call-again-box .btn{width:100%}}
 
+
+
+/* =========================================================
+   MELEO SMART MATCH v1
+   ========================================================= */
+
+.smart-match-banner{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 14px;
+  margin:-1px -1px 0;
+  border-radius:18px 18px 0 0;
+  background:
+    linear-gradient(
+      110deg,
+      rgba(19,42,38,.98),
+      rgba(31,67,58,.96)
+    );
+  color:#fff;
+  font-size:11px;
+  letter-spacing:.04em;
+}
+
+.smart-match-banner span{
+  font-weight:800;
+}
+
+.smart-match-banner strong{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:28px;
+  height:24px;
+  padding:0 7px;
+  border-radius:999px;
+  background:rgba(255,255,255,.13);
+  font-size:12px;
+}
+
+.smart-match-banner em{
+  margin-left:auto;
+  color:#e7c984;
+  font-style:normal;
+  font-weight:800;
+  letter-spacing:0;
+}
+
+@media(max-width:640px){
+  .smart-match-banner{
+    gap:7px;
+    padding:9px 11px;
+    font-size:10px;
+  }
+
+  .smart-match-banner em{
+    font-size:10px;
+  }
+}

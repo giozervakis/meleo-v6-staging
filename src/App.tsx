@@ -360,12 +360,33 @@ function Step({n,icon,title,text}:any){return <div className="step"><div classNa
 function MiniCard({p}:{p:Professional}){return <div className="mini-card"><div className="avatar pale">{initials(p.name)}</div><div className="mini-main"><b>{p.name} <span className="verify">✦</span></b><small>{p.title} · {p.services[0]}</small><div><span className="stars">★ {p.rating}</span><span> · {p.distance} χλμ</span></div></div><b className="mini-price">{priceLabel(p,true)}</b></div>}
 function ProCard({p,open,favorite,toggle}:any){
   useEffect(()=>{trackProfessionalEvent(p.id,'impression')},[p.id])
-  return <article className="pro-card"><div className="pro-card-top"><div className="avatar large">{initials(p.name)}</div><button className={'heart '+(favorite?'on':'')} onClick={toggle}>♡</button>{p.subscriptionPlan==='premium'&&<span className="featured">ΠΡΟΤΕΙΝΟΜΕΝΟΣ · PREMIUM</span>}</div><div className="pro-card-body"><div className="pro-name"><h3>{p.name}</h3>{p.verified&&<span className="verify-badge" title="Επαληθευμένος">✓</span>}</div><p className="muted">{p.title} · {p.services[0]}</p><div className="rating-row"><span className="stars">★ {p.rating||'Νέο'}</span><span>{p.reviews?`(${p.reviews} αξιολογήσεις)`:'Νέο προφίλ'}</span><span>· {p.distance} χλμ</span></div><div className="tag-row">{p.services.slice(0,2).map((x:string)=><span key={x}>{x}</span>)}</div><div className="card-footer"><div><span className="availability"><i/>{p.available}</span><small><b>{priceLabel(p,true)}</b><br/>{priceNote(p)}</small></div><button className="round-arrow" onClick={open}>→</button></div></div></article>
+  return <article className="pro-card">
+    {p.smartMatch?.rank<=3&&
+      <div className="smart-match-banner">
+        <span>✦ MELEO SMART MATCH</span>
+        <strong>#{p.smartMatch.rank}</strong>
+        <em>{Math.round(p.smartMatch.score)}% αντιστοίχιση</em>
+      </div>
+    }
+    <div className="pro-card-top"><div className="avatar large">{initials(p.name)}</div><button className={'heart '+(favorite?'on':'')} onClick={toggle}>♡</button>{p.subscriptionPlan==='premium'&&<span className="featured">ΠΡΟΤΕΙΝΟΜΕΝΟΣ · PREMIUM</span>}</div><div className="pro-card-body"><div className="pro-name"><h3>{p.name}</h3>{p.verified&&<span className="verify-badge" title="Επαληθευμένος">✓</span>}</div><p className="muted">{p.title} · {p.services[0]}</p><div className="rating-row"><span className="stars">★ {p.rating||'Νέο'}</span><span>{p.reviews?`(${p.reviews} αξιολογήσεις)`:'Νέο προφίλ'}</span><span>· {p.distance} χλμ</span></div><div className="tag-row">{p.services.slice(0,2).map((x:string)=><span key={x}>{x}</span>)}</div><div className="card-footer"><div><span className="availability"><i/>{p.available}</span><small><b>{priceLabel(p,true)}</b><br/>{priceNote(p)}</small></div><button className="round-arrow" onClick={open}>→</button></div></div></article>
 }
 
 
 function SearchPage({pros,search,setSearch,loadPros,openPro,favorites,toggleFav}:any){
- const [sort,setSort]=useState('recommended'); const sorted=useMemo(()=>[...pros].sort((a,b)=>sort==='price'?a.price-b.price:sort==='rating'?b.rating-a.rating:Number(b.featured)-Number(a.featured)),[pros,sort])
+ const [sort,setSort]=useState('recommended')
+ const sorted=useMemo(()=>{
+   const items=[...pros]
+
+   if(sort==='price')
+     return items.sort((a,b)=>(a.price||0)-(b.price||0))
+
+   if(sort==='rating')
+     return items.sort((a,b)=>(b.rating||0)-(a.rating||0))
+
+   // "recommended" preserves the authoritative server-side
+   // MELEO Smart Match ordering.
+   return items
+ },[pros,sort])
  return <section className="page"><div className="container"><div className="page-head"><div><div className="eyebrow">ΑΝΑΖΗΤΗΣΗ</div><h1>Φροντίδα κοντά σου</h1><p>Επίλεξε ειδικότητα, προαιρετικά υπηρεσία και τοποθεσία. Χρησιμοποίησε GPS ή αναζήτησε οποιαδήποτε πόλη/περιοχή στην Ελλάδα και διεθνώς.</p></div></div><div className="search-toolbar"><SearchBox search={search} setSearch={setSearch} onSearch={()=>loadPros(search)}/><div className="filter-row"><div>{sorted.length} επαγγελματίες</div><select value={sort} onChange={e=>setSort(e.target.value)}><option value="recommended">Προτεινόμενοι</option><option value="rating">Καλύτερη αξιολόγηση</option><option value="price">Χαμηλότερο βασικό κόστος</option></select></div></div>{sorted.length?<div className="search-results">{sorted.map(p=><ProCard key={p.id} p={p} open={()=>openPro(p)} favorite={favorites.includes(p.id)} toggle={()=>toggleFav(p.id)}/>)}</div>:<Empty title="Δεν βρήκαμε αποτελέσματα" text="Δοκίμασε άλλη υπηρεσία ή περιοχή."/>}</div></section>
 }
 
