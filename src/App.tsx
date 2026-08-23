@@ -890,51 +890,180 @@ function ProCard({p,open,favorite,toggle}:any){
     trackProfessionalEvent(p.id,'impression')
   },[p.id])
 
-  const smart=p.smartMatch?.rank<=3?p.smartMatch:null
+  const smart=
+    p.smartMatch?.rank<=3
+      ? p.smartMatch
+      : null
 
   const hasDistance=
     p.distance!==undefined &&
     p.distance!==null &&
     Number.isFinite(Number(p.distance))
 
-  const reasons=(smart?.reasons||[]).slice(0,3)
+  const distance=
+    hasDistance
+      ? Number(p.distance)
+      : null
+
+  const reasons=
+    (smart?.reasons||[])
+      .slice(0,3)
+
+  const trustEligible=
+    !!p.trust?.eligible
+
+  const trustScore=
+    trustEligible
+      ? Number(p.trust.score||0)
+      : null
+
+  const reviews=
+    Number(p.reviews||0)
+
+  const rating=
+    Number(p.rating||0)
+
+  const premium=
+    p.subscriptionPlan==='premium'
+
+  const availableText=
+    String(p.available||'').trim()
+
+  const isAvailable=
+    !!availableText &&
+    ![
+      'όχι',
+      'μη διαθέσιμος',
+      'μη διαθέσιμη',
+      'unavailable',
+      'false'
+    ].includes(
+      availableText.toLowerCase()
+    )
 
   return (
-    <article className={'pro-card unified-pro-card '+(smart?'has-smart-match':'')}>
+    <article
+      className={
+        'discovery-card '+
+        (smart?'discovery-smart ':'')+
+        (premium?'discovery-premium ':'')
+      }
+    >
+
+      {/* SMART MATCH HEADER */}
 
       {smart&&
-        <div className="smart-match-compact">
-          <div className="smart-match-brand">
-            <span>✦</span>
-            <b>MELEO SMART MATCH</b>
+        <div className="discovery-match">
+
+          <div className="discovery-match-brand">
+            <span className="discovery-match-icon">
+              ✦
+            </span>
+
+            <div>
+              <small>
+                MELEO SMART MATCH
+              </small>
+
+              <b>
+                Ισχυρή αντιστοίχιση
+              </b>
+            </div>
           </div>
 
-          <span className="smart-rank">
-            #{smart.rank}
-          </span>
+          <div className="discovery-match-score">
 
-          <strong>
-            {Math.round(smart.score)}%
-            <small> match</small>
-          </strong>
+            <span>
+              #{smart.rank}
+            </span>
+
+            <strong>
+              {Math.round(smart.score)}
+              <small>%</small>
+            </strong>
+
+          </div>
+
         </div>
       }
 
-      <div className="pro-card-top">
 
-<IdentityAvatar
-  name={p.name}
-  photoUrl={p.profilePhotoUrl}
-  avatarKey={p.avatarKey}
-  size="lg"
-/>
+      {/* CARD HEADER */}
+
+      <div className="discovery-card-header">
+
+        <div className="discovery-identity">
+
+          <div className="discovery-avatar-wrap">
+
+            <IdentityAvatar
+              name={p.name}
+              photoUrl={p.profilePhotoUrl}
+              avatarKey={p.avatarKey}
+              size="lg"
+            />
+
+            {p.verified&&
+              <span
+                className="discovery-avatar-verified"
+                title="Επαληθευμένος επαγγελματίας"
+              >
+                ✓
+              </span>
+            }
+
+          </div>
+
+          <div className="discovery-person">
+
+            <div className="discovery-name-row">
+
+              <h3>
+                {p.name}
+              </h3>
+
+              {p.verified&&
+                <span className="discovery-verified">
+                  MELEO Verified
+                </span>
+              }
+
+            </div>
+
+            <p>
+              {p.title}
+            </p>
+
+            {(p.city||p.area)&&
+              <small className="discovery-location">
+                ⌖{' '}
+                {p.area
+                  ? `${p.area}${p.city?', '+p.city:''}`
+                  : p.city
+                }
+              </small>
+            }
+
+          </div>
+
+        </div>
+
 
         <button
-          className={'heart '+(favorite?'on':'')}
+          type="button"
+          className={
+            'discovery-heart '+
+            (favorite?'active':'')
+          }
           onClick={e=>{
             e.stopPropagation()
             toggle()
           }}
+          title={
+            favorite
+              ? 'Αφαίρεση από την Ομάδα Φροντίδας μου'
+              : 'Προσθήκη στην Ομάδα Φροντίδας μου'
+          }
           aria-label={
             favorite
               ? 'Αφαίρεση από την Ομάδα Φροντίδας'
@@ -944,123 +1073,275 @@ function ProCard({p,open,favorite,toggle}:any){
           {favorite?'♥':'♡'}
         </button>
 
-        {p.subscriptionPlan==='premium'&&
-          <span className="featured">
-            ΠΡΟΤΕΙΝΟΜΕΝΟΣ · PREMIUM
+      </div>
+
+
+      {/* PREMIUM SIGNAL */}
+
+      {premium&&
+        <div className="discovery-premium-label">
+          <span>◆</span>
+          MELEO PREMIUM
+        </div>
+      }
+
+
+      {/* QUALITY SIGNALS */}
+
+      <div className="discovery-signals">
+
+        <div className="discovery-rating">
+
+          <span className="discovery-star">
+            ★
           </span>
+
+          {reviews>0
+            ? <>
+                <strong>
+                  {rating.toFixed(1)}
+                </strong>
+
+                <span>
+                  {reviews} αξιολογήσεις
+                </span>
+              </>
+            : <>
+                <strong>
+                  Νέο
+                </strong>
+
+                <span>
+                  χωρίς αξιολογήσεις
+                </span>
+              </>
+          }
+
+        </div>
+
+
+        {trustEligible
+          ? <div className="discovery-trust">
+
+              <span>
+                ✦ MELEO Trust
+              </span>
+
+              <strong>
+                {trustScore}/100
+              </strong>
+
+            </div>
+
+          : p.verified
+            ? <div className="discovery-trust discovery-trust-new">
+
+                <span>
+                  ✓ Verified
+                </span>
+
+                <strong>
+                  Νέος
+                </strong>
+
+              </div>
+
+            : null
         }
 
       </div>
 
-      <div className="pro-card-body">
 
-        <div className="pro-name">
-          <h3>{p.name}</h3>
+      {/* SERVICE TAGS */}
 
-          {p.verified&&
-            <span
-              className="verify-badge"
-              title="Επαληθευμένος επαγγελματίας"
-            >
-              ✓
-            </span>
-          }
-        </div>
+      {!!p.services?.length&&
+        <div className="discovery-services">
 
-        <p className="muted">
-          {p.title}
-          {p.services?.[0]?' · '+p.services[0]:''}
-        </p>
-
-        <div className="rating-row">
-
-          <span className="stars">
-            ★ {p.rating||'Νέο'}
-          </span>
-
-          <span>
-            {p.reviews
-              ? `(${p.reviews} αξιολογήσεις)`
-              : 'Νέο προφίλ'
-            }
-          </span>
-
-          {hasDistance&&
-            <span>
-              · {Number(p.distance).toFixed(1)} χλμ
-            </span>
-          }
-
-        </div>
-
-        <div className="tag-row">
-          {(p.services||[])
-            .slice(0,2)
-            .map((x:string)=>
-              <span key={x}>
-                {x}
+          {p.services
+            .slice(0,3)
+            .map((service:string)=>
+              <span key={service}>
+                {service}
               </span>
             )
           }
+
+          {p.services.length>3&&
+            <span className="discovery-more-services">
+              +{p.services.length-3}
+            </span>
+          }
+
+        </div>
+      }
+
+
+      {/* CONTEXT / AVAILABILITY */}
+
+      <div className="discovery-context">
+
+        {hasDistance&&
+          <div>
+            <span className="discovery-context-icon">
+              ⌖
+            </span>
+
+            <span>
+              <b>
+                {distance!.toFixed(1)} χλμ
+              </b>
+
+              <small>
+                από την περιοχή σου
+              </small>
+            </span>
+          </div>
+        }
+
+
+        <div>
+          <span
+            className={
+              'discovery-status-dot '+
+              (isAvailable?'online':'')
+            }
+          />
+
+          <span>
+            <b>
+              {availableText||'Διαθεσιμότητα'}
+            </b>
+
+            <small>
+              τρέχουσα ένδειξη
+            </small>
+          </span>
         </div>
 
-        {smart&&
-          <div className="smart-match-inline">
 
-            <div className="smart-match-inline-head">
-              <span>
-                Γιατί σου προτείνεται
-              </span>
+        {p.responseTime&&
+          <div>
 
-              {p.trust?.eligible
-                ? <b>
-                    Trust {p.trust.score}/100
-                  </b>
-                : <b>
-                    MELEO Verified
-                  </b>
-              }
-            </div>
+            <span className="discovery-context-icon">
+              ◷
+            </span>
 
-            {reasons.length>0&&
-              <div className="smart-match-inline-reasons">
-                {reasons.map((reason:string)=>
-                  <span key={reason}>
-                    ✓ {reason}
-                  </span>
-                )}
-              </div>
-            }
+            <span>
+              <b>
+                {p.responseTime}
+              </b>
+
+              <small>
+                χρόνος απάντησης
+              </small>
+            </span>
 
           </div>
         }
 
-        <div className="card-footer">
+      </div>
 
-          <div>
 
-            <span className="availability">
-              <i/>
-              {p.available}
-            </span>
+      {/* WHY THIS PROFESSIONAL */}
+
+      {smart&&
+        <div className="discovery-why">
+
+          <div className="discovery-why-head">
+
+            <div>
+              <span className="discovery-why-mark">
+                ✦
+              </span>
+
+              <b>
+                Γιατί σου προτείνεται
+              </b>
+            </div>
 
             <small>
-              <b>{priceLabel(p,true)}</b>
-              <br/>
-              {priceNote(p)}
+              Smart Match #{smart.rank}
             </small>
 
           </div>
 
-          <button
-            className="round-arrow"
-            onClick={open}
-            aria-label={`Προβολή προφίλ ${p.name}`}
-          >
-            →
-          </button>
+
+          {reasons.length>0
+            ? <div className="discovery-reasons">
+
+                {reasons.map(
+                  (reason:string,index:number)=>
+                    <div
+                      key={`${reason}-${index}`}
+                    >
+                      <span>
+                        ✓
+                      </span>
+
+                      <p>
+                        {reason}
+                      </p>
+                    </div>
+                )}
+
+              </div>
+
+            : <p className="discovery-match-generic">
+                Η ειδικότητα, η περιοχή και τα στοιχεία
+                αξιοπιστίας αυτού του επαγγελματία
+                ταιριάζουν στην αναζήτησή σου.
+              </p>
+          }
 
         </div>
+      }
+
+
+      {/* PRICE + CTA */}
+
+      <div className="discovery-footer">
+
+        <div className="discovery-price">
+
+          <small>
+            Βασικό κόστος
+          </small>
+
+          <strong>
+            {priceLabel(p,true)}
+          </strong>
+
+          <span>
+            {priceNote(p)}
+          </span>
+
+        </div>
+
+
+        <button
+          type="button"
+          className="discovery-open"
+          onClick={open}
+        >
+          <span>
+            Προβολή προφίλ
+          </span>
+
+          <b>
+            →
+          </b>
+        </button>
+
+      </div>
+
+
+      <div className="discovery-safety">
+
+        <span>
+          ✓
+        </span>
+
+        Η τελική χρέωση συμφωνείται πριν την επίσκεψη.
 
       </div>
 
@@ -1069,22 +1350,584 @@ function ProCard({p,open,favorite,toggle}:any){
 }
 
 
-function SearchPage({pros,search,setSearch,loadPros,openPro,favorites,toggleFav}:any){
- const [sort,setSort]=useState('recommended')
- const sorted=useMemo(()=>{
-   const items=[...pros]
+function SearchPage({
+  pros,
+  search,
+  setSearch,
+  loadPros,
+  openPro,
+  favorites,
+  toggleFav
+}:any){
 
-   if(sort==='price')
-     return items.sort((a,b)=>(a.price||0)-(b.price||0))
+  const [sort,setSort]=useState('recommended')
+  const [trustOnly,setTrustOnly]=useState(false)
+  const [availableOnly,setAvailableOnly]=useState(false)
+  const [nearOnly,setNearOnly]=useState(false)
+  const [premiumOnly,setPremiumOnly]=useState(false)
 
-   if(sort==='rating')
-     return items.sort((a,b)=>(b.rating||0)-(a.rating||0))
+  const filtered=useMemo(()=>{
+    let items=[...pros]
 
-   // "recommended" preserves the authoritative server-side
-   // MELEO Smart Match ordering.
-   return items
- },[pros,sort])
- return <section className="page"><div className="container"><div className="page-head"><div><div className="eyebrow">ΑΝΑΖΗΤΗΣΗ</div><h1>Φροντίδα κοντά σου</h1><p>Επίλεξε ειδικότητα, προαιρετικά υπηρεσία και τοποθεσία. Χρησιμοποίησε GPS ή αναζήτησε οποιαδήποτε πόλη/περιοχή στην Ελλάδα και διεθνώς.</p></div></div><div className="search-toolbar"><SearchBox search={search} setSearch={setSearch} onSearch={()=>loadPros(search)}/><div className="filter-row"><div>{sorted.length} επαγγελματίες</div><select value={sort} onChange={e=>setSort(e.target.value)}><option value="recommended">Προτεινόμενοι</option><option value="rating">Καλύτερη αξιολόγηση</option><option value="price">Χαμηλότερο βασικό κόστος</option></select></div></div>{sorted.length?<div className="search-results">{sorted.map(p=><ProCard key={p.id} p={p} open={()=>openPro(p)} favorite={favorites.includes(p.id)} toggle={()=>toggleFav(p.id)}/>)}</div>:<Empty title="Δεν βρήκαμε αποτελέσματα" text="Δοκίμασε άλλη υπηρεσία ή περιοχή."/>}</div></section>
+    if(trustOnly){
+      items=items.filter(
+        (p:any)=>p.trust?.eligible
+      )
+    }
+
+    if(availableOnly){
+      items=items.filter((p:any)=>{
+        const text=
+          String(p.available||'').toLowerCase()
+
+        return (
+          text.includes('σήμερα') ||
+          text.includes('άμεσα') ||
+          text.includes('διαθέσ')
+        )
+      })
+    }
+
+    if(nearOnly){
+      items=items.filter(
+        (p:any)=>
+          p.distance!==undefined &&
+          p.distance!==null &&
+          Number.isFinite(Number(p.distance)) &&
+          Number(p.distance)<=10
+      )
+    }
+
+    if(premiumOnly){
+      items=items.filter(
+        (p:any)=>
+          p.subscriptionPlan==='premium'
+      )
+    }
+
+    return items
+  },[
+    pros,
+    trustOnly,
+    availableOnly,
+    nearOnly,
+    premiumOnly
+  ])
+
+
+  const sorted=useMemo(()=>{
+    const items=[...filtered]
+
+    if(sort==='price'){
+      return items.sort(
+        (a:any,b:any)=>
+          (Number(a.price)||0)-
+          (Number(b.price)||0)
+      )
+    }
+
+    if(sort==='rating'){
+      return items.sort(
+        (a:any,b:any)=>
+          (Number(b.rating)||0)-
+          (Number(a.rating)||0)
+      )
+    }
+
+    if(sort==='distance'){
+      return items.sort((a:any,b:any)=>{
+        const ad=
+          Number.isFinite(Number(a.distance))
+            ? Number(a.distance)
+            : Number.POSITIVE_INFINITY
+
+        const bd=
+          Number.isFinite(Number(b.distance))
+            ? Number(b.distance)
+            : Number.POSITIVE_INFINITY
+
+        return ad-bd
+      })
+    }
+
+    /*
+     * recommended:
+     * διατηρεί αυστηρά το authoritative
+     * server-side Smart Match ordering.
+     */
+    return items
+  },[filtered,sort])
+
+
+  const activeFilters=[
+    trustOnly&&'MELEO Trust',
+    availableOnly&&'Διαθέσιμοι τώρα',
+    nearOnly&&'Έως 10 χλμ',
+    premiumOnly&&'Premium'
+  ].filter(Boolean)
+
+
+  const hasSearchContext=
+    !!(
+      search.specialty ||
+      search.service ||
+      search.locationQuery ||
+      search.locationLabel
+    )
+
+
+  const topMatches=
+    sorted.filter(
+      (p:any)=>p.smartMatch?.rank<=3
+    ).length
+
+
+  function resetDiscoveryFilters(){
+    setTrustOnly(false)
+    setAvailableOnly(false)
+    setNearOnly(false)
+    setPremiumOnly(false)
+    setSort('recommended')
+  }
+
+
+  return (
+    <section className="page discovery-page">
+      <div className="container">
+
+
+        {/* HERO */}
+
+        <div className="discovery-page-hero">
+
+          <div>
+
+            <span className="discovery-page-kicker">
+              MELEO SEARCH & DISCOVERY
+            </span>
+
+            <h1>
+              Βρες τη σωστή φροντίδα.
+              <br/>
+              <em>
+                Με καλύτερη πληροφόρηση.
+              </em>
+            </h1>
+
+            <p>
+              Η MELEO συνδυάζει ειδικότητα, υπηρεσία,
+              τοποθεσία, διαθεσιμότητα και στοιχεία
+              αξιοπιστίας ώστε να σε βοηθήσει να
+              συγκρίνεις επαγγελματίες με μεγαλύτερη
+              διαφάνεια.
+            </p>
+
+          </div>
+
+
+          <div className="discovery-page-hero-badge">
+
+            <span>✦</span>
+
+            <div>
+              <small>
+                SMART MATCH
+              </small>
+
+              <strong>
+                Ranking με πραγματικά signals
+              </strong>
+
+              <p>
+                Trust, αξιολογήσεις, απόσταση,
+                διαθεσιμότητα και συμπεριφορά.
+              </p>
+            </div>
+
+          </div>
+
+        </div>
+
+
+        {/* SEARCH BOX */}
+
+        <div className="discovery-search-shell">
+
+          <SearchBox
+            search={search}
+            setSearch={setSearch}
+            onSearch={()=>loadPros(search)}
+          />
+
+        </div>
+
+
+        {/* SEARCH CONTEXT */}
+
+        {hasSearchContext&&
+          <div className="discovery-context-strip">
+
+            <div className="discovery-context-copy">
+
+              <small>
+                ΤΡΕΧΟΥΣΑ ΑΝΑΖΗΤΗΣΗ
+              </small>
+
+              <div>
+
+                {search.specialty&&
+                  <span>
+                    {search.specialty}
+                  </span>
+                }
+
+                {search.service&&
+                  <span>
+                    {search.service}
+                  </span>
+                }
+
+                {(search.locationLabel||
+                  search.locationQuery)&&
+                  <span>
+                    ⌖{' '}
+                    {search.locationLabel||
+                     search.locationQuery}
+                  </span>
+                }
+
+              </div>
+
+            </div>
+
+            <button
+              type="button"
+              onClick={()=>{
+                const next={
+                  specialty:'',
+                  service:'',
+                  locationQuery:'',
+                  locationLabel:'',
+                  lat:'',
+                  lon:''
+                }
+
+                setSearch(next)
+                loadPros(next)
+                resetDiscoveryFilters()
+              }}
+            >
+              Καθαρισμός
+            </button>
+
+          </div>
+        }
+
+
+        {/* DISCOVERY TOOLBAR */}
+
+        <div className="discovery-toolbar">
+
+          <div className="discovery-results-summary">
+
+            <small>
+              ΑΠΟΤΕΛΕΣΜΑΤΑ
+            </small>
+
+            <strong>
+              {sorted.length}
+            </strong>
+
+            <span>
+              {sorted.length===1
+                ? 'επαγγελματίας'
+                : 'επαγγελματίες'
+              }
+            </span>
+
+            {topMatches>0&&
+              <b>
+                ✦ {topMatches} Smart Match
+              </b>
+            }
+
+          </div>
+
+
+          <div className="discovery-sort">
+
+            <label>
+              Ταξινόμηση
+
+              <select
+                value={sort}
+                onChange={e=>
+                  setSort(e.target.value)
+                }
+              >
+                <option value="recommended">
+                  Προτεινόμενοι · Smart Match
+                </option>
+
+                <option value="rating">
+                  Καλύτερη αξιολόγηση
+                </option>
+
+                <option value="distance">
+                  Κοντινότεροι
+                </option>
+
+                <option value="price">
+                  Χαμηλότερο βασικό κόστος
+                </option>
+              </select>
+
+            </label>
+
+          </div>
+
+        </div>
+
+
+        {/* FILTERS */}
+
+        <div className="discovery-filter-bar">
+
+          <div className="discovery-filter-label">
+            <span>☷</span>
+
+            <div>
+              <b>
+                Φίλτρα
+              </b>
+
+              <small>
+                Περιόρισε τα αποτελέσματα
+              </small>
+            </div>
+          </div>
+
+
+          <button
+            type="button"
+            className={
+              trustOnly
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              setTrustOnly(v=>!v)
+            }
+          >
+            ✦ MELEO Trust
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              availableOnly
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              setAvailableOnly(v=>!v)
+            }
+          >
+            ⚡ Διαθέσιμοι τώρα
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              nearOnly
+                ? 'active'
+                : ''
+            }
+            onClick={()=>
+              setNearOnly(v=>!v)
+            }
+          >
+            ⌖ Έως 10 χλμ
+          </button>
+
+
+          <button
+            type="button"
+            className={
+              premiumOnly
+                ? 'active premium-filter'
+                : 'premium-filter'
+            }
+            onClick={()=>
+              setPremiumOnly(v=>!v)
+            }
+          >
+            ◆ Premium
+          </button>
+
+
+          {activeFilters.length>0&&
+            <button
+              type="button"
+              className="discovery-reset-filters"
+              onClick={resetDiscoveryFilters}
+            >
+              × Καθαρισμός φίλτρων
+            </button>
+          }
+
+        </div>
+
+
+        {/* ACTIVE FILTER PILLS */}
+
+        {activeFilters.length>0&&
+          <div className="discovery-active-filters">
+
+            <span>
+              Ενεργά φίλτρα
+            </span>
+
+            {activeFilters.map(
+              (x:any)=>
+                <b key={x}>
+                  {x}
+                </b>
+            )}
+
+          </div>
+        }
+
+
+        {/* RESULTS */}
+
+        {sorted.length
+          ? <>
+
+              {sort==='recommended'&&topMatches>0&&
+                <div className="discovery-ranking-note">
+
+                  <span>
+                    ✦
+                  </span>
+
+                  <div>
+                    <b>
+                      Τα πρώτα αποτελέσματα ταξινομούνται
+                      με MELEO Smart Match
+                    </b>
+
+                    <p>
+                      Η σειρά συνδυάζει πολλαπλά signals.
+                      Το Premium μπορεί να δίνει περιορισμένη
+                      εμπορική ενίσχυση, αλλά δεν αντικαθιστά
+                      την αξιοπιστία, τη συνάφεια και την
+                      απόσταση.
+                    </p>
+                  </div>
+
+                </div>
+              }
+
+
+              <div className="discovery-results">
+
+                {sorted.map((p:any)=>
+                  <ProCard
+                    key={p.id}
+                    p={p}
+                    open={()=>openPro(p)}
+                    favorite={
+                      favorites.includes(p.id)
+                    }
+                    toggle={()=>
+                      toggleFav(p.id)
+                    }
+                  />
+                )}
+
+              </div>
+
+            </>
+
+          : <div className="discovery-empty">
+
+              <div className="discovery-empty-mark">
+                ⌕
+              </div>
+
+              <small>
+                ΔΕΝ ΒΡΕΘΗΚΑΝ ΑΠΟΤΕΛΕΣΜΑΤΑ
+              </small>
+
+              <h2>
+                Δεν βρήκαμε επαγγελματία
+                με αυτά τα κριτήρια.
+              </h2>
+
+              <p>
+                Δοκίμασε να αφαιρέσεις κάποιο φίλτρο,
+                να αυξήσεις την περιοχή αναζήτησης
+                ή να δεις όλους τους επαγγελματίες
+                της ειδικότητας.
+              </p>
+
+              <div className="discovery-empty-actions">
+
+                {activeFilters.length>0&&
+                  <button
+                    className="btn btn-dark"
+                    onClick={resetDiscoveryFilters}
+                  >
+                    Καθαρισμός φίλτρων
+                  </button>
+                }
+
+                <button
+                  className="btn btn-outline"
+                  onClick={()=>{
+                    const next={
+                      ...search,
+                      service:''
+                    }
+
+                    setSearch(next)
+                    loadPros(next)
+                    resetDiscoveryFilters()
+                  }}
+                >
+                  Όλες οι υπηρεσίες
+                </button>
+
+              </div>
+
+            </div>
+        }
+
+
+        {/* EXPLAINER */}
+
+        <div className="discovery-explainer">
+
+          <span>
+            ⓘ
+          </span>
+
+          <p>
+            Η MELEO είναι marketplace εύρεσης επαγγελματιών.
+            Η σειρά των αποτελεσμάτων είναι υποβοηθητική και
+            δεν αποτελεί ιατρική σύσταση ή εγγύηση
+            καταλληλότητας για συγκεκριμένο περιστατικό.
+          </p>
+
+        </div>
+
+
+      </div>
+    </section>
+  )
 }
 
 function Profile({p,user,favorite,toggleFav,setView,startBooking}:any){
