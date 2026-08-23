@@ -88,90 +88,125 @@ export const Professionals={
       Number.isFinite(Number(q.lat)) &&
       Number.isFinite(Number(q.lon))
 
-    const smartDistanceScore = hasGeo
-      ? `
-        CASE
-          WHEN distance_km IS NULL THEN 0
-          WHEN distance_km <= 2 THEN 24
-          WHEN distance_km <= 5 THEN 21
-          WHEN distance_km <= 10 THEN 17
-          WHEN distance_km <= 20 THEN 12
-          WHEN distance_km <= 35 THEN 7
-          ELSE 3
-        END
-      `
-      : '12'
+const smartDistanceScore = hasGeo
+  ? `
+    CASE
+      WHEN distance_km IS NULL THEN 0
+      WHEN distance_km <= 2 THEN 20
+      WHEN distance_km <= 5 THEN 18
+      WHEN distance_km <= 10 THEN 15
+      WHEN distance_km <= 20 THEN 10
+      WHEN distance_km <= 35 THEN 6
+      ELSE 2
+    END
+  `
+  : '10'
 
-    const smartScoreExpr = `
-      LEAST(
-        100,
-        GREATEST(
-          0,
+const smartScoreExpr=`
+  LEAST(
+    100,
+    GREATEST(
+      0,
 
-          /* Verified identity / professional status */
-          10
+      /* Verified professional — max 6 */
+      CASE
+        WHEN verified=true THEN 6
+        ELSE 0
+      END
 
-          /* Rating quality — max 20 */
-          + CASE
-              WHEN coalesce(reviews_count,0)=0 THEN 10
-              ELSE LEAST(20, GREATEST(0, coalesce(rating,0) * 4))
-            END
+      +
 
-          /* Review confidence — max 10 */
-          + CASE
-              WHEN coalesce(reviews_count,0) >= 20 THEN 10
-              WHEN coalesce(reviews_count,0) >= 10 THEN 8
-              WHEN coalesce(reviews_count,0) >= 5 THEN 6
-              WHEN coalesce(reviews_count,0) >= 1 THEN 4
-              ELSE 3
-            END
+      /* MELEO Trust — max 28 */
+      CASE
+        WHEN trust_eligible=true
+        THEN (coalesce(trust_score,0) / 100.0) * 28
 
-          /* Distance / geographic relevance — max 24 */
-          + ${smartDistanceScore}
+        /* Neutral fallback for new professionals */
+        ELSE 18
+      END
 
-          /* Availability — max 10 */
-          + CASE
-              WHEN lower(coalesce(available,'')) LIKE '%σήμερα%' THEN 10
-              WHEN lower(coalesce(available,'')) LIKE '%άμεσα%' THEN 10
-              WHEN lower(coalesce(available,'')) LIKE '%διαθέσ%' THEN 7
-              ELSE 4
-            END
+      +
 
-          /* Response behaviour proxy — max 10 */
-          + CASE
-              WHEN lower(coalesce(response_time,'')) LIKE '%λεπτ%' THEN 10
-              WHEN lower(coalesce(response_time,'')) LIKE '%ώρα%' THEN 8
-              WHEN lower(coalesce(response_time,'')) LIKE '%ωρ%' THEN 8
-              WHEN coalesce(response_time,'') <> '' THEN 6
-              ELSE 4
-            END
+      /* Rating quality — max 14 */
+      CASE
+        WHEN coalesce(reviews_count,0)=0 THEN 7
 
-          /* Experience — max 8 */
-          + CASE
-              WHEN coalesce(years,0) >= 10 THEN 8
-              WHEN coalesce(years,0) >= 5 THEN 6
-              WHEN coalesce(years,0) >= 2 THEN 4
-              WHEN coalesce(years,0) > 0 THEN 2
-              ELSE 1
-            END
-
-          /*
-           * Premium commercial boost — max 8.
-           * Deliberately limited so Premium cannot overpower
-           * a substantially better Basic professional.
-           */
-          + CASE
-              WHEN subscription_plan='premium'
-                   AND subscription_status='active'
-              THEN 8
-              ELSE 0
-            END
-
-          /* Existing featured flag — tiny legacy/tie boost */
-          + CASE WHEN featured=true THEN 2 ELSE 0 END
+        ELSE LEAST(
+          14,
+          GREATEST(
+            0,
+            (coalesce(rating,0) / 5.0) * 14
+          )
         )
-      )
-    `
+      END
+
+      +
+
+      /* Review confidence — max 5 */
+      CASE
+        WHEN coalesce(reviews_count,0) >= 20 THEN 5
+        WHEN coalesce(reviews_count,0) >= 10 THEN 4
+        WHEN coalesce(reviews_count,0) >= 5 THEN 3
+        WHEN coalesce(reviews_count,0) >= 1 THEN 2
+        ELSE 1
+      END
+
+      +
+
+      /* Distance — max 20 */
+      ${smartDistanceScore}
+
+      +
+
+      /* Availability — max 8 */
+      CASE
+        WHEN lower(coalesce(available,'')) LIKE '%σήμερα%' THEN 8
+        WHEN lower(coalesce(available,'')) LIKE '%άμεσα%' THEN 8
+        WHEN lower(coalesce(available,'')) LIKE '%διαθέσ%' THEN 6
+        ELSE 3
+      END
+
+      +
+
+      /* Response behaviour — max 6 */
+      CASE
+        WHEN lower(coalesce(response_time,'')) LIKE '%λεπτ%' THEN 6
+        WHEN lower(coalesce(response_time,'')) LIKE '%ώρα%' THEN 5
+        WHEN lower(coalesce(response_time,'')) LIKE '%ωρ%' THEN 5
+        WHEN coalesce(response_time,'') <> '' THEN 4
+        ELSE 2
+      END
+
+      +
+
+      /* Experience — max 3 */
+      CASE
+        WHEN coalesce(years,0) >= 10 THEN 3
+        WHEN coalesce(years,0) >= 5 THEN 2
+        WHEN coalesce(years,0) > 0 THEN 1
+        ELSE 0
+      END
+
+      +
+
+      /* Premium commercial boost — max 8 */
+      CASE
+        WHEN subscription_plan='premium'
+          AND subscription_status='active'
+        THEN 8
+        ELSE 0
+      END
+
+      +
+
+      /* Small legacy featured tie boost */
+      CASE
+        WHEN featured=true THEN 2
+        ELSE 0
+      END
+    )
+  )
+`
 
     const base=`FROM professionals p JOIN users u ON u.id=p.user_id WHERE ${where.join(' AND ')}`
 
@@ -181,14 +216,53 @@ export const Professionals={
      * expression at the same SELECT level.
      */
     const candidateSql=`
-      SELECT
-        p.*,
-        u.name user_name,
-        u.email user_email,
-        u.phone user_phone,
-        ${distanceExpr}
-      ${base}
-    `
+  SELECT
+    p.*,
+    u.name user_name,
+    u.email user_email,
+    u.phone user_phone,
+    ${distanceExpr},
+
+    coalesce(bs.total,0)::int AS trust_total,
+    coalesce(bs.completed,0)::int AS trust_completed,
+    coalesce(bs.cancelled,0)::int AS trust_cancelled,
+    coalesce(bs.progressed,0)::int AS trust_progressed,
+    coalesce(bs.recent_completed,0)::int AS trust_recent_completed
+
+  FROM professionals p
+
+  JOIN users u
+    ON u.id=p.user_id
+
+  LEFT JOIN LATERAL (
+    SELECT
+      count(*)::int AS total,
+
+      count(*) FILTER (
+        WHERE b.status='completed'
+      )::int AS completed,
+
+      count(*) FILTER (
+        WHERE b.status='cancelled'
+      )::int AS cancelled,
+
+      count(*) FILTER (
+        WHERE b.status<>'pending'
+      )::int AS progressed,
+
+      count(*) FILTER (
+        WHERE b.status='completed'
+          AND b.created_at>=now()-interval '90 days'
+      )::int AS recent_completed
+
+    FROM bookings b
+
+    WHERE b.professional_id=p.id
+
+  ) bs ON true
+
+  WHERE ${where.join(' AND ')}
+`
 
     const countVals=[...vals]
 
@@ -196,48 +270,283 @@ export const Professionals={
     const lim=i++,off=i++
 
     const rows=await many(`
-      SELECT ranked.*,
-             ROUND((${smartScoreExpr})::numeric,1) AS smart_match_score
-      FROM (
-        ${candidateSql}
-      ) ranked
-      ORDER BY
-        smart_match_score DESC,
-        rating DESC,
-        reviews_count DESC,
-        distance_km ASC NULLS LAST,
-        created_at DESC
-      LIMIT $${lim}
-	  OFFSET $${off}
-    `,vals)
+  WITH candidate AS (
+
+    ${candidateSql}
+
+  ),
+
+  metrics AS (
+
+    SELECT
+      candidate.*,
+
+      CASE
+        WHEN (trust_completed + trust_cancelled) > 0
+        THEN round(
+          (
+            trust_completed::numeric /
+            (trust_completed + trust_cancelled)::numeric
+          ) * 100
+        )::int
+        ELSE 100
+      END AS trust_completion_rate,
+
+      CASE
+        WHEN trust_total > 0
+        THEN round(
+          (
+            trust_progressed::numeric /
+            trust_total::numeric
+          ) * 100
+        )::int
+        ELSE 100
+      END AS trust_response_rate,
+
+      CASE
+        WHEN (trust_completed + trust_cancelled) > 0
+        THEN round(
+          (
+            trust_completed::numeric /
+            (trust_completed + trust_cancelled)::numeric
+          ) * 100
+        )::int
+        ELSE 100
+      END AS trust_reliability_rate,
+
+      (
+        trust_completed >= 5
+        AND coalesce(reviews_count,0) >= 3
+      ) AS trust_eligible
+
+    FROM candidate
+  ),
+
+  trust_scored AS (
+
+    SELECT
+      metrics.*,
+
+      CASE
+        WHEN trust_eligible = true THEN
+
+          LEAST(
+            100,
+            GREATEST(
+              0,
+
+              CASE
+                WHEN verified = true THEN 20
+                ELSE 0
+              END
+
+              +
+
+              round(
+                GREATEST(
+                  0,
+                  LEAST(
+                    25,
+                    (coalesce(rating,0) / 5.0) * 25
+                  )
+                )
+              )
+
+              +
+
+              round(
+                GREATEST(
+                  0,
+                  LEAST(
+                    20,
+                    (trust_completion_rate / 100.0) * 20
+                  )
+                )
+              )
+
+              +
+
+              round(
+                GREATEST(
+                  0,
+                  LEAST(
+                    15,
+                    (trust_response_rate / 100.0) * 15
+                  )
+                )
+              )
+
+              +
+
+              round(
+                GREATEST(
+                  0,
+                  LEAST(
+                    10,
+                    (trust_reliability_rate / 100.0) * 10
+                  )
+                )
+              )
+
+              +
+
+              CASE
+                WHEN trust_recent_completed >= 8 THEN 10
+                WHEN trust_recent_completed >= 5 THEN 8
+                WHEN trust_recent_completed >= 2 THEN 6
+                ELSE 4
+              END
+            )
+          )::int
+
+        ELSE NULL
+
+      END AS trust_score
+
+    FROM metrics
+  )
+
+  SELECT
+    trust_scored.*,
+    ROUND((${smartScoreExpr})::numeric,1) AS smart_match_score
+
+  FROM trust_scored
+
+  ORDER BY
+    smart_match_score DESC,
+    trust_score DESC NULLS LAST,
+    rating DESC,
+    reviews_count DESC,
+    distance_km ASC NULLS LAST,
+    created_at DESC
+
+  LIMIT $${lim}
+  OFFSET $${off}
+
+`,vals)
 
     const c=await one(
       `SELECT count(*)::int total ${base}`,
       countVals
     )
 
-    return {
-      items:rows.map((r,index)=>({
-        ...professionalFromRow(r),
+const trustLabel=score=>
+  score>=90
+    ? 'Εξαιρετική αξιοπιστία'
+    : score>=80
+      ? 'Πολύ υψηλή αξιοπιστία'
+      : score>=70
+        ? 'Υψηλή αξιοπιστία'
+        : score>=60
+          ? 'Καλή αξιοπιστία'
+          : 'Αναπτυσσόμενη αξιοπιστία'
 
-        distance:
-          r.distance_km==null
-            ? undefined
-            : Number(Number(r.distance_km).toFixed(1)),
+const items=rows.map((r,index)=>{
+  const p=professionalFromRow(r)
 
-        smartMatch:{
-          score:Number(r.smart_match_score||0),
-          rank:offset+index+1,
-          version:'v1'
-        }
-      })),
+  const distance=
+    r.distance_km==null
+      ? undefined
+      : Number(Number(r.distance_km).toFixed(1))
 
-      page,
-      limit,
-      total:c?.total||0,
-      totalPages:Math.ceil((c?.total||0)/limit),
-      ranking:'smart-match-v1'
+  const trustEligible=Boolean(r.trust_eligible)
+
+  const trustScore=
+    trustEligible
+      ? Number(r.trust_score||0)
+      : null
+
+  const trust=trustEligible
+    ? {
+        eligible:true,
+        score:trustScore,
+        label:trustLabel(trustScore),
+        completed:Number(r.trust_completed||0),
+        reviews:Number(p.reviews||0),
+        rating:Number(Number(p.rating||0).toFixed(1)),
+        completionRate:Number(r.trust_completion_rate||0),
+        responseRate:Number(r.trust_response_rate||0)
+      }
+    : {
+        eligible:false,
+        label:'MELEO Verified · Νέος επαγγελματίας',
+        completed:Number(r.trust_completed||0),
+        reviews:Number(p.reviews||0),
+        minCompleted:5,
+        minReviews:3
+      }
+
+  const reasons=[]
+
+  if(trustEligible){
+    if(trustScore>=90){
+      reasons.push('Εξαιρετική αξιοπιστία')
+    }else if(trustScore>=80){
+      reasons.push('Πολύ υψηλή αξιοπιστία')
+    }else if(trustScore>=70){
+      reasons.push('Υψηλή αξιοπιστία')
     }
+  }else{
+    reasons.push('MELEO Verified · Νέος επαγγελματίας')
+  }
+
+  if(distance!=null){
+    if(distance<=2){
+      reasons.push('Πολύ κοντά σου')
+    }else if(distance<=5){
+      reasons.push(`${distance} km από εσένα`)
+    }
+  }
+
+  if(
+    Number(p.rating||0)>=4.8 &&
+    Number(p.reviews||0)>=3
+  ){
+    reasons.push('Εξαιρετικές αξιολογήσεις')
+  }
+
+  if(
+    String(p.available||'').toLowerCase().includes('σήμερα') ||
+    String(p.available||'').toLowerCase().includes('άμεσα')
+  ){
+    reasons.push('Διαθέσιμος σήμερα')
+  }
+
+  if(
+    String(p.responseTime||'').toLowerCase().includes('λεπτ')
+  ){
+    reasons.push('Γρήγορη ανταπόκριση')
+  }
+
+  if(
+    p.subscriptionPlan==='premium' &&
+    p.subscriptionStatus==='active'
+  ){
+    reasons.push('PREMIUM προτεραιότητα')
+  }
+
+  return {
+    ...p,
+    distance,
+    trust,
+
+    smartMatch:{
+      score:Number(r.smart_match_score||0),
+      rank:offset+index+1,
+      version:'v1.1',
+      reasons:reasons.slice(0,4)
+    }
+  }
+})
+
+return {
+  items,
+  page,
+  limit,
+  total:c?.total||0,
+  totalPages:Math.ceil((c?.total||0)/limit),
+  ranking:'smart-match-v1.1'
+}
   }
 }
 

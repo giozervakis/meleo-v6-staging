@@ -361,13 +361,33 @@ function MiniCard({p}:{p:Professional}){return <div className="mini-card"><div c
 function ProCard({p,open,favorite,toggle}:any){
   useEffect(()=>{trackProfessionalEvent(p.id,'impression')},[p.id])
   return <article className="pro-card">
-    {p.smartMatch?.rank<=3&&
-      <div className="smart-match-banner">
-        <span>✦ MELEO SMART MATCH</span>
-        <strong>#{p.smartMatch.rank}</strong>
-        <em>{Math.round(p.smartMatch.score)}% αντιστοίχιση</em>
-      </div>
-    }
+{p.smartMatch?.rank<=3&&<>
+  <div className="smart-match-banner">
+    <span>✦ MELEO SMART MATCH</span>
+    <strong>#{p.smartMatch.rank}</strong>
+    <em>{Math.round(p.smartMatch.score)}% αντιστοίχιση</em>
+  </div>
+
+  <div className="smart-match-why">
+    <div className="smart-match-why-head">
+      <b>Γιατί σου προτείνεται</b>
+
+      {p.trust?.eligible
+        ? <span>MELEO Trust {p.trust.score}/100</span>
+        : <span>MELEO Verified</span>
+      }
+    </div>
+
+    <div className="smart-match-reasons">
+      {(p.smartMatch.reasons||[])
+        .slice(0,4)
+        .map((reason:string)=>
+          <span key={reason}>✓ {reason}</span>
+        )
+      }
+    </div>
+  </div>
+</>}
     <div className="pro-card-top"><div className="avatar large">{initials(p.name)}</div><button className={'heart '+(favorite?'on':'')} onClick={toggle}>♡</button>{p.subscriptionPlan==='premium'&&<span className="featured">ΠΡΟΤΕΙΝΟΜΕΝΟΣ · PREMIUM</span>}</div><div className="pro-card-body"><div className="pro-name"><h3>{p.name}</h3>{p.verified&&<span className="verify-badge" title="Επαληθευμένος">✓</span>}</div><p className="muted">{p.title} · {p.services[0]}</p><div className="rating-row"><span className="stars">★ {p.rating||'Νέο'}</span><span>{p.reviews?`(${p.reviews} αξιολογήσεις)`:'Νέο προφίλ'}</span><span>· {p.distance} χλμ</span></div><div className="tag-row">{p.services.slice(0,2).map((x:string)=><span key={x}>{x}</span>)}</div><div className="card-footer"><div><span className="availability"><i/>{p.available}</span><small><b>{priceLabel(p,true)}</b><br/>{priceNote(p)}</small></div><button className="round-arrow" onClick={open}>→</button></div></div></article>
 }
 
