@@ -114,12 +114,910 @@ function ProfessionalDashboard({user,professional,token,onRefresh,setToast,cfg,s
  const income=bookings.filter(b=>b.status==='completed').reduce((a,b)=>a+Number(b.agreedPrice??b.price??0),0)
  const completion=(()=>{const f=[professional?.title,professional?.specialty,professional?.city,professional?.bio,(professional?.services||[]).length,(professional?.availability||[]).length,professional?.years,professional?.verified];return Math.round(f.filter(Boolean).length/f.length*100)})()
  if(!professional || !['active','past_due'].includes(professional.subscriptionStatus) || !professional.onboardingCompleted) return <ProfessionalOnboarding user={user} professional={professional} token={token} onRefresh={onRefresh} setToast={setToast} cfg={cfg}/>
- return <section className="dashboard-pro"><div className="pro-sidebar"><Mark/><div className="pro-user"><div className="avatar">{initials(user.name)}</div><div><b>{user.name}</b><small>{professional?.verified?'✓ Verified':'Αναμονή επαλήθευσης'}</small></div></div><nav>{[['overview','⌂','Επισκόπηση'],['requests','◇','Αιτήματα'],['profile','○','Προφίλ'],['availability','◷','Διαθεσιμότητα'],['subscription','◆','Συνδρομή'],['verification','✓','Επαλήθευση'],['notifications','🔔','Ειδοποιήσεις'],['support','?','Υποστήριξη']].map(x=><button key={x[0]} className={tab===x[0]?'active':''} onClick={()=>setTab(x[0])}><span>{x[1]}</span>{x[2]}{x[0]==='requests'&&bookings.filter(b=>['pending','clarification'].includes(b.status)).length>0&&<i>{bookings.filter(b=>['pending','clarification'].includes(b.status)).length}</i>}</button>)}</nav><button className="pro-personal-care-link" onClick={()=>setView('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button><small className="side-version">MELEO Professional v5.0</small></div><div className="pro-content"><VerifyEmailBanner user={user} token={token} cfg={cfg} setToast={setToast}/>{professional?.subscriptionStatus==='past_due'&&<div className="alert-banner">Η τελευταία χρέωση της συνδρομής απέτυχε. Ενημέρωσε τον τρόπο πληρωμής από τη «Συνδρομή», ώστε το προφίλ σου να μη απενεργοποιηθεί.</div>}{professional?.cancelAtPeriodEnd&&<div className="alert-banner soft">Η συνδρομή έχει προγραμματιστεί για ακύρωση{professional?.currentPeriodEnd?` στις ${new Date(professional.currentPeriodEnd).toLocaleDateString('el-GR')}`:''}.</div>}<div className="pro-top"><div><small>PROFESSIONAL SPACE</small><h2>{tab==='overview'?'Επισκόπηση':tab==='requests'?'Αιτήματα επισκέψεων':tab==='profile'?'Επαγγελματικό προφίλ':tab==='availability'?'Διαθεσιμότητα':tab==='subscription'?'Συνδρομή MELEO':tab==='notifications'?'Ειδοποιήσεις':tab==='support'?'Υποστήριξη':'Επαλήθευση στοιχείων'}</h2></div><div className="status-pill"><i/> {professional?.verified?'Verified':'Pending verification'}</div></div>{tab==='overview'&&<><div className="stat-grid"><Stat label="Νέα αιτήματα" value={bookings.filter(b=>b.status==='pending').length} note="χρειάζονται απάντηση"/><Stat label="Επιβεβαιωμένες" value={bookings.filter(b=>b.status==='accepted').length} note="προσεχείς επισκέψεις"/><Stat label="Έσοδά σου" value={money(income)} note="από ολοκληρωμένες επισκέψεις · η MELEO δεν κρατά προμήθεια"/><Stat label="Αξιολόγηση" value={professional?.rating||'—'} note={`${professional?.reviews||0} αξιολογήσεις`}/></div><ProfessionalPerformance analytics={analytics}/><div className="pro-panels"><div className="panel"><div className="panel-heading"><h3>Πρόσφατα αιτήματα</h3><button onClick={()=>setTab('requests')}>Προβολή όλων</button></div>{bookings.slice(0,4).map(b=><CompactBooking key={b.id} b={b} status={status} token={token} onRefresh={refresh} setToast={setToast}/>)||null}{!bookings.length&&<Empty title="Δεν υπάρχουν αιτήματα ακόμη" text="Μόλις κάποιος σε επιλέξει, θα εμφανιστεί εδώ."/>}</div><div className="panel"><div className="panel-heading"><h3>Το προφίλ σου</h3></div><div className="completion"><div className="completion-ring">{completion}%</div><div><b>{completion>=90?'Το προφίλ είναι πλήρες':professional?.verified?'Συμπλήρωσε τα υπόλοιπα στοιχεία':'Ολοκλήρωσε την επαλήθευση'}</b><p>Ένα πλήρες προφίλ βοηθά τον χρήστη να αποφασίσει με σιγουριά.</p></div></div><button className="btn btn-outline wide" onClick={()=>setTab('profile')}>Επεξεργασία προφίλ</button></div></div></>}{tab==='requests'&&<div className="panel large-panel">{bookings.length?bookings.map(b=><CompactBooking key={b.id} b={b} status={status} full token={token} onRefresh={refresh} setToast={setToast}/>):<Empty title="Δεν υπάρχουν αιτήματα" text="Τα νέα requests θα εμφανίζονται εδώ."/>}</div>}{tab==='profile'&&<div className="panel form-panel"><div className="form-grid"><label>Επαγγελματικός τίτλος<input value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>Ειδικότητα<select value={form.specialty||'Νοσηλευτική'} onChange={e=>setForm({...form,specialty:e.target.value})}>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></label><ProfessionalLocationEditor form={form} setForm={setForm}/><label>Εμφάνιση κόστους<select value={form.pricingMode||'from'} onChange={e=>setForm({...form,pricingMode:e.target.value})}><option value="from">Ναι · Από βασικό κόστος επίσκεψης</option><option value="contact">Όχι · Κατόπιν επικοινωνίας</option></select></label>{form.pricingMode!=='contact'&&<label>Βασικό κόστος απλής επίσκεψης (€)<input type="number" min="0" value={form.price||''} onChange={e=>setForm({...form,price:e.target.value})}/></label>}<div className="full contact-privacy-card"><b>Δημόσια στοιχεία επικοινωνίας</b><p className="muted">Εσύ αποφασίζεις ποια προσωπικά στοιχεία εμφανίζονται στο δημόσιο προφίλ σου.</p><label className="consent-row"><input type="checkbox" checked={form.showPhone!==false} onChange={e=>setForm({...form,showPhone:e.target.checked})}/><span>Εμφάνιση τηλεφώνου / κουμπιού κλήσης</span></label><label className="consent-row"><input type="checkbox" checked={form.showEmail!==false} onChange={e=>setForm({...form,showEmail:e.target.checked})}/><span>Εμφάνιση email</span></label><label className="consent-row"><input type="checkbox" checked={Boolean(form.preferPlatformContact)} onChange={e=>setForm({...form,preferPlatformContact:e.target.checked})}/><span>Προτιμώ επικοινωνία μέσω MELEO</span></label></div><div className="full notice">Το ποσό εμφανίζεται ως <b>«Από Χ€»</b>. Το τελικό κόστος συμφωνείται τηλεφωνικά με τον πελάτη ανάλογα με τις πραγματικές ανάγκες της επίσκεψης.</div><label>Έτη εμπειρίας<input type="number" value={form.years||''} onChange={e=>setForm({...form,years:e.target.value})}/></label><label className="full">Σύντομο βιογραφικό<textarea value={form.bio||''} onChange={e=>setForm({...form,bio:e.target.value})}/></label><label className="full">Υπηρεσίες που παρέχεις (χωρισμένες με κόμμα)<input value={Array.isArray(form.services)?form.services.join(', '):form.services||''} onChange={e=>setForm({...form,services:e.target.value})}/></label></div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση προφίλ</button></div>}{tab==='availability'&&<div className="panel form-panel"><h3>Διαθέσιμες ώρες</h3><p className="muted">Για το MVP αποθηκεύουμε τις ώρες ως λίστα. Στην production έκδοση αυτό εξελίσσεται σε εβδομαδιαίο calendar.</p><label>Ώρες, χωρισμένες με κόμμα<input value={Array.isArray(form.availability)?form.availability.join(', '):form.availability||''} onChange={e=>setForm({...form,availability:e.target.value})}/></label><div className="time-grid">{(Array.isArray(form.availability)?form.availability:[]).map((t:string)=><span key={t}>{t}</span>)}</div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση</button></div>}{tab==='subscription'&&<SubscriptionPanel professional={professional} token={token} onRefresh={onRefresh} setToast={setToast} cfg={cfg}/>}{tab==='notifications'&&<NotificationsPage user={user} token={token} setToast={setToast} embedded/>}{tab==='support'&&<HelpCenter user={user} token={token} setToast={setToast} cfg={cfg} embedded/>}{tab==='verification'&&<div className="verification-layout"><div className="panel form-panel"><div className="verify-hero"><span>✓</span><div><h3>Professional Verification</h3><p>Η επαλήθευση είναι ξεχωριστή από οποιοδήποτε εμπορικό πακέτο.</p></div></div><label>Αριθμός άδειας / μητρώου<input value={vr.licenseNumber} onChange={e=>setVr({...vr,licenseNumber:e.target.value})}/></label><label>Δικαιολογητικό επαλήθευσης<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={uploadBusy} onChange={e=>{const f=e.target.files?.[0];if(f)uploadVerificationFile(f)}}/><small className="field-hint">PDF/JPG/PNG/WEBP έως 5MB.</small></label>{docs.length>0&&<div className="uploaded-docs">{docs.map((d:any)=><span key={d.id}>✓ {d.name}</span>)}</div>}<label>Σημειώσεις<textarea value={vr.notes} onChange={e=>setVr({...vr,notes:e.target.value})}/></label><button className="btn btn-dark" onClick={verifyReq}>Υποβολή για έλεγχο</button></div><div className="panel"><h3>Τι ελέγχεται</h3><ul className="clean-list"><li>Ταυτότητα επαγγελματία</li><li>Επαγγελματική ιδιότητα</li><li>Απαιτούμενα νόμιμα δικαιολογητικά</li><li>Στοιχεία επικοινωνίας</li></ul><div className="notice">Τα δικαιολογητικά αποθηκεύονται κρυπτογραφημένα και είναι διαθέσιμα μόνο στη ροή επαλήθευσης.</div></div></div>}</div></section>
+ return <section className="dashboard-pro"><div className="pro-sidebar"><Mark/><div className="pro-user"><div className="avatar">{initials(user.name)}</div><div><b>{user.name}</b><small>{professional?.verified?'✓ Verified':'Αναμονή επαλήθευσης'}</small></div></div><nav>{[['overview','⌂','Επισκόπηση'],['requests','◇','Αιτήματα'],['profile','○','Προφίλ'],['availability','◷','Διαθεσιμότητα'],['subscription','◆','Συνδρομή'],['verification','✓','Επαλήθευση'],['notifications','🔔','Ειδοποιήσεις'],['support','?','Υποστήριξη']].map(x=><button key={x[0]} className={tab===x[0]?'active':''} onClick={()=>setTab(x[0])}><span>{x[1]}</span>{x[2]}{x[0]==='requests'&&bookings.filter(b=>['pending','clarification'].includes(b.status)).length>0&&<i>{bookings.filter(b=>['pending','clarification'].includes(b.status)).length}</i>}</button>)}</nav><button className="pro-personal-care-link" onClick={()=>setView('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button><small className="side-version">MELEO Professional v5.0</small></div><div className="pro-content"><VerifyEmailBanner user={user} token={token} cfg={cfg} setToast={setToast}/>{professional?.subscriptionStatus==='past_due'&&<div className="alert-banner">Η τελευταία χρέωση της συνδρομής απέτυχε. Ενημέρωσε τον τρόπο πληρωμής από τη «Συνδρομή», ώστε το προφίλ σου να μη απενεργοποιηθεί.</div>}{professional?.cancelAtPeriodEnd&&<div className="alert-banner soft">Η συνδρομή έχει προγραμματιστεί για ακύρωση{professional?.currentPeriodEnd?` στις ${new Date(professional.currentPeriodEnd).toLocaleDateString('el-GR')}`:''}.</div>}<div className="pro-top"><div><small>PROFESSIONAL SPACE</small><h2>{tab==='overview'?'Επισκόπηση':tab==='requests'?'Αιτήματα επισκέψεων':tab==='profile'?'Επαγγελματικό προφίλ':tab==='availability'?'Διαθεσιμότητα':tab==='subscription'?'Συνδρομή MELEO':tab==='notifications'?'Ειδοποιήσεις':tab==='support'?'Υποστήριξη':'Επαλήθευση στοιχείων'}</h2></div><div className="status-pill"><i/> {professional?.verified?'Verified':'Pending verification'}</div>
+ </div>{tab==='overview'&&<>
+
+  <ProfessionalPerformance
+    analytics={analytics}
+    professional={professional}
+    bookings={bookings}
+    completion={completion}
+    income={income}
+    setTab={setTab}
+  />
+
+  <div className="pro-panels command-support-panels">
+
+    <div className="panel">
+
+      <div className="panel-heading">
+        <div>
+          <small className="performance-kicker">
+            RECENT ACTIVITY
+          </small>
+
+          <h3>
+            Πρόσφατα αιτήματα
+          </h3>
+        </div>
+
+        <button
+          onClick={()=>setTab('requests')}
+        >
+          Προβολή όλων
+        </button>
+      </div>
+
+      {bookings.length>0
+        ? bookings
+            .slice(0,4)
+            .map(b=>
+              <CompactBooking
+                key={b.id}
+                b={b}
+                status={status}
+                token={token}
+                onRefresh={refresh}
+                setToast={setToast}
+              />
+            )
+
+        : <Empty
+            title="Δεν υπάρχουν αιτήματα ακόμη"
+            text="Μόλις κάποιος χρήστης σε επιλέξει, το αίτημα θα εμφανιστεί εδώ."
+          />
+      }
+
+    </div>
+
+  </div>
+
+</>}
+{tab==='requests'&&<div className="panel large-panel">{bookings.length?bookings.map(b=><CompactBooking key={b.id} b={b} status={status} full token={token} onRefresh={refresh} setToast={setToast}/>):<Empty title="Δεν υπάρχουν αιτήματα" text="Τα νέα requests θα εμφανίζονται εδώ."/>}</div>
+}{tab==='profile'&&<div className="panel form-panel"><div className="form-grid"><label>Επαγγελματικός τίτλος<input value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>Ειδικότητα<select value={form.specialty||'Νοσηλευτική'} onChange={e=>setForm({...form,specialty:e.target.value})}>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></label><ProfessionalLocationEditor form={form} setForm={setForm}/><label>Εμφάνιση κόστους<select value={form.pricingMode||'from'} onChange={e=>setForm({...form,pricingMode:e.target.value})}><option value="from">Ναι · Από βασικό κόστος επίσκεψης</option><option value="contact">Όχι · Κατόπιν επικοινωνίας</option></select></label>{form.pricingMode!=='contact'&&<label>Βασικό κόστος απλής επίσκεψης (€)<input type="number" min="0" value={form.price||''} onChange={e=>setForm({...form,price:e.target.value})}/></label>}<div className="full contact-privacy-card"><b>Δημόσια στοιχεία επικοινωνίας</b><p className="muted">Εσύ αποφασίζεις ποια προσωπικά στοιχεία εμφανίζονται στο δημόσιο προφίλ σου.</p><label className="consent-row"><input type="checkbox" checked={form.showPhone!==false} onChange={e=>setForm({...form,showPhone:e.target.checked})}/><span>Εμφάνιση τηλεφώνου / κουμπιού κλήσης</span></label><label className="consent-row"><input type="checkbox" checked={form.showEmail!==false} onChange={e=>setForm({...form,showEmail:e.target.checked})}/><span>Εμφάνιση email</span></label><label className="consent-row"><input type="checkbox" checked={Boolean(form.preferPlatformContact)} onChange={e=>setForm({...form,preferPlatformContact:e.target.checked})}/><span>Προτιμώ επικοινωνία μέσω MELEO</span></label></div><div className="full notice">Το ποσό εμφανίζεται ως <b>«Από Χ€»</b>. Το τελικό κόστος συμφωνείται τηλεφωνικά με τον πελάτη ανάλογα με τις πραγματικές ανάγκες της επίσκεψης.</div><label>Έτη εμπειρίας<input type="number" value={form.years||''} onChange={e=>setForm({...form,years:e.target.value})}/></label><label className="full">Σύντομο βιογραφικό<textarea value={form.bio||''} onChange={e=>setForm({...form,bio:e.target.value})}/></label><label className="full">Υπηρεσίες που παρέχεις (χωρισμένες με κόμμα)<input value={Array.isArray(form.services)?form.services.join(', '):form.services||''} onChange={e=>setForm({...form,services:e.target.value})}/></label></div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση προφίλ</button></div>}{tab==='availability'&&<div className="panel form-panel"><h3>Διαθέσιμες ώρες</h3><p className="muted">Για το MVP αποθηκεύουμε τις ώρες ως λίστα. Στην production έκδοση αυτό εξελίσσεται σε εβδομαδιαίο calendar.</p><label>Ώρες, χωρισμένες με κόμμα<input value={Array.isArray(form.availability)?form.availability.join(', '):form.availability||''} onChange={e=>setForm({...form,availability:e.target.value})}/></label><div className="time-grid">{(Array.isArray(form.availability)?form.availability:[]).map((t:string)=><span key={t}>{t}</span>)}</div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση</button></div>}{tab==='subscription'&&<SubscriptionPanel professional={professional} token={token} onRefresh={onRefresh} setToast={setToast} cfg={cfg}/>}{tab==='notifications'&&<NotificationsPage user={user} token={token} setToast={setToast} embedded/>}{tab==='support'&&<HelpCenter user={user} token={token} setToast={setToast} cfg={cfg} embedded/>}{tab==='verification'&&<div className="verification-layout"><div className="panel form-panel"><div className="verify-hero"><span>✓</span><div><h3>Professional Verification</h3><p>Η επαλήθευση είναι ξεχωριστή από οποιοδήποτε εμπορικό πακέτο.</p></div></div><label>Αριθμός άδειας / μητρώου<input value={vr.licenseNumber} onChange={e=>setVr({...vr,licenseNumber:e.target.value})}/></label><label>Δικαιολογητικό επαλήθευσης<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={uploadBusy} onChange={e=>{const f=e.target.files?.[0];if(f)uploadVerificationFile(f)}}/><small className="field-hint">PDF/JPG/PNG/WEBP έως 5MB.</small></label>{docs.length>0&&<div className="uploaded-docs">{docs.map((d:any)=><span key={d.id}>✓ {d.name}</span>)}</div>}<label>Σημειώσεις<textarea value={vr.notes} onChange={e=>setVr({...vr,notes:e.target.value})}/></label><button className="btn btn-dark" onClick={verifyReq}>Υποβολή για έλεγχο</button></div><div className="panel"><h3>Τι ελέγχεται</h3><ul className="clean-list"><li>Ταυτότητα επαγγελματία</li><li>Επαγγελματική ιδιότητα</li><li>Απαιτούμενα νόμιμα δικαιολογητικά</li><li>Στοιχεία επικοινωνίας</li></ul><div className="notice">Τα δικαιολογητικά αποθηκεύονται κρυπτογραφημένα και είναι διαθέσιμα μόνο στη ροή επαλήθευσης.</div></div></div>}</div></section>
 }
-function ProfessionalPerformance({analytics}:any){
- const a=analytics||{impressions:0,profileViews:0,phoneClicks:0,requests:0,newClients:0,reviews:0,requestConversion:0,clientConversion:0}
- const items=[['👁','Εμφανίσεις',a.impressions,'Πόσες φορές εμφανίστηκε το προφίλ σου στα αποτελέσματα'],['👤','Επισκέψεις προφίλ',a.profileViews,'Χρήστες που άνοιξαν το επαγγελματικό σου προφίλ'],['📞','Πατήματα τηλεφώνου',a.phoneClicks,'Άμεσο ενδιαφέρον για επικοινωνία'],['💬','Αιτήματα',a.requests,'Αιτήματα επίσκεψης που έλαβες'],['✅','Νέοι πελάτες',a.newClients,'Μοναδικοί πελάτες με ολοκληρωμένη επίσκεψη'],['⭐','Νέες αξιολογήσεις',a.reviews,'Αξιολογήσεις από verified bookings']]
- return <section className="performance-panel"><div className="performance-head"><div><span className="performance-kicker">MELEO PERFORMANCE</span><h3>Η απόδοση του προφίλ σου</h3><p>Δες αν η παρουσία σου στη MELEO μετατρέπεται σε πραγματικό ενδιαφέρον και νέους πελάτες.</p></div><div className="performance-conversion"><b>{a.requestConversion||0}%</b><span>profile → request</span></div></div><div className="performance-grid">{items.map(([icon,label,value,note]:any)=><div className="performance-card" key={label}><span className="performance-icon">{icon}</span><div><strong>{Number(value||0).toLocaleString('el-GR')}</strong><b>{label}</b><small>{note}</small></div></div>)}</div><div className="performance-foot"><span>Conversion σε νέο πελάτη: <b>{a.clientConversion||0}%</b></span><small>Τα στοιχεία ενημερώνονται αυτόματα από πραγματικές ενέργειες χρηστών και ολοκληρωμένες κρατήσεις.</small></div></section>
+function ProfessionalPerformance({
+  analytics,
+  professional,
+  bookings,
+  completion,
+  income,
+  setTab
+}:any){
+
+  const a=analytics||{
+    impressions:0,
+    profileViews:0,
+    phoneClicks:0,
+    requests:0,
+    newClients:0,
+    reviews:0,
+    requestConversion:0,
+    clientConversion:0
+  }
+  
+  const trust=analytics?.trust||null
+  
+  const smartDiagnostics=
+  analytics?.smartMatchDiagnostics||null
+  
+const d=smartDiagnostics?.factors||{}
+
+const factorStatus=(
+  points:number,
+  max:number,
+  special?:string
+)=>{
+  if(special==='premium'){
+    return points>0
+      ? 'premium'
+      : 'neutral'
+  }
+
+  if(max<=0)return 'neutral'
+
+  const ratio=points/max
+
+  if(ratio>=.85)return 'strong'
+  if(ratio>=.60)return 'good'
+  if(ratio>0)return 'improve'
+
+  return 'building'
+}
+
+const smartMatchFactors=[
+  {
+    key:'verified',
+    label:'MELEO Verified',
+    icon:'✓',
+    value:smartDiagnostics
+      ? `${Number(d.verified?.points||0).toFixed(0)} / ${d.verified?.max||6}`
+      : '—',
+    status:factorStatus(
+      Number(d.verified?.points||0),
+      Number(d.verified?.max||6)
+    ),
+    note:d.verified?.active
+      ? 'Η επαληθευμένη επαγγελματική ιδιότητα προσθέτει το μέγιστο σχετικό σήμα.'
+      : 'Η ολοκλήρωση της επαλήθευσης ενισχύει το Smart Match.'
+  },
+
+  {
+    key:'trust',
+    label:'MELEO Trust',
+    icon:'✦',
+    value:d.trust?.eligible
+      ? `${Number(d.trust?.points||0).toFixed(1)} / ${d.trust?.max||28}`
+      : `${Number(d.trust?.points||18).toFixed(1)} / ${d.trust?.max||28}`,
+    status:d.trust?.eligible
+      ? factorStatus(
+          Number(d.trust?.points||0),
+          Number(d.trust?.max||28)
+        )
+      : 'building',
+    note:d.trust?.eligible
+      ? `Trust Score ${d.trust?.score||0}/100 · συμμετέχει κανονικά στο matching.`
+      : 'Νέος επαγγελματίας: εφαρμόζεται ουδέτερο Trust fallback ώστε να μη θάβεται λόγω έλλειψης ιστορικού.'
+  },
+
+  {
+    key:'rating',
+    label:'Ποιότητα αξιολόγησης',
+    icon:'★',
+    value:smartDiagnostics
+      ? `${Number(d.rating?.points||0).toFixed(1)} / ${d.rating?.max||14}`
+      : '—',
+    status:factorStatus(
+      Number(d.rating?.points||0),
+      Number(d.rating?.max||14)
+    ),
+    note:d.rating?.reviews
+      ? `${Number(d.rating?.rating||0).toFixed(1)}/5 από ${d.rating.reviews} αξιολογήσεις.`
+      : 'Τα νέα προφίλ λαμβάνουν ουδέτερη αρχική βαθμολόγηση rating.'
+  },
+
+  {
+    key:'reviews',
+    label:'Εμπιστοσύνη αξιολογήσεων',
+    icon:'◎',
+    value:smartDiagnostics
+      ? `${Number(d.reviewConfidence?.points||0)} / ${d.reviewConfidence?.max||5}`
+      : '—',
+    status:factorStatus(
+      Number(d.reviewConfidence?.points||0),
+      Number(d.reviewConfidence?.max||5)
+    ),
+    note:`${Number(d.reviewConfidence?.reviews||0)} verified αξιολογήσεις · όσο αυξάνεται το δείγμα, αυξάνεται και η εμπιστοσύνη του συστήματος.`
+  },
+
+  {
+    key:'availability',
+    label:'Διαθεσιμότητα',
+    icon:'⚡',
+    value:smartDiagnostics
+      ? `${Number(d.availability?.points||0)} / ${d.availability?.max||8}`
+      : '—',
+    status:factorStatus(
+      Number(d.availability?.points||0),
+      Number(d.availability?.max||8)
+    ),
+    note:d.availability?.value
+      ? `Τρέχουσα ένδειξη: ${d.availability.value}`
+      : 'Ενημέρωσε τη διαθεσιμότητά σου για καλύτερη συνάφεια στις αναζητήσεις.'
+  },
+
+  {
+    key:'response',
+    label:'Ταχύτητα ανταπόκρισης',
+    icon:'↗',
+    value:smartDiagnostics
+      ? `${Number(d.response?.points||0)} / ${d.response?.max||6}`
+      : '—',
+    status:factorStatus(
+      Number(d.response?.points||0),
+      Number(d.response?.max||6)
+    ),
+    note:d.response?.value
+      ? `Δηλωμένος χρόνος απόκρισης: ${d.response.value}`
+      : 'Η καταγεγραμμένη ταχύτητα ανταπόκρισης μπορεί να ενισχύσει το matching.'
+  },
+
+  {
+    key:'experience',
+    label:'Εμπειρία',
+    icon:'◷',
+    value:smartDiagnostics
+      ? `${Number(d.experience?.points||0)} / ${d.experience?.max||3}`
+      : '—',
+    status:factorStatus(
+      Number(d.experience?.points||0),
+      Number(d.experience?.max||3)
+    ),
+    note:d.experience?.years
+      ? `${d.experience.years} έτη επαγγελματικής εμπειρίας.`
+      : 'Πρόσθεσε τα έτη εμπειρίας στο επαγγελματικό προφίλ.'
+  },
+
+  {
+    key:'premium',
+    label:'Premium boost',
+    icon:'◆',
+    value:d.premium?.active
+      ? `+${Number(d.premium?.points||0)}`
+      : '+0',
+    status:factorStatus(
+      Number(d.premium?.points||0),
+      Number(d.premium?.max||8),
+      'premium'
+    ),
+    note:d.premium?.active
+      ? 'Ενεργό ελεγχόμενο εμπορικό boost. Δεν υπερισχύει ενός σημαντικά καλύτερου επαγγελματία.'
+      : 'Το BASIC συμμετέχει κανονικά στο Smart Match χωρίς εμπορικό boost.'
+  }
+]
+
+const smartMatchStrong=
+  smartMatchFactors.filter(
+    (x:any)=>
+      x.status==='strong'||
+      x.status==='premium'
+  ).length
+
+const smartMatchNeedsAttention=
+  smartMatchFactors.filter(
+    (x:any)=>x.status==='improve'
+  ).length
+
+  const pending=
+    bookings.filter((b:any)=>b.status==='pending').length
+
+  const clarification=
+    bookings.filter((b:any)=>b.status==='clarification').length
+
+  const accepted=
+    bookings.filter((b:any)=>b.status==='accepted').length
+
+  const completed=
+    bookings.filter((b:any)=>b.status==='completed').length
+
+  const subscriptionCost=
+    Number(professional?.subscriptionPrice||0)
+
+  const roi=
+    subscriptionCost>0
+      ? Number(income||0)/subscriptionCost
+      : 0
+
+  const funnel=[
+    {icon:'👁',label:'Εμφανίσεις',value:a.impressions||0},
+    {icon:'👤',label:'Προφίλ',value:a.profileViews||0},
+    {icon:'💬',label:'Αιτήματα',value:a.requests||0},
+    {icon:'✅',label:'Πελάτες',value:a.newClients||0}
+  ]
+
+  const insights:string[]=[]
+
+  if(completion<80){
+    insights.push(
+      'Συμπλήρωσε περισσότερο το προφίλ σου για να αυξήσεις την εμπιστοσύνη των χρηστών.'
+    )
+  }
+
+  if(pending>0){
+    insights.push(
+      `Έχεις ${pending} ${pending===1?'νέο αίτημα':'νέα αιτήματα'} που ${pending===1?'χρειάζεται':'χρειάζονται'} απάντηση.`
+    )
+  }
+
+  if(clarification>0){
+    insights.push(
+      `${clarification} ${clarification===1?'αίτημα περιμένει':'αιτήματα περιμένουν'} διευκρινίσεις.`
+    )
+  }
+
+  if((a.profileViews||0)>0 && (a.requests||0)===0){
+    insights.push(
+      'Έχεις επισκέψεις στο προφίλ αλλά ακόμη κανένα αίτημα. Έλεγξε περιγραφή, υπηρεσίες, τιμή και διαθεσιμότητα.'
+    )
+  }
+
+  if((professional?.reviews||0)<3){
+    insights.push(
+      'Οι πρώτες αξιολογήσεις θα ενισχύσουν σημαντικά την κοινωνική απόδειξη του προφίλ σου.'
+    )
+  }
+
+  if(professional?.subscriptionPlan==='premium'){
+    insights.push(
+      'Το PREMIUM σου δίνει ελεγχόμενη εμπορική ενίσχυση στο Smart Match, χωρίς να αντικαθιστά Trust και ποιότητα.'
+    )
+  }
+
+  if(!insights.length){
+    insights.push(
+      'Το προφίλ σου είναι σε καλή κατάσταση. Συνέχισε να απαντάς γρήγορα και να ολοκληρώνεις σωστά τις επισκέψεις.'
+    )
+  }
+
+  return (
+    <div className="command-center">
+
+      <section className="command-hero">
+        <div>
+          <span className="command-kicker">
+            MELEO PROFESSIONAL COMMAND CENTER
+          </span>
+
+          <h2>Η δραστηριότητά σου στη MELEO</h2>
+
+          <p>
+            Πραγματικά στοιχεία από προβολές, ενδιαφέρον,
+            αιτήματα και ολοκληρωμένες συνεργασίες.
+          </p>
+        </div>
+
+        <div className="command-plan">
+          <small>ΠΑΚΕΤΟ</small>
+
+          <strong>
+            {(professional?.subscriptionPlan||'basic').toUpperCase()}
+          </strong>
+
+          <span>
+            {professional?.subscriptionStatus==='active'
+              ? '● Ενεργό'
+              : professional?.subscriptionStatus||'—'}
+          </span>
+        </div>
+      </section>
+
+      <section className="command-metrics">
+
+        <div className="command-metric">
+          <span>👁</span>
+          <strong>{Number(a.impressions||0).toLocaleString('el-GR')}</strong>
+          <b>Εμφανίσεις</b>
+          <small>στα αποτελέσματα</small>
+        </div>
+
+        <div className="command-metric">
+          <span>👤</span>
+          <strong>{Number(a.profileViews||0).toLocaleString('el-GR')}</strong>
+          <b>Επισκέψεις προφίλ</b>
+          <small>πραγματικό ενδιαφέρον</small>
+        </div>
+
+        <div className="command-metric">
+          <span>📞</span>
+          <strong>{Number(a.phoneClicks||0).toLocaleString('el-GR')}</strong>
+          <b>Πατήματα τηλεφώνου</b>
+          <small>άμεση επικοινωνία</small>
+        </div>
+
+        <div className="command-metric">
+          <span>💬</span>
+          <strong>{Number(a.requests||0).toLocaleString('el-GR')}</strong>
+          <b>Αιτήματα</b>
+          <small>μέσω MELEO</small>
+        </div>
+
+        <div className="command-metric">
+          <span>✅</span>
+          <strong>{Number(a.newClients||0).toLocaleString('el-GR')}</strong>
+          <b>Νέοι πελάτες</b>
+          <small>με ολοκληρωμένη επίσκεψη</small>
+        </div>
+
+        <div className="command-metric">
+          <span>⭐</span>
+          <strong>{Number(a.reviews||0).toLocaleString('el-GR')}</strong>
+          <b>Αξιολογήσεις</b>
+          <small>verified bookings</small>
+        </div>
+
+      </section>
+
+      <div className="command-grid">
+
+        <section className="command-panel action-panel">
+
+          <div className="command-panel-head">
+            <div>
+              <small>COMMAND CENTER</small>
+              <h3>Τι χρειάζεται την προσοχή σου</h3>
+            </div>
+
+            {(pending+clarification)>0&&
+              <span className="attention-badge">
+                {pending+clarification}
+              </span>
+            }
+          </div>
+
+          <div className="action-list">
+
+            <button
+              onClick={()=>setTab('requests')}
+              className={pending?'urgent':''}
+            >
+              <span>●</span>
+              <div>
+                <b>{pending} νέα αιτήματα</b>
+                <small>
+                  {pending
+                    ? 'Χρειάζονται απάντηση'
+                    : 'Δεν υπάρχουν αιτήματα σε αναμονή'}
+                </small>
+              </div>
+              <em>→</em>
+            </button>
+
+            <button onClick={()=>setTab('requests')}>
+              <span>●</span>
+              <div>
+                <b>{clarification} διευκρινίσεις</b>
+                <small>Αιτήματα σε διάλογο</small>
+              </div>
+              <em>→</em>
+            </button>
+
+            <button onClick={()=>setTab('requests')}>
+              <span>●</span>
+              <div>
+                <b>{accepted} επιβεβαιωμένες</b>
+                <small>Προσεχείς επισκέψεις</small>
+              </div>
+              <em>→</em>
+            </button>
+
+            <div className="command-action-static">
+              <span>●</span>
+              <div>
+                <b>{completed} ολοκληρωμένες</b>
+                <small>Συνολικές ολοκληρωμένες συνεργασίες</small>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <section className="command-panel health-panel">
+
+          <div className="command-panel-head">
+            <div>
+              <small>PROFILE HEALTH</small>
+              <h3>Ισχύς επαγγελματικού προφίλ</h3>
+            </div>
+          </div>
+
+          <div className="profile-health-score">
+
+            <div
+              className="profile-health-ring"
+              style={{
+                background:
+                  `conic-gradient(#d8ae58 ${completion*3.6}deg,#edf1ef 0deg)`
+              }}
+            >
+              <span>
+                <strong>{completion}%</strong>
+                <small>complete</small>
+              </span>
+            </div>
+
+            <div className="profile-health-copy">
+              <b>
+                {completion>=90
+                  ? 'Εξαιρετικά συμπληρωμένο'
+                  : completion>=70
+                    ? 'Καλή βάση'
+                    : 'Χρειάζεται ενίσχυση'}
+              </b>
+
+              <p>
+                Πληρέστερο προφίλ σημαίνει περισσότερη πληροφορία
+                για τον χρήστη πριν αποφασίσει.
+              </p>
+
+              <button
+                className="btn btn-outline"
+                onClick={()=>setTab('profile')}
+              >
+                Βελτίωση προφίλ
+              </button>
+            </div>
+
+          </div>
+
+          <div className="health-facts">
+            <span>
+              <b>{professional?.verified?'✓':'—'}</b>
+              MELEO Verified
+            </span>
+
+            <span>
+              <b>{professional?.rating||'—'}</b>
+              Αξιολόγηση
+            </span>
+
+            <span>
+              <b>{professional?.reviews||0}</b>
+              Reviews
+            </span>
+          </div>
+
+        </section>
+		<section className="command-panel trust-dashboard-panel">
+
+  <div className="command-panel-head">
+    <div>
+      <small>MELEO TRUST</small>
+      <h3>Αξιοπιστία επαγγελματία</h3>
+    </div>
+
+    {trust?.eligible&&
+      <span className="trust-dashboard-badge">
+        {trust.score}/100
+      </span>
+    }
+  </div>
+
+  {trust?.eligible
+    ? <>
+        <div className="trust-dashboard-main">
+
+          <div className="trust-dashboard-score">
+            <strong>{trust.score}</strong>
+            <span>/100</span>
+          </div>
+
+          <div className="trust-dashboard-copy">
+            <b>{trust.label}</b>
+            <p>
+              Το MELEO Trust βασίζεται σε πραγματική δραστηριότητα,
+              ολοκληρώσεις, αξιολογήσεις και συνέπεια.
+            </p>
+          </div>
+
+        </div>
+
+        <div className="trust-dashboard-metrics">
+
+          <div>
+            <small>Ολοκλήρωση</small>
+            <strong>{trust.completionRate}%</strong>
+          </div>
+
+          <div>
+            <small>Ανταπόκριση</small>
+            <strong>{trust.responseRate}%</strong>
+          </div>
+
+          <div>
+            <small>Ολοκληρωμένες</small>
+            <strong>{trust.completed}</strong>
+          </div>
+
+          <div>
+            <small>Αξιολογήσεις</small>
+            <strong>{trust.reviews}</strong>
+          </div>
+
+        </div>
+      </>
+    : <>
+        <div className="trust-dashboard-new">
+
+          <div className="trust-dashboard-new-mark">
+            M
+          </div>
+
+          <div>
+            <b>Το Trust Score χτίζεται</b>
+
+            <p>
+              Για να ενεργοποιηθεί το MELEO Trust χρειάζονται
+              τουλάχιστον 5 ολοκληρωμένες συνεργασίες και 3 αξιολογήσεις.
+            </p>
+          </div>
+
+        </div>
+
+        <div className="trust-progress-grid">
+
+          <div>
+            <small>Ολοκληρωμένες συνεργασίες</small>
+
+            <strong>
+              {trust?.completed||0}
+              <span> / {trust?.minCompleted||5}</span>
+            </strong>
+
+            <div className="trust-progress-track">
+              <i
+                style={{
+                  width:
+                    `${Math.min(
+                      100,
+                      ((trust?.completed||0)/(trust?.minCompleted||5))*100
+                    )}%`
+                }}
+              />
+            </div>
+          </div>
+
+          <div>
+            <small>Αξιολογήσεις</small>
+
+            <strong>
+              {trust?.reviews||0}
+              <span> / {trust?.minReviews||3}</span>
+            </strong>
+
+            <div className="trust-progress-track">
+              <i
+                style={{
+                  width:
+                    `${Math.min(
+                      100,
+                      ((trust?.reviews||0)/(trust?.minReviews||3))*100
+                    )}%`
+                }}
+              />
+            </div>
+          </div>
+
+        </div>
+      </>
+  }
+
+</section>
+      </div>
+	  
+	  <section className="smart-match-diagnostics">
+
+  <div className="smart-match-head">
+
+    <div>
+      <small>MELEO SMART MATCH</small>
+      <h3>Η δυναμική σου στο matching</h3>
+      <p>
+        Οι παράγοντες που βοηθούν τη MELEO να προτείνει
+        τον κατάλληλο επαγγελματία στον κατάλληλο χρήστη.
+      </p>
+    </div>
+
+    <div className="smart-match-summary">
+
+      <div>
+        <strong>{smartMatchStrong}</strong>
+        <span>ισχυρά σήματα</span>
+      </div>
+
+      <div className={smartMatchNeedsAttention?'attention':''}>
+        <strong>{smartMatchNeedsAttention}</strong>
+        <span>για βελτίωση</span>
+      </div>
+
+    </div>
+
+  </div>
+
+{smartDiagnostics&&
+  <div className="smart-match-score-strip">
+
+    <div>
+      <small>
+        PROFILE SIGNALS
+      </small>
+
+      <strong>
+        {Number(
+          smartDiagnostics.profileScore||0
+        ).toFixed(1)}
+        <span>
+          / {smartDiagnostics.profileMax||80}
+        </span>
+      </strong>
+
+      <p>
+        Οι σταθεροί παράγοντες του επαγγελματικού σου προφίλ.
+      </p>
+    </div>
+
+    <div className="smart-match-distance-dynamic">
+      <small>
+        DISTANCE
+      </small>
+
+      <strong>
+        dynamic
+        <span>
+          / {smartDiagnostics.distance?.maxPoints||20}
+        </span>
+      </strong>
+
+      <p>
+        {smartDiagnostics.distance?.note||
+          'Υπολογίζεται ξεχωριστά σε κάθε αναζήτηση.'
+        }
+      </p>
+    </div>
+
+  </div>
+}
+
+  <div className="smart-match-factor-grid">
+
+    {smartMatchFactors.map((factor:any)=>
+      <div
+        key={factor.key}
+        className={
+          `smart-match-factor ${factor.status}`
+        }
+      >
+
+        <div className="smart-match-factor-top">
+
+          <span className="smart-match-factor-icon">
+            {factor.icon}
+          </span>
+
+          <span className={`smart-match-state ${factor.status}`}>
+            {factor.status==='strong'
+              ? 'ΙΣΧΥΡΟ'
+              : factor.status==='good'
+                ? 'ΚΑΛΟ'
+                : factor.status==='improve'
+                  ? 'ΒΕΛΤΙΩΣΗ'
+                  : factor.status==='building'
+                    ? 'ΧΤΙΖΕΤΑΙ'
+                    : factor.status==='premium'
+                      ? 'BOOST'
+                      : 'ΟΥΔΕΤΕΡΟ'}
+          </span>
+
+        </div>
+
+        <small>{factor.label}</small>
+
+        <strong>
+          {factor.value}
+        </strong>
+
+        <p>
+          {factor.note}
+        </p>
+
+      </div>
+    )}
+
+  </div>
+
+  <div className="smart-match-explainer">
+
+    <span>ⓘ</span>
+
+    <p>
+      Το Smart Match δεν αγοράζεται.
+      Το PREMIUM παρέχει μόνο ελεγχόμενη εμπορική ενίσχυση.
+      Η συνάφεια, η απόσταση, το MELEO Trust,
+      οι αξιολογήσεις, η διαθεσιμότητα και η συμπεριφορά
+      ανταπόκρισης εξακολουθούν να καθορίζουν την ποιότητα
+      της αντιστοίχισης.
+    </p>
+
+  </div>
+
+</section>
+
+      <section className="meleo-value-panel">
+
+        <div className="value-heading">
+          <div>
+            <small>MELEO VALUE</small>
+            <h3>Τι σου έχει αποφέρει η παρουσία σου</h3>
+          </div>
+
+          <span>πραγματικά δεδομένα</span>
+        </div>
+
+        <div className="value-funnel">
+
+          {funnel.map((x:any,index:number)=>
+            <React.Fragment key={x.label}>
+
+              <div className="value-step">
+                <span>{x.icon}</span>
+                <strong>
+                  {Number(x.value||0).toLocaleString('el-GR')}
+                </strong>
+                <small>{x.label}</small>
+              </div>
+
+              {index<funnel.length-1&&
+                <div className="value-arrow">→</div>
+              }
+
+            </React.Fragment>
+          )}
+
+        </div>
+
+        <div className="value-financial">
+
+          <div>
+            <small>Αξία ολοκληρωμένων επισκέψεων</small>
+            <strong>{money(income)}</strong>
+            <span>
+              Με βάση τις τιμές των completed bookings.
+            </span>
+          </div>
+
+          <div>
+            <small>Μηνιαία συνδρομή</small>
+            <strong>{money(subscriptionCost)}</strong>
+            <span>
+              {(professional?.subscriptionPlan||'—').toUpperCase()}
+            </span>
+          </div>
+
+          <div className="roi-box">
+            <small>Αναλογία αξίας / συνδρομής</small>
+
+            <strong>
+              {roi>0
+                ? `${roi.toFixed(1).replace('.',',')}×`
+                : '—'}
+            </strong>
+
+            <span>
+              Δεν αποτελεί εγγύηση μελλοντικού εισοδήματος.
+            </span>
+          </div>
+
+        </div>
+
+        <div className="conversion-strip">
+          <span>
+            Profile → Request
+            <b>{a.requestConversion||0}%</b>
+          </span>
+
+          <span>
+            Request → Client
+            <b>{a.clientConversion||0}%</b>
+          </span>
+        </div>
+
+      </section>
+
+      <section className="command-insights">
+
+        <div className="command-panel-head">
+          <div>
+            <small>MELEO INSIGHTS</small>
+            <h3>Τι μπορείς να κάνεις τώρα</h3>
+          </div>
+        </div>
+
+        <div className="insight-list">
+          {insights.slice(0,4).map(
+            (text:string,index:number)=>
+              <div
+                key={index}
+                className="insight-item"
+              >
+                <span>✦</span>
+                <p>{text}</p>
+              </div>
+          )}
+        </div>
+
+      </section>
+
+    </div>
+  )
 }
 function ProfessionalOnboarding({user,professional,token,onRefresh,setToast,cfg}:any){
  const initialPlan=(sessionStorage.getItem('meleo_selected_plan')||professional?.subscriptionPlan||'basic') as 'basic'|'premium'

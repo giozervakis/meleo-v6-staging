@@ -344,8 +344,51 @@ app.get('/api/location/search',limits.geo,async(req,res)=>{const q=str(req.query
 app.get('/api/location/reverse',limits.geo,async(req,res)=>{const lat=Number(req.query.lat),lon=Number(req.query.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return res.status(400).json({error:'Invalid coordinates'});try{const x=await geocode(`/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lon}`),a=x.address||{};res.json({label:x.display_name||'',lat,lon,city:a.city||a.town||a.village||a.municipality||a.county||'',region:a.state||a.region||'',countryCode:String(a.country_code||'').toLowerCase(),country:a.country||''})}catch{res.status(503).json({error:'Η υπηρεσία τοποθεσίας δεν είναι διαθέσιμη.'})}})
 
 app.post('/api/analytics/professional-event',limits.analytics,async(req,res)=>{const pid=str(req.body.professionalId,80),type=str(req.body.type,40),sid=str(req.body.sessionId,100);if(!['impression','profile_view','phone_click'].includes(type)||!pid)return res.status(400).json({error:'Invalid event'});const windowMin=type==='impression'?60:type==='profile_view'?30:5;const fp=fingerprint(pid,type,sid,sha256(req.ip||''),new Date().toISOString().slice(0,13));const accepted=await Analytics.event(pid,type,fp,windowMin);res.json({ok:true,accepted})})
-app.get('/api/professional/analytics',auth,requireRole('professional'),async(req,res)=>{const p=await Professionals.byUser(req.user.id);res.json(await Analytics.summary(p.id,Math.min(365,Math.max(1,Number(req.query.days)||30))))})
+app.get(
+  '/api/professional/analytics',
+  auth,
+  requireRole('professional'),
+  async(req,res)=>{
+    const p=await Professionals.byUser(req.user.id)
 
+    if(!p){
+      return res.status(404).json({
+        error:'Professional profile not found'
+      })
+    }
+
+    const days=Math.min(
+      365,
+      Math.max(
+        1,
+        Number(req.query.days)||30
+      )
+    )
+
+    const analytics=
+      await Analytics.summary(
+        p.id,
+        days
+      )
+
+	const trust=
+	await meleoTrustForProfessional(
+		p.id
+	)
+
+	const smartMatchDiagnostics=
+	await smartMatchDiagnosticsForProfessional(
+		p.id,
+		trust
+	)
+
+	res.json({
+  ...analytics,
+  trust,
+  smartMatchDiagnostics
+})
+  }
+)
 
 async function meleoTrustForProfessional(professionalId){
   const p=await one(`SELECT id,verified,rating,reviews_count "reviewsCount" FROM professionals WHERE id=$1`,[professionalId])
@@ -377,6 +420,201 @@ async function meleoTrustForProfessional(professionalId){
   const score=Math.max(0,Math.min(100,verificationPoints+reviewPoints+completionPoints+responsePoints+reliabilityPoints+activityPoints))
   const label=score>=90?'Εξαιρετική αξιοπιστία':score>=80?'Πολύ υψηλή αξιοπιστία':score>=70?'Υψηλή αξιοπιστία':score>=60?'Καλή αξιοπιστία':'Αναπτυσσόμενη αξιοπιστία'
   return {eligible:true,score,label,completed,reviews,rating:Number(rating.toFixed(1)),completionRate,responseRate,breakdown:{verification:verificationPoints,reviews:reviewPoints,completion:completionPoints,response:responsePoints,reliability:reliabilityPoints,activity:activityPoints}}
+}
+
+async function smartMatchDiagnosticsForProfessional(professionalId,trust=null){
+  const p=await one(`
+    SELECT
+      id,
+      verified,
+      featured,
+      rating,
+      reviews_count,
+      available,
+      response_time,
+      years,
+      subscription_plan,
+      subscription_status
+    FROM professionals
+    WHERE id=$1
+  `,[professionalId])
+
+  if(!p)return null
+
+  if(!trust){
+    trust=await meleoTrustForProfessional(professionalId)
+  }
+
+  const reviews=Number(p.reviews_count||0)
+  const rating=Number(p.rating||0)
+  const years=Number(p.years||0)
+
+  const available=
+    String(p.available||'').toLowerCase()
+
+  const responseTime=
+    String(p.response_time||'').toLowerCase()
+
+  const verifiedPoints=
+    p.verified ? 6 : 0
+
+  const trustPoints=
+    trust?.eligible
+      ? Math.max(
+          0,
+          Math.min(
+            28,
+            (Number(trust.score||0)/100)*28
+          )
+        )
+      : 18
+
+  const ratingPoints=
+    reviews===0
+      ? 7
+      : Math.max(
+          0,
+          Math.min(
+            14,
+            (rating/5)*14
+          )
+        )
+
+  const reviewConfidencePoints=
+    reviews>=20 ? 5 :
+    reviews>=10 ? 4 :
+    reviews>=5 ? 3 :
+    reviews>=1 ? 2 : 1
+
+  const availabilityPoints=
+    available.includes('σήμερα') ||
+    available.includes('άμεσα')
+      ? 8
+      : available.includes('διαθέσ')
+        ? 6
+        : 3
+
+  const responsePoints=
+    responseTime.includes('λεπτ')
+      ? 6
+      : (
+          responseTime.includes('ώρα') ||
+          responseTime.includes('ωρ')
+        )
+        ? 5
+        : responseTime
+          ? 4
+          : 2
+
+  const experiencePoints=
+    years>=10 ? 3 :
+    years>=5 ? 2 :
+    years>0 ? 1 : 0
+
+  const premiumPoints=
+    p.subscription_plan==='premium' &&
+    p.subscription_status==='active'
+      ? 8
+      : 0
+
+  const featuredPoints=
+    p.featured ? 2 : 0
+
+  /*
+   * Distance intentionally excluded here.
+   *
+   * Distance is request-dependent:
+   * the same professional receives a different distance
+   * contribution for each patient's search location.
+   */
+  const profileScore=
+    verifiedPoints+
+    trustPoints+
+    ratingPoints+
+    reviewConfidencePoints+
+    availabilityPoints+
+    responsePoints+
+    experiencePoints+
+    premiumPoints+
+    featuredPoints
+
+  return {
+    version:'1.1',
+
+    profileScore:Number(
+      profileScore.toFixed(1)
+    ),
+
+    profileMax:80,
+
+    distance:{
+      dynamic:true,
+      maxPoints:20,
+      note:
+        'Η απόσταση υπολογίζεται ξεχωριστά για κάθε αναζήτηση χρήστη.'
+    },
+
+    factors:{
+      verified:{
+        points:verifiedPoints,
+        max:6,
+        active:!!p.verified
+      },
+
+      trust:{
+        points:Number(trustPoints.toFixed(1)),
+        max:28,
+        eligible:!!trust?.eligible,
+        score:trust?.eligible
+          ? Number(trust.score||0)
+          : null,
+        fallback:!trust?.eligible
+      },
+
+      rating:{
+        points:Number(ratingPoints.toFixed(1)),
+        max:14,
+        rating:Number(rating.toFixed(1)),
+        reviews
+      },
+
+      reviewConfidence:{
+        points:reviewConfidencePoints,
+        max:5,
+        reviews
+      },
+
+      availability:{
+        points:availabilityPoints,
+        max:8,
+        value:p.available||''
+      },
+
+      response:{
+        points:responsePoints,
+        max:6,
+        value:p.response_time||''
+      },
+
+      experience:{
+        points:experiencePoints,
+        max:3,
+        years
+      },
+
+      premium:{
+        points:premiumPoints,
+        max:8,
+        active:premiumPoints===8
+      },
+
+      featured:{
+        points:featuredPoints,
+        max:2,
+        active:!!p.featured
+      }
+    }
+  }
 }
 
 app.get('/api/professionals',async(req,res)=>{const result=await Professionals.search(req.query);res.json(result)})
