@@ -187,6 +187,10 @@ export default function App(){
   async function loadPros(params=search){const qs=new URLSearchParams();if(params.specialty)qs.set('specialty',params.specialty);if(params.service)qs.set('service',params.service);if(params.lat&&params.lon){qs.set('lat',String(params.lat));qs.set('lon',String(params.lon))}else if(params.locationQuery){qs.set('location',params.locationQuery)};qs.set('limit','30');const d=await api('/professionals?'+qs.toString());setPros(Array.isArray(d)?d:(d.items||[]))}
   useEffect(()=>{api('/config').then(setCfg).catch(()=>{});refreshMe();const m=window.location.pathname.match(/^\/care\/([^/]+)\/([^/]+)$/);if(m){api('/seo/resolve?specialty='+encodeURIComponent(m[1])+'&city='+encodeURIComponent(m[2])).then((x:any)=>{const next={...search,specialty:x.specialty||'',service:'',locationQuery:x.city||'',locationLabel:x.city||'',lat:'',lon:''};setSearch(next);loadPros(next)}).catch(()=>loadPros())}else loadPros()},[])
   useEffect(()=>{if(!token){setUser(null);setProfessional(null)}},[token])
+	  
+  useEffect(()=>{
+  window.scrollTo(0,0)
+},[view])
 
   // Επιστροφή από το Stripe Checkout / σύνδεσμοι email. Τα query params
   // καθαρίζονται από το URL ώστε να μην επαναλαμβάνεται η ενέργεια σε refresh.
