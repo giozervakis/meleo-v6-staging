@@ -53,7 +53,7 @@ function Admin({token,setToast}:any){
    setStats(a);setVers(Array.isArray(b)?b:(b.items||[]));setMembers(Array.isArray(c)?c:(c.items||[]));setBookings(Array.isArray(d)?d:(d.items||[]));setInsights(e);setAuditRows(Array.isArray(f)?f:(f.items||[]))
  }
  useEffect(()=>{refresh()},[])
- async function decide(id:string,status:string){const note=window.prompt(status==='approved'?'Σημείωση έγκρισης (προαιρετικά)':'Αιτιολογία απόρριψης (προαιρετικά)')||'';await api('/admin/verifications/'+id,{method:'PATCH',body:JSON.stringify({status,adminNote:note})},token);await refresh();setToast(status==='approved'?'Ο επαγγελματίας επαληθεύτηκε':'Το αίτημα απορρίφθηκε')}
+ async function decide(id:string,status:string){const approved=status==='approved';const raw=window.prompt(approved?'Σημείωση έγκρισης (προαιρετικά)':'Λόγος απόρριψης (υποχρεωτικός) — π.χ. μη επιβεβαιωμένη πληρωμή, ελλιπή/μη έγκυρα έγγραφα, αδυναμία επαλήθευσης επαγγελματικής ιδιότητας') ;if(raw===null)return;const note=raw.trim();if(!approved&&!note){setToast('Συμπλήρωσε υποχρεωτικά τον λόγο απόρριψης.');return}await api('/admin/verifications/'+id,{method:'PATCH',body:JSON.stringify({status,adminNote:note})},token);await refresh();setToast(approved?'Ο επαγγελματίας επαληθεύτηκε και ενημερώθηκε.':'Το αίτημα απορρίφθηκε και ο χρήστης ενημερώθηκε.')}
  async function memberAction(m:any,action:string){
    const destructive=['suspend','unverify'].includes(action)
    const label:any={suspend:'αναστείλεις',reactivate:'επανενεργοποιήσεις',verify:'επαληθεύσεις χειροκίνητα',unverify:'αφαιρέσεις την επαλήθευση από',feature:'ορίσεις ως προτεινόμενο',unfeature:'αφαιρέσεις από τα προτεινόμενα'}
