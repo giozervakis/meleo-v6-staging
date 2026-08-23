@@ -11,7 +11,7 @@ if(process.env.RELEASE_TAG!=='v6.0.0') fail.push('RELEASE_TAG must be v6.0.0')
 let go
 try{go=JSON.parse(fs.readFileSync('reports/release-go-no-go.json','utf8'))}catch{fail.push('reports/release-go-no-go.json is missing')}
 if(go){
-  if(go.decision!=='GO') fail.push('v5.7 release evidence decision is not GO')
+  if(go.decision!=='GO') fail.push('v6.0 release evidence decision is not GO')
   const t=new Date(go.generatedAt||0).getTime(); const age=(Date.now()-t)/36e5
   if(!Number.isFinite(age)||age>maxAgeH) fail.push(`GO evidence is stale (${Number.isFinite(age)?age.toFixed(1):'unknown'}h)`)
 }
