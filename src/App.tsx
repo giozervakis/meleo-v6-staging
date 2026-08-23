@@ -612,16 +612,93 @@ export default function App(){
   const [cfg,setCfg]=useState<AppConfig>(FALLBACK_CONFIG)
   const [resetToken,setResetToken]=useState('')
   const [bookingSeed,setBookingSeed]=useState<any>(null)
+    const [communicationUnread,setCommunicationUnread]=useState({
+  notifications:0,
+  messages:0,
+  total:0
+})
   const setView=(next:string, replace=false)=>{setViewState(next);pushView(next,selected?.id,replace)}
   useEffect(()=>{const onPop=()=>{const v=viewFromPath(window.location.pathname);setViewState(v);if(v==='profile'){const pid=window.location.pathname.split('/')[2];api('/professionals/'+pid).then((d:any)=>setSelected(d.professional||d)).catch(()=>setViewState('search'))}};window.addEventListener('popstate',onPop);if(viewFromPath(window.location.pathname)==='profile'){const pid=window.location.pathname.split('/')[2];api('/professionals/'+pid).then((d:any)=>setSelected(d.professional||d)).catch(()=>setViewState('search'))}return()=>window.removeEventListener('popstate',onPop)},[])
   const [identityOpen,setIdentityOpen]=useState(false)
-
   async function refreshMe(t=token){ try{const d=await api('/me',{},t);setUser(d.user);setProfessional(d.professional);if(['patient','professional'].includes(d.user.role))setFavorites(await api('/favorites',{},t))}catch{setUser(null);setProfessional(null)}finally{setLoading(false)} }
+  async function refreshCommunicationUnread(){
+  if(!user){
+    setCommunicationUnread({
+      notifications:0,
+      messages:0,
+      total:0
+    })
+    return
+  }
+
+  try{
+    const d=await api(
+      '/communication/unread',
+      {},
+      token
+    )
+
+    setCommunicationUnread({
+      notifications:Number(d.notifications||0),
+      messages:Number(d.messages||0),
+      total:Number(d.total||0)
+    })
+  }
+  catch(e){
+    console.error(
+      'Unread communication load failed',
+      e
+    )
+  }
+}
   async function loadPros(params=search){const qs=new URLSearchParams();if(params.specialty)qs.set('specialty',params.specialty);if(params.service)qs.set('service',params.service);if(params.lat&&params.lon){qs.set('lat',String(params.lat));qs.set('lon',String(params.lon))}else if(params.locationQuery){qs.set('location',params.locationQuery)};qs.set('limit','30');const d=await api('/professionals?'+qs.toString());setPros(Array.isArray(d)?d:(d.items||[]))}
   useEffect(()=>{api('/config').then(setCfg).catch(()=>{});refreshMe();const m=window.location.pathname.match(/^\/care\/([^/]+)\/([^/]+)$/);if(m){api('/seo/resolve?specialty='+encodeURIComponent(m[1])+'&city='+encodeURIComponent(m[2])).then((x:any)=>{const next={...search,specialty:x.specialty||'',service:'',locationQuery:x.city||'',locationLabel:x.city||'',lat:'',lon:''};setSearch(next);loadPros(next)}).catch(()=>loadPros())}else loadPros()},[])
-  useEffect(()=>{if(!token){setUser(null);setProfessional(null)}},[token])
-	  
   useEffect(()=>{
+  if(!token){
+    setUser(null)
+    setProfessional(null)
+  }
+},[token])
+
+
+useEffect(()=>{
+  if(!user){
+    setCommunicationUnread({
+      notifications:0,
+      messages:0,
+      total:0
+    })
+    return
+  }
+
+  refreshCommunicationUnread()
+
+  const onLive=()=>{
+    refreshCommunicationUnread()
+  }
+
+  window.addEventListener(
+    'meleo:live',
+    onLive
+  )
+window.addEventListener(
+  'meleo:communication-refresh',
+  onLive
+)
+  return ()=>{
+    window.removeEventListener(
+      'meleo:live',
+      onLive
+    )
+window.removeEventListener(
+  'meleo:communication-refresh',
+  onLive
+)
+  }
+},[user?.id])
+
+
+useEffect(()=>{
   window.scrollTo(0,0)
 },[view])
 
@@ -664,7 +741,15 @@ export default function App(){
   if(loading)return <div className="splash"><div className="splash-logo">M</div><div>MELEO</div></div>
 
   return <div className="app-shell">
-    <Header user={user} professional={professional} view={view} setView={setView} logout={logout}/><LiveEvents user={user} setToast={setToast}/>
+    <Header
+  user={user}
+  professional={professional}
+  view={view}
+  setView={setView}
+  logout={logout}
+  communicationUnread={communicationUnread}
+/>
+	<LiveEvents user={user} setToast={setToast}/>
     <main>
       {view==='home'&&<Home pros={pros} search={search} setSearch={setSearch} loadPros={loadPros} openPro={openPro} favorites={favorites} toggleFav={toggleFav} user={user} setView={setView}/>}
       {view==='smart'&&<SmartRequest search={search} setSearch={setSearch} loadPros={loadPros} setView={setView}/>}
@@ -752,7 +837,25 @@ function Footer({cfg,setView}:any){
   </div><div className="container footer-base"><span>© {new Date().getFullYear()} MELEO</span><span>Έκδοση όρων: {cfg.termsVersion}</span></div></footer>
 }
 
-function Header({user,professional,view,setView,logout}:{user:User|null;professional:Professional|null;view:string;setView:(v:string)=>void;logout:()=>void}){
+function Header({
+  user,
+  professional,
+  view,
+  setView,
+  logout,
+  communicationUnread
+}:{
+  user:User|null
+  professional:Professional|null
+  view:string
+  setView:(v:string)=>void
+  logout:()=>void
+  communicationUnread:{
+    notifications:number
+    messages:number
+    total:number
+  }
+}){
   const [open,setOpen]=useState(false)
   const [accountOpen,setAccountOpen]=useState(false)
   useEffect(()=>{setOpen(false);setAccountOpen(false)},[view])
@@ -775,6 +878,29 @@ function Header({user,professional,view,setView,logout}:{user:User|null;professi
   const professionalReady=user?.role==='professional'&&professional?.verified===true&&['active','past_due'].includes(professional?.subscriptionStatus||'')&&professional?.onboardingStage==='approved'
   const accountView=user?.role==='admin'?'admin':user?.role==='professional'?'pro-dashboard':'patient-dashboard'
   const accountLabel=user?.role==='admin'?'Admin Control Center':user?.role==='professional'?(professionalReady?'Professional Dashboard':'Ολοκλήρωση επαγγελματικής εγγραφής'):'Οι κρατήσεις μου'
+  const unreadNotifications=
+  Number(communicationUnread?.notifications||0)
+
+const unreadMessages=
+  Number(communicationUnread?.messages||0)
+
+const unreadTotal=
+  Number(communicationUnread?.total||0)
+
+const unreadLabel=
+  unreadTotal>99
+    ? '99+'
+    : String(unreadTotal)
+
+const notificationLabel=
+  unreadNotifications>99
+    ? '99+'
+    : String(unreadNotifications)
+
+const messageLabel=
+  unreadMessages>99
+    ? '99+'
+    : String(unreadMessages)
   return <>
     <header className="topbar"><div className="container navrow"><button className="brand-btn" onClick={()=>go('home')}><Mark/></button><nav className="desktop-nav"><button className={view==='home'?'active':''} onClick={()=>go('home')}>Αρχική</button><button onClick={()=>go('search')}>Αναζήτηση</button><button onClick={()=>go('smart')}>Smart Request</button><button onClick={()=>go('now')}>MELEO Now</button><button onClick={()=>go('pricing')}>Συνδρομές</button><button onClick={()=>go('become-pro')}>Για επαγγελματίες</button></nav><div className="nav-actions">{user?<div className="account-menu-wrap" onClick={e=>e.stopPropagation()}><button   className={'user-pill '+(accountOpen?'open':'')}   onClick={()=>{     if(window.innerWidth > 980){       setAccountOpen(v=>!v)     }   }}   aria-haspopup="menu"   aria-expanded={accountOpen} >   <IdentityAvatar
   name={user.name}
@@ -788,7 +914,51 @@ function Header({user,professional,view,setView,logout}:{user:User|null;professi
   avatarKey={user.avatarKey}
   size="sm"
   className="header-avatar"
-/><div><b>{user.name}</b><small>{user.email}</small></div></div><button onClick={()=>go(accountView)}>⌂ <span>{accountLabel}</span></button>{user.role==='professional'&&<button onClick={()=>go('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button>}<button onClick={()=>go('notifications')}>🔔 <span>Ειδοποιήσεις</span></button><button onClick={()=>go('help')}>? <span>Help Center</span></button><button onClick={()=>go('account')}>⚙ <span>Ρυθμίσεις λογαριασμού</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>Αποσύνδεση</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>Σύνδεση</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label="Άνοιγμα μενού" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
+/><div><b>{user.name}</b><small>{user.email}</small></div></div><button onClick={()=>go(accountView)}>⌂ <span>{accountLabel}</span></button>{user.role==='professional'&&<button onClick={()=>go('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button>}<button
+  className={
+    'account-notification-link '+
+    (unreadTotal>0?'has-unread':'')
+  }
+  onClick={()=>go('notifications')}
+>
+  <span className="account-notification-icon">
+    🔔
+
+    {unreadTotal>0&&
+      <b className="account-notification-badge">
+        {unreadLabel}
+      </b>
+    }
+  </span>
+
+  <span className="account-notification-copy">
+    <strong>Ειδοποιήσεις</strong>
+
+    {unreadTotal>0
+      ? <small>
+          {unreadNotifications>0&&
+            `${notificationLabel} νέες ειδοποιήσεις`
+          }
+
+          {unreadNotifications>0&&unreadMessages>0
+            ? ' · '
+            : ''
+          }
+
+          {unreadMessages>0&&
+            `${messageLabel} νέα μηνύματα`
+          }
+        </small>
+      : <small>
+          Δεν υπάρχουν νέα
+        </small>
+    }
+  </span>
+
+  {unreadTotal>0&&
+    <span className="account-live-dot"/>
+  }
+</button><button onClick={()=>go('help')}>? <span>Help Center</span></button><button onClick={()=>go('account')}>⚙ <span>Ρυθμίσεις λογαριασμού</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>Αποσύνδεση</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>Σύνδεση</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label="Άνοιγμα μενού" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
     {open&&<div className="mobile-menu-overlay" role="presentation" onClick={()=>setOpen(false)}><nav className="mobile-menu-panel" aria-label="Κύριο μενού" onClick={e=>e.stopPropagation()}>
       <div className="mobile-menu-head"><button className="mobile-menu-brand" onClick={()=>go('home')}><Mark/></button><button className="mobile-menu-close" aria-label="Κλείσιμο μενού" onClick={()=>setOpen(false)}>×</button></div>
       {user&&
@@ -816,7 +986,23 @@ function Header({user,professional,view,setView,logout}:{user:User|null;professi
         <button className={view==='pricing'?'active':''} onClick={()=>go('pricing')}><span className="mobile-menu-icon">◇</span><div><b>Συνδρομές</b><small>BASIC & PREMIUM για επαγγελματίες</small></div><em>›</em></button>
         <button className={view==='become-pro'?'active':''} onClick={()=>go('become-pro')}><span className="mobile-menu-icon">＋</span><div><b>Για επαγγελματίες</b><small>Γίνε μέλος του δικτύου MELEO</small></div><em>›</em></button>
       </div>
-      <div className="mobile-menu-account">{user?<><button className="btn btn-dark wide" onClick={()=>go(accountView)}>{accountLabel}</button><button className="btn btn-outline wide" onClick={()=>go('notifications')}>Ειδοποιήσεις</button><button className="btn btn-outline wide" onClick={()=>go('help')}>Help Center</button><button className="btn btn-outline wide" onClick={()=>go('account')}>Ρυθμίσεις λογαριασμού</button><button className="btn btn-outline wide logout-mobile" onClick={async()=>{setOpen(false);await logout()}}>Αποσύνδεση</button></>:<><button className="btn btn-dark wide" onClick={()=>go('auth')}>Σύνδεση / Εγγραφή</button><small>Η αναζήτηση παραμένει διαθέσιμη χωρίς λογαριασμό.</small></>}</div>
+      <div className="mobile-menu-account">{user?<><button className="btn btn-dark wide" onClick={()=>go(accountView)}>{accountLabel}</button><button
+  className={
+    'btn btn-outline wide mobile-notification-button '+
+    (unreadTotal>0?'has-unread':'')
+  }
+  onClick={()=>go('notifications')}
+>
+  <span>
+    🔔 Ειδοποιήσεις
+  </span>
+
+  {unreadTotal>0&&
+    <b className="mobile-notification-badge">
+      {unreadLabel}
+    </b>
+  }
+</button><button className="btn btn-outline wide" onClick={()=>go('help')}>Help Center</button><button className="btn btn-outline wide" onClick={()=>go('account')}>Ρυθμίσεις λογαριασμού</button><button className="btn btn-outline wide logout-mobile" onClick={async()=>{setOpen(false);await logout()}}>Αποσύνδεση</button></>:<><button className="btn btn-dark wide" onClick={()=>go('auth')}>Σύνδεση / Εγγραφή</button><small>Η αναζήτηση παραμένει διαθέσιμη χωρίς λογαριασμό.</small></>}</div>
       <div className="mobile-menu-foot"><span>MELEO</span><small>Care that comes to you.</small></div>
     </nav></div>}
   </>
@@ -2430,15 +2616,266 @@ function ResetPassword({token,setView,setToast}:any){
  return <section className="page"><div className="container narrow"><div className="form-card"><div className="eyebrow">ΑΣΦΑΛΕΙΑ ΛΟΓΑΡΙΑΣΜΟΥ</div><h1>Όρισε νέο κωδικό</h1><form onSubmit={submit}><label>Νέος κωδικός<input type="password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label><label>Επιβεβαίωση κωδικού<input type="password" minLength={8} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>{error&&<div className="error">{error}</div>}<button className="btn btn-dark wide" disabled={busy}>{busy?'Αποθήκευση…':'Αποθήκευση νέου κωδικού'}</button></form><small className="terms">Για ασφάλεια, όλες οι ενεργές συνεδρίες αποσυνδέονται μετά την αλλαγή.</small></div></div></section>
 }
 function PatientDashboard({user,token,openPro,startBooking,cfg,setView,setToast}:any){
- const [bookings,setBookings]=useState<Booking[]>([]);const [careTeam,setCareTeam]=useState<any[]>([]);const [open,setOpen]=useState<string>('');const [reply,setReply]=useState('');const [recovery,setRecovery]=useState<Record<string,any[]>>({});const [recoveryBusy,setRecoveryBusy]=useState<string>('')
- async function refresh(){const scope=user?.role==='professional'?'&scope=requested':'';const [d,team]=await Promise.all([api('/bookings?limit=50'+scope,{},token),api('/care-team',{},token).catch(()=>({items:[]}))]);setBookings(Array.isArray(d)?d:(d.items||[]));setCareTeam(team.items||[])}useEffect(()=>{refresh();const f=()=>refresh();window.addEventListener('meleo:live',f);return()=>window.removeEventListener('meleo:live',f)},[])
+ const [bookings,setBookings]=useState<Booking[]>([]);const [careTeam,setCareTeam]=useState<any[]>([]);const [open,setOpen]=useState<string>('');const [reply,setReply]=useState('');
+ const [messageReadBusy,setMessageReadBusy]=useState<string>('')
+ const [patientMessageUnreadByBooking,setPatientMessageUnreadByBooking]=useState<Record<string,number>>({})
+ const [patientMessageUnreadTotal,setPatientMessageUnreadTotal]=useState(0)
+ const [patientConversation,setPatientConversation]=useState<string>('')
+ const [patientMessageDraft,setPatientMessageDraft]=useState('')
+ const [patientMessageSending,setPatientMessageSending]=useState(false)
+ const [patientSection,setPatientSection]=useState<'bookings'|'messages'>('bookings')
+ const [recovery,setRecovery]=useState<Record<string,any[]>>({});const [recoveryBusy,setRecoveryBusy]=useState<string>('')
+ async function refresh(){
+  const scope=
+    user?.role==='professional'
+      ? '&scope=requested'
+      : ''
+
+  const [d,team]=await Promise.all([
+    api('/bookings?limit=50'+scope,{},token),
+    api('/care-team',{},token).catch(
+      ()=>({items:[]})
+    )
+  ])
+
+  setBookings(
+    Array.isArray(d)
+      ? d
+      : d.items||[]
+  )
+
+  setCareTeam(
+    team.items||[]
+  )
+}
+ async function refreshPatientMessageUnread(){
+  try{
+    const d=await api(
+      '/bookings/unread',
+      {},
+      token
+    )
+
+    const map:Record<string,number>={}
+
+    for(const item of d.items||[]){
+      map[item.bookingId]=Number(item.unread||0)
+    }
+
+    setPatientMessageUnreadByBooking(map)
+    setPatientMessageUnreadTotal(
+      Number(d.total||0)
+    )
+  }
+  catch(e){
+    console.error(
+      'Patient unread messages load failed',
+      e
+    )
+  }
+}
+useEffect(()=>{
+
+  refresh()
+  refreshPatientMessageUnread()
+
+  const f=()=>{
+    refresh()
+    refreshPatientMessageUnread()
+  }
+
+  window.addEventListener(
+    'meleo:live',
+    f
+  )
+
+  window.addEventListener(
+    'meleo:communication-refresh',
+    f
+  )
+
+  return()=>{
+
+    window.removeEventListener(
+      'meleo:live',
+      f
+    )
+
+    window.removeEventListener(
+      'meleo:communication-refresh',
+      f
+    )
+
+  }
+
+},[])
  async function loadRecovery(id:string){setRecoveryBusy(id);try{const d=await api('/bookings/'+id+'/recovery-candidates',{},token);setRecovery(x=>({...x,[id]:d.items||[]}))}catch(e:any){setToast(e.message)}finally{setRecoveryBusy('')}}
  async function cancel(id:string){await api('/bookings/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:'cancelled'})},token);setOpen(id);await refresh();await loadRecovery(id)}
  async function recover(id:string,professionalId:string){setRecoveryBusy(id);try{await api('/bookings/'+id+'/recover',{method:'POST',body:JSON.stringify({professionalId})},token);setToast('Το ίδιο αίτημα στάλθηκε σε νέο επαγγελματία.');setRecovery(x=>({...x,[id]:[]}));await refresh()}catch(e:any){setToast(e.message)}finally{setRecoveryBusy('')}}
+ async function markConversationRead(id:string){
+  if(messageReadBusy===id)return
+
+  try{
+    setMessageReadBusy(id)
+
+    await api(
+      '/bookings/'+id+'/messages/read',
+      {
+        method:'PATCH'
+      },
+      token
+    )
+
+    window.dispatchEvent(
+      new CustomEvent('meleo:communication-refresh')
+    )
+  }
+  catch(e){
+    console.error(
+      'Could not mark conversation as read',
+      e
+    )
+  }
+  finally{
+    setMessageReadBusy('')
+  }
+}
+async function openPatientConversation(id:string){
+
+  setPatientConversation(id)
+
+  try{
+
+    await api(
+      '/bookings/'+id+'/messages/read',
+      {
+        method:'PATCH'
+      },
+      token
+    )
+
+    await refreshPatientMessageUnread()
+
+    window.dispatchEvent(
+      new CustomEvent(
+        'meleo:communication-refresh'
+      )
+    )
+
+  }
+  catch(e){
+
+    console.error(
+      'Patient conversation read failed',
+      e
+    )
+
+  }
+}
+async function sendPatientInboxMessage(){
+
+  const conversationId=
+    patientConversation||
+    activePatientConversation?.id
+
+  if(
+    !conversationId ||
+    !patientMessageDraft.trim() ||
+    patientMessageSending
+  ){
+    return
+  }
+
+  try{
+
+    setPatientMessageSending(true)
+
+    await api(
+      '/bookings/'+conversationId+'/message',
+      {
+        method:'POST',
+        body:JSON.stringify({
+          text:patientMessageDraft.trim()
+        })
+      },
+      token
+    )
+
+    setPatientMessageDraft('')
+
+    await refresh()
+    await refreshPatientMessageUnread()
+
+    window.dispatchEvent(
+      new CustomEvent(
+        'meleo:communication-refresh'
+      )
+    )
+
+  }
+  catch(e:any){
+
+    setToast(
+      e.message||
+      'Η αποστολή μηνύματος απέτυχε.'
+    )
+
+  }
+  finally{
+
+    setPatientMessageSending(false)
+
+  }
+}
  async function sendReply(id:string){if(!reply.trim())return;await api('/bookings/'+id+'/message',{method:'POST',body:JSON.stringify({text:reply})},token);setReply('');refresh()}
  async function quoteDecision(id:string,decision:string){await api('/bookings/'+id+'/quote-decision',{method:'POST',body:JSON.stringify({decision})},token);refresh()}
  async function bookAgain(b:any){try{const d=await api('/professionals/'+b.professionalId);const p=d.professional||d;startBooking(p,{service:b.service,address:b.address,repeat:b.repeat||'once'});setToast('Έτοιμο — επίλεξε νέα ημερομηνία και ώρα.')}catch(e:any){setToast(e.message)}}
 const now = new Date()
+
+const patientMessageBookings=
+  [...bookings]
+    .filter(
+      (b:any)=>
+        (b.messages||[]).length>0 ||
+        Number(
+          patientMessageUnreadByBooking[b.id]||0
+        )>0
+    )
+    .sort((a:any,b:any)=>{
+
+      const am=
+        (a.messages||[]).at(-1)
+
+      const bm=
+        (b.messages||[]).at(-1)
+
+      return (
+        new Date(
+          bm?.createdAt||
+          b.updatedAt||
+          b.createdAt||
+          0
+        ).getTime()
+        -
+        new Date(
+          am?.createdAt||
+          a.updatedAt||
+          a.createdAt||
+          0
+        ).getTime()
+      )
+    })
+
+
+const activePatientConversation=
+  patientMessageBookings.find(
+    (b:any)=>
+      b.id===patientConversation
+  )
+  ||
+  patientMessageBookings[0]
+  ||
+  null
 
 const upcomingBookings = bookings
   .filter((b:any)=>
@@ -2732,13 +3169,14 @@ return (
                     <div className="next-care-actions">
 
                       <button
-                        className="btn btn-dark"
-                        onClick={()=>
-                          setOpen(nextBooking.id)
-                        }
-                      >
-                        Προβολή αιτήματος
-                      </button>
+  className="btn btn-dark"
+  onClick={()=>{
+    setOpen(nextBooking.id)
+    markConversationRead(nextBooking.id)
+  }}
+>
+  Προβολή αιτήματος
+</button>
 
                       {nextBooking.professionalPhone&&
                         <a
@@ -2924,6 +3362,53 @@ return (
 
           <section className="patient-command-panel">
 
+<div className="patient-section-tabs">
+
+  <button
+    className={
+      patientSection==='bookings'
+        ? 'active'
+        : ''
+    }
+    onClick={()=>
+      setPatientSection('bookings')
+    }
+  >
+    <span>📋</span>
+
+    Οι κρατήσεις μου
+  </button>
+
+
+  <button
+    className={
+      patientSection==='messages'
+        ? 'active'
+        : ''
+    }
+    onClick={()=>
+      setPatientSection('messages')
+    }
+  >
+    <span>💬</span>
+
+    Μηνύματα
+
+    {patientMessageUnreadTotal>0&&
+      <b>
+        {patientMessageUnreadTotal>99
+          ? '99+'
+          : patientMessageUnreadTotal
+        }
+      </b>
+    }
+
+  </button>
+
+</div>
+
+{patientSection==='bookings'&&
+  <>
             <div className="patient-panel-head">
               <div>
                 <small>MY REQUESTS</small>
@@ -2945,13 +3430,18 @@ return (
 
                     <div
                       className={`booking-row booking-card-premium clickable booking-${b.status}`}
-                      onClick={()=>
-                        setOpen(
-                          open===b.id
-                            ? ''
-                            : b.id
-                        )
-                      }
+onClick={()=>{
+  const next=
+    open===b.id
+      ? ''
+      : b.id
+
+  setOpen(next)
+
+  if(next){
+    markConversationRead(next)
+  }
+}}
                     >
 
                       <div className="booking-accent"/>
@@ -3007,15 +3497,20 @@ return (
 
                         <button
                           className="small-action premium-details-btn"
-                          onClick={e=>{
-                            e.stopPropagation()
+onClick={e=>{
+  e.stopPropagation()
 
-                            setOpen(
-                              open===b.id
-                                ? ''
-                                : b.id
-                            )
-                          }}
+  const next=
+    open===b.id
+      ? ''
+      : b.id
+
+  setOpen(next)
+
+  if(next){
+    markConversationRead(next)
+  }
+}}
                         >
                           {open===b.id
                             ? 'Κλείσιμο'
@@ -3296,7 +3791,386 @@ return (
                   text="Η επόμενη φροντίδα σου απέχει λίγα clicks."
                 />
             }
+ </>
+}{patientSection==='messages'&&
+  <>
 
+    <div className="patient-panel-head">
+      <div>
+        <small>MELEO COMMUNICATION</small>
+        <h3>Τα μηνύματά μου</h3>
+      </div>
+
+      <span>
+        {patientMessageUnreadTotal} αδιάβαστα
+      </span>
+    </div>
+
+
+    <div className="patient-inbox-list">
+
+      {patientMessageBookings.length===0
+        ?
+        <div className="inbox-list-empty">
+          <span>💬</span>
+          <b>Δεν υπάρχουν συνομιλίες</b>
+          <small>
+            Τα μηνύματα με επαγγελματίες θα εμφανίζονται εδώ.
+          </small>
+        </div>
+
+        :
+        patientMessageBookings.map((b:any)=>{
+
+          const messages=b.messages||[]
+          const last=messages.at(-1)
+
+          const unread=
+            Number(
+              patientMessageUnreadByBooking[b.id]||0
+            )
+
+          const active=
+            activePatientConversation?.id===b.id
+
+          return(
+            <button
+              key={b.id}
+              className={
+                'inbox-conversation-item '+
+                (active?'active ':'')+
+                (unread>0?'unread':'')
+              }
+              onClick={()=>
+                openPatientConversation(b.id)
+              }
+            >
+
+              <div className="inbox-avatar">
+                {initials(
+                  b.professionalName||
+                  'Επαγγελματίας'
+                )}
+              </div>
+
+
+              <div className="inbox-conversation-main">
+
+                <div className="inbox-conversation-top">
+
+                  <strong>
+                    {b.professionalName||
+                     'Επαγγελματίας MELEO'}
+                  </strong>
+
+                  {last?.createdAt&&
+                    <time>
+                      {new Date(
+                        last.createdAt
+                      ).toLocaleTimeString(
+                        'el-GR',
+                        {
+                          hour:'2-digit',
+                          minute:'2-digit'
+                        }
+                      )}
+                    </time>
+                  }
+
+                </div>
+
+
+                <span className="inbox-service">
+                  {b.service||
+                   b.specialty||
+                   'Αίτημα επίσκεψης'}
+                </span>
+
+
+                <div className="inbox-preview-row">
+
+                  <p>
+                    {last?.text||
+                     last?.body||
+                     'Άνοιξε τη συνομιλία'}
+                  </p>
+
+                  {unread>0&&
+                    <b className="conversation-unread">
+                      {unread>99
+                        ? '99+'
+                        : unread
+                      }
+                    </b>
+                  }
+
+                </div>
+
+              </div>
+
+            </button>
+          )
+        })
+      }
+
+    </div>
+
+
+    <div className="patient-inbox-chat">
+
+      {activePatientConversation
+        ?
+        <>
+
+          <div className="inbox-chat-head">
+
+            <div className="inbox-chat-person">
+
+              <div className="inbox-avatar large">
+                {initials(
+                  activePatientConversation.professionalName||
+                  'Επαγγελματίας'
+                )}
+              </div>
+
+              <div>
+
+                <strong>
+                  {activePatientConversation.professionalName||
+                   'Επαγγελματίας MELEO'}
+                </strong>
+
+                <span>
+                  {activePatientConversation.service||
+                   activePatientConversation.specialty||
+                   'Αίτημα επίσκεψης'}
+                </span>
+
+              </div>
+
+            </div>
+
+
+            <span
+              className={
+                'status '+
+                activePatientConversation.status
+              }
+            >
+              {statusLabel(
+                activePatientConversation.status
+              )}
+            </span>
+
+          </div>
+
+
+          <div className="inbox-booking-context">
+
+            <div>
+              <small>Υπηρεσία</small>
+              <strong>
+                {activePatientConversation.service||'—'}
+              </strong>
+            </div>
+
+            <div>
+              <small>Ημερομηνία</small>
+              <strong>
+                {activePatientConversation.date||'—'}
+              </strong>
+            </div>
+
+            <div>
+              <small>Ώρα</small>
+              <strong>
+                {activePatientConversation.time||'—'}
+              </strong>
+            </div>
+
+            <div>
+              <small>Κόστος</small>
+              <strong>
+                {activePatientConversation.agreedPrice
+                  ? money(
+                      activePatientConversation.agreedPrice
+                    )
+                  : activePatientConversation.proposedPrice
+                    ? money(
+                        activePatientConversation.proposedPrice
+                      )
+                    : activePatientConversation.price
+                      ? `Από ${money(
+                          activePatientConversation.price
+                        )}`
+                      : 'Σε αναμονή'
+                }
+              </strong>
+            </div>
+
+          </div>
+
+
+          <div className="inbox-messages">
+
+            {(activePatientConversation.messages||[]).length===0
+              ?
+              <div className="chat-empty">
+
+                <span>💬</span>
+
+                <strong>
+                  Ξεκίνα τη συνομιλία
+                </strong>
+
+                <p>
+                  Στείλε μήνυμα στον επαγγελματία
+                  σχετικά με το συγκεκριμένο αίτημα.
+                </p>
+
+              </div>
+
+              :
+              (activePatientConversation.messages||[])
+                .map((m:any)=>{
+
+                  const mine=
+                    m.senderUserId===user.id ||
+                    m.senderRole==='patient'
+
+                  return(
+                    <div
+                      key={m.id}
+                      className={
+                        'inbox-message-row '+
+                        (mine?'mine':'theirs')
+                      }
+                    >
+
+                      <div
+                        className={
+                          'inbox-message-bubble '+
+                          (m.kind||'message')
+                        }
+                      >
+
+                        {!mine&&
+                          <b>
+                            {m.senderName||
+                             activePatientConversation.professionalName||
+                             'Επαγγελματίας'}
+                          </b>
+                        }
+
+                        <p>
+                          {m.text||
+                           m.body||
+                           ''}
+                        </p>
+
+                        <small>
+                          {m.createdAt
+                            ? new Date(
+                                m.createdAt
+                              ).toLocaleString(
+                                'el-GR',
+                                {
+                                  day:'2-digit',
+                                  month:'2-digit',
+                                  hour:'2-digit',
+                                  minute:'2-digit'
+                                }
+                              )
+                            : ''
+                          }
+                        </small>
+
+                      </div>
+
+                    </div>
+                  )
+                })
+            }
+
+          </div>
+
+
+          <div className="inbox-composer">
+
+            <textarea
+              value={patientMessageDraft}
+              onChange={e=>
+                setPatientMessageDraft(
+                  e.target.value
+                )
+              }
+              placeholder="Γράψε μήνυμα στον επαγγελματία…"
+              maxLength={1500}
+              onKeyDown={e=>{
+
+                if(
+                  e.key==='Enter' &&
+                  !e.shiftKey
+                ){
+                  e.preventDefault()
+                  sendPatientInboxMessage()
+                }
+
+              }}
+            />
+
+
+            <div className="inbox-composer-foot">
+
+              <small>
+                Enter για αποστολή · Shift + Enter για νέα γραμμή
+              </small>
+
+              <button
+                className="inbox-send-button"
+                disabled={
+                  !patientMessageDraft.trim() ||
+                  patientMessageSending
+                }
+                onClick={sendPatientInboxMessage}
+              >
+                {patientMessageSending
+                  ? 'Αποστολή…'
+                  : <>
+                      Αποστολή
+                      <span>→</span>
+                    </>
+                }
+              </button>
+
+            </div>
+
+          </div>
+
+        </>
+
+        :
+
+        <div className="inbox-no-selection">
+
+          <span>💬</span>
+
+          <h3>
+            Επίλεξε συνομιλία
+          </h3>
+
+          <p>
+            Επίλεξε έναν επαγγελματία από τη λίστα
+            για να δεις τα μηνύματα.
+          </p>
+
+        </div>
+      }
+
+    </div>
+
+  </>
+}
           </section>
 
         </div>

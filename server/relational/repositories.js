@@ -690,16 +690,589 @@ return {
 }
 
 export const Notifications={
-  async create(userId,type,title,body,client=null){const nid=id('ntf');const runner=client||{query:(q,p)=>sql(q,p)};await runner.query(`INSERT INTO notifications(id,user_id,type,title,body) VALUES($1,$2,$3,$4,$5)`,[nid,userId,type,title,body||'']);const ev=await runner.query(`INSERT INTO live_events(user_id,payload) VALUES($1,$2) RETURNING id`,[userId,{kind:'notification',notification:{id:nid,userId,type,title,text:body||'',read:false,createdAt:now()}}]);const eventId=ev.rows?.[0]?.id;await runner.query(`SELECT pg_notify('meleo_live',$1)`,[JSON.stringify({userId,eventId})]);return nid},
-  async list(userId,q={}){const {page,limit,offset}=pagination(q,{defaultLimit:30,maxLimit:100});const items=await many(`SELECT id,user_id "userId",type,title,body text,is_read read,created_at "createdAt" FROM notifications WHERE user_id=$1 ORDER BY created_at DESC LIMIT $2 OFFSET $3`,[userId,limit,offset]);const c=await one('SELECT count(*)::int total FROM notifications WHERE user_id=$1',[userId]);return {items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)}},
-  read: (id,userId)=>sql('UPDATE notifications SET is_read=true WHERE id=$1 AND user_id=$2',[id,userId])
+
+  async create(
+    userId,
+    type,
+    title,
+    body,
+    options={},
+    client=null
+  ){
+    const nid=id('ntf')
+
+    const runner=
+      client||{
+        query:(q,p)=>sql(q,p)
+      }
+
+    const priority=
+      ['low','normal','high','critical']
+        .includes(options.priority)
+          ? options.priority
+          : 'normal'
+
+    const actionType=
+      options.actionType||null
+
+    const actionId=
+      options.actionId||null
+
+    const actionUrl=
+      options.actionUrl||null
+
+    await runner.query(
+      `
+        INSERT INTO notifications(
+          id,
+          user_id,
+          type,
+          title,
+          body,
+          priority,
+          action_type,
+          action_id,
+          action_url
+        )
+        VALUES(
+          $1,$2,$3,$4,$5,$6,$7,$8,$9
+        )
+      `,
+      [
+        nid,
+        userId,
+        type,
+        title,
+        body||'',
+        priority,
+        actionType,
+        actionId,
+        actionUrl
+      ]
+    )
+
+    const notification={
+      id:nid,
+      userId,
+      type,
+      title,
+      text:body||'',
+      priority,
+      actionType,
+      actionId,
+      actionUrl,
+      read:false,
+      readAt:null,
+      createdAt:now()
+    }
+
+    const ev=await runner.query(
+      `
+        INSERT INTO live_events(
+          user_id,
+          payload
+        )
+        VALUES($1,$2)
+        RETURNING id
+      `,
+      [
+        userId,
+        {
+          kind:'notification.created',
+          notification
+        }
+      ]
+    )
+
+    const eventId=
+      ev.rows?.[0]?.id
+
+    await runner.query(
+      `
+        SELECT pg_notify(
+          'meleo_live',
+          $1
+        )
+      `,
+      [
+        JSON.stringify({
+          userId,
+          eventId
+        })
+      ]
+    )
+
+    return notification
+  },
+
+
+  async list(userId,q={}){
+
+    const {
+      page,
+      limit,
+      offset
+    }=pagination(
+      q,
+      {
+        defaultLimit:30,
+        maxLimit:100
+      }
+    )
+
+    const items=await many(
+      `
+        SELECT
+          id,
+          user_id "userId",
+          type,
+          title,
+          body text,
+          priority,
+          action_type "actionType",
+          action_id "actionId",
+          action_url "actionUrl",
+          is_read read,
+          read_at "readAt",
+          created_at "createdAt"
+
+        FROM notifications
+
+        WHERE user_id=$1
+
+        ORDER BY created_at DESC
+
+        LIMIT $2
+        OFFSET $3
+      `,
+      [
+        userId,
+        limit,
+        offset
+      ]
+    )
+
+    const stats=await one(
+      `
+        SELECT
+          count(*)::int total,
+
+          count(*) FILTER(
+            WHERE is_read=false
+          )::int unread
+
+        FROM notifications
+
+        WHERE user_id=$1
+      `,
+      [userId]
+    )
+
+    return {
+      items,
+      page,
+      limit,
+      total:stats?.total||0,
+      unread:stats?.unread||0,
+      totalPages:
+        Math.ceil(
+          (stats?.total||0)/limit
+        )
+    }
+  },
+
+
+  async unreadCount(userId){
+
+    const r=await one(
+      `
+        SELECT
+          count(*)::int count
+
+        FROM notifications
+
+        WHERE
+          user_id=$1
+          AND is_read=false
+      `,
+      [userId]
+    )
+
+    return Number(
+      r?.count||0
+    )
+  },
+
+
+  async read(notificationId,userId){
+
+    const r=await one(
+      `
+        UPDATE notifications
+
+        SET
+          is_read=true,
+          read_at=coalesce(
+            read_at,
+            now()
+          )
+
+        WHERE
+          id=$1
+          AND user_id=$2
+
+        RETURNING
+          id,
+          action_type "actionType",
+          action_id "actionId",
+          action_url "actionUrl"
+      `,
+      [
+        notificationId,
+        userId
+      ]
+    )
+
+    if(!r){
+      return null
+    }
+
+    const ev=await one(
+      `
+        INSERT INTO live_events(
+          user_id,
+          payload
+        )
+        VALUES($1,$2)
+        RETURNING id
+      `,
+      [
+        userId,
+        {
+          kind:'notification.read',
+          notificationId
+        }
+      ]
+    )
+
+    if(ev?.id){
+      await sql(
+        `
+          SELECT pg_notify(
+            'meleo_live',
+            $1
+          )
+        `,
+        [
+          JSON.stringify({
+            userId,
+            eventId:ev.id
+          })
+        ]
+      )
+    }
+
+    return r
+  },
+
+
+  async readAll(userId){
+
+    await sql(
+      `
+        UPDATE notifications
+
+        SET
+          is_read=true,
+          read_at=coalesce(
+            read_at,
+            now()
+          )
+
+        WHERE
+          user_id=$1
+          AND is_read=false
+      `,
+      [userId]
+    )
+
+    const ev=await one(
+      `
+        INSERT INTO live_events(
+          user_id,
+          payload
+        )
+        VALUES($1,$2)
+        RETURNING id
+      `,
+      [
+        userId,
+        {
+          kind:'notification.read_all'
+        }
+      ]
+    )
+
+    if(ev?.id){
+      await sql(
+        `
+          SELECT pg_notify(
+            'meleo_live',
+            $1
+          )
+        `,
+        [
+          JSON.stringify({
+            userId,
+            eventId:ev.id
+          })
+        ]
+      )
+    }
+
+    return {
+      ok:true
+    }
+  }
+
 }
 
 export const Bookings={
   async byId(bid){const r=await one(`SELECT b.*,pu.name patient_name,pu.email patient_email,pu.phone patient_phone,pru.name professional_name,pru.email professional_email,pru.phone professional_phone,p.specialty,p.subscription_plan,p.city,p.area,p.region FROM bookings b JOIN users pu ON pu.id=b.patient_id JOIN professionals p ON p.id=b.professional_id JOIN users pru ON pru.id=p.user_id WHERE b.id=$1`,[bid]);if(!r)return null;const messages=await many(`SELECT id,sender_role "fromRole",sender_name "fromName",body_encrypted,created_at "createdAt" FROM booking_messages WHERE booking_id=$1 ORDER BY created_at ASC`,[bid]);const review=await one('SELECT id,rating,comment,created_at "createdAt" FROM reviews WHERE booking_id=$1',[bid]);return {id:r.id,patientId:r.patient_id,professionalId:r.professional_id,service:r.service,date:String(r.visit_date).slice(0,10),time:String(r.visit_time).slice(0,5),address:r.address,notes:decryptSensitive(r.notes_encrypted),repeat:r.repeat_rule,status:r.status,price:Number(r.base_price||0),proposedPrice:r.proposed_price==null?null:Number(r.proposed_price),agreedPrice:r.agreed_price==null?null:Number(r.agreed_price),patientName:r.patient_name,patientEmail:r.patient_email,patientPhone:r.patient_phone,professionalName:r.professional_name,professionalEmail:r.professional_email,professionalPhone:r.professional_phone,specialty:r.specialty,subscriptionPlan:r.subscription_plan,city:r.city,area:r.area,region:r.region,recoveryParentId:r.recovery_parent_id||null,messages:messages.map(m=>({...m,text:decryptSensitive(m.body_encrypted)})),reviewed:!!review,review}},
   async listForUser(user,q={}){const {page,limit,offset}=pagination(q,{defaultLimit:20,maxLimit:100});let where,params;if(user.role==='patient'){where='b.patient_id=$1';params=[user.id]}else if(user.role==='professional'){const p=await Professionals.byUser(user.id);if(String(q.scope||'')==='requested'){where='b.patient_id=$1';params=[user.id]}else if(String(q.scope||'')==='all'){where='(b.patient_id=$1 OR b.professional_id=$2)';params=[user.id,p?.id||'__none__']}else{where='b.professional_id=$1';params=[p?.id||'__none__']}}else{where='true';params=[]}const rows=await many(`SELECT b.id FROM bookings b WHERE ${where} ORDER BY b.created_at DESC LIMIT $${params.length+1} OFFSET $${params.length+2}`,[...params,limit,offset]);const c=await one(`SELECT count(*)::int total FROM bookings b WHERE ${where}`,params);const items=[];for(const r of rows)items.push(await this.byId(r.id));return {items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)}},
   async create(data){await sql(`INSERT INTO bookings(id,patient_id,professional_id,service,visit_date,visit_time,address,notes_encrypted,repeat_rule,status,base_price,patient_contact_consent_at,recovery_parent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,now(),$11)`,[data.id,data.patientId,data.professionalId,data.service,data.date,data.time,data.address||'',encryptSensitive(data.notes||''),data.repeat||'Μία φορά',data.price||0,data.recoveryParentId||null]);return this.byId(data.id)},
-  async addMessage(booking,sender,text,kind='message'){const mid=id('msg');const bookingRole=sender.id===booking.patientId?'patient':sender.role;await sql(`INSERT INTO booking_messages(id,booking_id,sender_user_id,sender_role,sender_name,body_encrypted,kind) VALUES($1,$2,$3,$4,$5,$6,$7)`,[mid,booking.id,sender.id,bookingRole,sender.name,encryptSensitive(text),kind]);return this.byId(booking.id)},
+async addMessage(
+  booking,
+  sender,
+  text,
+  kind='message'
+){
+
+  const mid=id('msg')
+
+  const bookingRole=
+    sender.id===booking.patientId
+      ? 'patient'
+      : sender.role
+
+  const professional=
+    await Professionals.byId(
+      booking.professionalId
+    )
+
+  const recipientUserId=
+    sender.id===booking.patientId
+      ? professional?.userId
+      : booking.patientId
+
+  if(!recipientUserId){
+    throw new Error(
+      'Δεν βρέθηκε παραλήπτης μηνύματος.'
+    )
+  }
+
+  const createdAt=now()
+
+  await sql(
+    `
+      INSERT INTO booking_messages(
+        id,
+        booking_id,
+        sender_user_id,
+        sender_role,
+        sender_name,
+        body_encrypted,
+        kind,
+        recipient_user_id,
+        delivered_at
+      )
+      VALUES(
+        $1,$2,$3,$4,$5,$6,$7,$8,now()
+      )
+    `,
+    [
+      mid,
+      booking.id,
+      sender.id,
+      bookingRole,
+      sender.name,
+      encryptSensitive(text),
+      kind,
+      recipientUserId
+    ]
+  )
+
+  const event=await one(
+    `
+      INSERT INTO live_events(
+        user_id,
+        payload
+      )
+      VALUES($1,$2)
+      RETURNING id
+    `,
+    [
+      recipientUserId,
+      {
+        kind:'message.created',
+
+        message:{
+          id:mid,
+          bookingId:booking.id,
+          senderUserId:sender.id,
+          senderRole:bookingRole,
+          senderName:sender.name,
+          recipientUserId,
+          kind,
+          text,
+          delivered:true,
+          deliveredAt:createdAt,
+          read:false,
+          readAt:null,
+          createdAt
+        }
+      }
+    ]
+  )
+
+  if(event?.id){
+    await sql(
+      `
+        SELECT pg_notify(
+          'meleo_live',
+          $1
+        )
+      `,
+      [
+        JSON.stringify({
+          userId:recipientUserId,
+          eventId:event.id
+        })
+      ]
+    )
+  }
+
+  return this.byId(
+    booking.id
+  )
+},
+async unreadMessageCount(userId){
+
+  const r=await one(
+    `
+      SELECT
+        count(*)::int count
+
+      FROM booking_messages
+
+      WHERE
+        recipient_user_id=$1
+        AND read_at IS NULL
+    `,
+    [userId]
+  )
+
+  return Number(
+    r?.count||0
+  )
+},
+
+
+async conversationUnreadCounts(userId){
+
+  const rows=await many(
+    `
+      SELECT
+        booking_id "bookingId",
+        count(*)::int unread
+
+      FROM booking_messages
+
+      WHERE
+        recipient_user_id=$1
+        AND read_at IS NULL
+
+      GROUP BY booking_id
+    `,
+    [userId]
+  )
+
+  return rows
+},
+
+
+async markMessagesRead(
+  bookingId,
+  userId
+){
+
+  const changed=await many(
+    `
+      UPDATE booking_messages
+
+      SET
+        read_at=now()
+
+      WHERE
+        booking_id=$1
+        AND recipient_user_id=$2
+        AND read_at IS NULL
+
+      RETURNING id
+    `,
+    [
+      bookingId,
+      userId
+    ]
+  )
+
+  if(changed.length){
+
+    const ev=await one(
+      `
+        INSERT INTO live_events(
+          user_id,
+          payload
+        )
+        VALUES($1,$2)
+        RETURNING id
+      `,
+      [
+        userId,
+        {
+          kind:'message.read',
+          bookingId,
+          messageIds:
+            changed.map(
+              x=>x.id
+            )
+        }
+      ]
+    )
+
+    if(ev?.id){
+      await sql(
+        `
+          SELECT pg_notify(
+            'meleo_live',
+            $1
+          )
+        `,
+        [
+          JSON.stringify({
+            userId,
+            eventId:ev.id
+          })
+        ]
+      )
+    }
+  }
+
+  return {
+    ok:true,
+    count:changed.length
+  }
+},
   async update(id,patch){const map={status:'status',proposedPrice:'proposed_price',agreedPrice:'agreed_price'};const sets=[],vals=[];let i=1;for(const [k,v] of Object.entries(patch)){if(!map[k])continue;sets.push(`${map[k]}=$${i++}`);vals.push(v)}if(!sets.length)return this.byId(id);vals.push(id);await sql(`UPDATE bookings SET ${sets.join(',')},updated_at=now() WHERE id=$${i}`,[...vals]);return this.byId(id)}
 }
 

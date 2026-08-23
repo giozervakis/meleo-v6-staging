@@ -645,17 +645,218 @@ app.post('/api/professional/subscription/resume',auth,requireRole('professional'
 
 app.post('/api/bookings',auth,requireConsumer,requireVerifiedEmail,limits.write,async(req,res)=>{const pid=str(req.body.professionalId,80),service=str(req.body.service,160),date=str(req.body.date,20),time=str(req.body.time,10);if(!pid||!service||!isDate(date)||!isTime(time))return res.status(400).json({error:'Συμπλήρωσε υπηρεσία, ημερομηνία και ώρα.'});const p=await Professionals.byId(pid);if(!p||!p.verified||!allowsVisibility(p))return res.status(404).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος.'});if(p.userId===req.user.id)return res.status(400).json({error:'Δεν μπορείς να δημιουργήσεις αίτημα προς το δικό σου επαγγελματικό προφίλ.'});const bid=id('bkg');const b=await Bookings.create({id:bid,patientId:req.user.id,professionalId:pid,service,date,time,address:str(req.body.address,300),notes:str(req.body.notes,3000),repeat:str(req.body.repeat,120)||'Μία φορά',price:p.price});await Notifications.create(p.userId,'booking','Νέο αίτημα επίσκεψης',`${req.user.name} · ${service}`);await audit(req.user.id,'booking.create',{bookingId:bid,professionalId:pid});res.json({booking:b})})
 app.get('/api/bookings',auth,async(req,res)=>res.json(await Bookings.listForUser(req.user,req.query)))
-app.patch('/api/bookings/:id/status',auth,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b)return res.status(404).json({error:'Not found'});const p=await Professionals.byId(b.professionalId);if(!canEditBooking(req.user,b,p))return res.status(403).json({error:'Δεν επιτρέπεται.'});const status=str(req.body.status,30);if(!['pending','clarification','quoted','accepted','completed','cancelled'].includes(status))return res.status(400).json({error:'Invalid status'});const isRequester=b.patientId===req.user.id;const isProvider=req.user.role==='professional'&&p?.userId===req.user.id;if(isRequester&&status!=='cancelled')return res.status(403).json({error:'Ως αιτών μπορείς να ακυρώσεις το αίτημα, όχι να αλλάξεις την επαγγελματική κατάστασή του.'});if(isProvider&&!['accepted','completed','cancelled'].includes(status))return res.status(403).json({error:'Μη επιτρεπτή αλλαγή κατάστασης.'});const updated=await Bookings.update(b.id,{status});await Notifications.create(isProvider?b.patientId:p.userId,'booking',`Ενημέρωση κράτησης: ${status}`,b.service);res.json({booking:updated})})
+app.patch('/api/bookings/:id/status',auth,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b)return res.status(404).json({error:'Not found'});const p=await Professionals.byId(b.professionalId);if(!canEditBooking(req.user,b,p))return res.status(403).json({error:'Δεν επιτρέπεται.'});const status=str(req.body.status,30);if(!['pending','clarification','quoted','accepted','completed','cancelled'].includes(status))return res.status(400).json({error:'Invalid status'});const isRequester=b.patientId===req.user.id;const isProvider=req.user.role==='professional'&&p?.userId===req.user.id;if(isRequester&&status!=='cancelled')return res.status(403).json({error:'Ως αιτών μπορείς να ακυρώσεις το αίτημα, όχι να αλλάξεις την επαγγελματική κατάστασή του.'});if(isProvider&&!['accepted','completed','cancelled'].includes(status))return res.status(403).json({error:'Μη επιτρεπτή αλλαγή κατάστασης.'});const updated=await Bookings.update(b.id,{status});await Notifications.create(
+  isProvider
+    ? b.patientId
+    : p.userId,
+  'booking',
+  `Ενημέρωση κράτησης: ${status}`,
+  b.service,
+  {
+    priority:
+      status==='cancelled'
+        ? 'high'
+        : 'normal',
+
+    actionType:'booking',
+    actionId:b.id,
+
+    actionUrl:
+      isProvider
+        ? '/dashboard'
+        : '/professional'
+  }
+);res.json({booking:updated})})
 app.post('/api/bookings/:id/clarification',auth,requireRole('professional'),limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id),p=await Professionals.byId(b?.professionalId);if(!b||p.userId!==req.user.id)return res.status(404).json({error:'Not found'});const text=str(req.body.text||req.body.question,1500);await Bookings.update(b.id,{status:'clarification'});const updated=await Bookings.addMessage(b,req.user,text,'clarification');await Notifications.create(b.patientId,'message','Ο επαγγελματίας ζητά διευκρινίσεις',text.slice(0,180));res.json({booking:updated})})
-app.post('/api/bookings/:id/message',auth,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b)return res.status(404).json({error:'Not found'});const p=await Professionals.byId(b.professionalId);if(!canViewBooking(req.user,b,p))return res.status(403).json({error:'Δεν επιτρέπεται.'});const text=str(req.body.text,1500);const updated=await Bookings.addMessage(b,req.user,text);await Notifications.create(req.user.id===b.patientId?p.userId:b.patientId,'message','Νέο μήνυμα MELEO',text.slice(0,180));res.json({booking:updated})})
-app.post('/api/bookings/:id/quote',auth,requireRole('professional'),limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id),p=await Professionals.byId(b?.professionalId);if(!b||p.userId!==req.user.id)return res.status(404).json({error:'Not found'});const price=Math.max(0,Math.min(5000,Number(req.body.price??req.body.amount)||0));if(!price)return res.status(400).json({error:'Δώσε τελικό κόστος.'});await Bookings.update(b.id,{status:'quoted',proposedPrice:price});if(req.body.note||req.body.message)await Bookings.addMessage(b,req.user,str(req.body.note||req.body.message,1000),'quote');await Notifications.create(b.patientId,'quote','Νέα πρόταση τελικού κόστους',`${price.toFixed(2)}€`);res.json({booking:await Bookings.byId(b.id)})})
-app.post('/api/bookings/:id/quote-decision',auth,requireConsumer,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||b.patientId!==req.user.id)return res.status(404).json({error:'Not found'});const decision=String(req.body.decision||'').toLowerCase();const accept=req.body.accept===true||decision==='accept';const updated=await Bookings.update(b.id,accept?{status:'accepted',agreedPrice:b.proposedPrice}:{status:'clarification'});const p=await Professionals.byId(b.professionalId);await Notifications.create(p.userId,'quote',accept?'Η πρόταση κόστους έγινε αποδεκτή':'Η πρόταση χρειάζεται νέα συζήτηση',b.service);res.json({booking:updated})})
+app.post(
+  '/api/bookings/:id/message',
+  auth,
+  limits.write,
+  async(req,res)=>{
+
+    const b=
+      await Bookings.byId(
+        req.params.id
+      )
+
+    if(!b){
+      return res.status(404).json({
+        error:'Not found'
+      })
+    }
+
+    const p=
+      await Professionals.byId(
+        b.professionalId
+      )
+
+    if(
+      !canViewBooking(
+        req.user,
+        b,
+        p
+      )
+    ){
+      return res.status(403).json({
+        error:'Δεν επιτρέπεται.'
+      })
+    }
+
+    const text=
+      str(
+        req.body.text,
+        1500
+      )
+
+    const updated=
+      await Bookings.addMessage(
+        b,
+        req.user,
+        text
+      )
+
+    await Notifications.create(
+      req.user.id===b.patientId
+        ? p.userId
+        : b.patientId,
+      'message',
+      'Νέο μήνυμα MELEO',
+      text.slice(0,180),
+      {
+        priority:'normal',
+        actionType:'booking',
+        actionId:b.id,
+        actionUrl:
+          req.user.id===b.patientId
+            ? '/professional'
+            : '/dashboard'
+      }
+    )
+
+    res.json({
+      booking:updated
+    })
+  }
+)
 app.get('/api/bookings/:id/recovery-candidates',auth,requireConsumer,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||b.patientId!==req.user.id)return res.status(404).json({error:'Not found'});if(b.status!=='cancelled')return res.status(400).json({error:'Οι εναλλακτικές προτάσεις εμφανίζονται μετά την ακύρωση του αιτήματος.'});const pick=[];const seen=new Set([b.professionalId]);const add=result=>{for(const p of result.items||[]){if(seen.has(p.id))continue;seen.add(p.id);pick.push(p);if(pick.length>=3)break}};if(b.city) add(await Professionals.search({specialty:b.specialty,service:b.service,location:b.city,page:1,limit:20}));if(pick.length<3)add(await Professionals.search({specialty:b.specialty,service:b.service,page:1,limit:20}));res.json({items:pick.slice(0,3)})})
-app.post('/api/bookings/:id/recover',auth,requireConsumer,requireVerifiedEmail,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||b.patientId!==req.user.id)return res.status(404).json({error:'Not found'});if(b.status!=='cancelled')return res.status(400).json({error:'Το αρχικό αίτημα πρέπει να είναι ακυρωμένο.'});const professionalId=str(req.body.professionalId,80);const p=await Professionals.byId(professionalId);if(!p||p.id===b.professionalId||!p.verified||!allowsVisibility(p)||p.specialty!==b.specialty||!(p.services||[]).includes(b.service))return res.status(400).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος για το ίδιο αίτημα.'});const bid=id('bkg');const created=await Bookings.create({id:bid,patientId:req.user.id,professionalId:p.id,service:b.service,date:b.date,time:b.time,address:b.address,notes:b.notes,repeat:b.repeat,price:p.price,recoveryParentId:b.id});await Notifications.create(p.userId,'booking','Νέο αίτημα επίσκεψης',`${req.user.name} · ${b.service}`);await audit(req.user.id,'booking.recovery',{bookingId:bid,recoveryParentId:b.id,professionalId:p.id});res.json({booking:created})})
+app.post('/api/bookings/:id/recover',auth,requireConsumer,requireVerifiedEmail,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||b.patientId!==req.user.id)return res.status(404).json({error:'Not found'});if(b.status!=='cancelled')return res.status(400).json({error:'Το αρχικό αίτημα πρέπει να είναι ακυρωμένο.'});const professionalId=str(req.body.professionalId,80);const p=await Professionals.byId(professionalId);if(!p||p.id===b.professionalId||!p.verified||!allowsVisibility(p)||p.specialty!==b.specialty||!(p.services||[]).includes(b.service))return res.status(400).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος για το ίδιο αίτημα.'});const bid=id('bkg');const created=await Bookings.create({id:bid,patientId:req.user.id,professionalId:p.id,service:b.service,date:b.date,time:b.time,address:b.address,notes:b.notes,repeat:b.repeat,price:p.price,recoveryParentId:b.id});await Notifications.create(
+  p.userId,
+  'booking',
+  'Νέο αίτημα επίσκεψης',
+  `${req.user.name} · ${service}`,
+  {
+    priority:'high',
+    actionType:'booking',
+    actionId:bid,
+    actionUrl:'/professional'
+  }
+);await audit(req.user.id,'booking.recovery',{bookingId:bid,recoveryParentId:b.id,professionalId:p.id});res.json({booking:created})})
 app.post('/api/bookings/:id/review',auth,requireConsumer,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||!canReviewBooking(req.user,b))return res.status(400).json({error:'Αξιολόγηση επιτρέπεται μόνο μετά από ολοκληρωμένη επίσκεψη.'});const rating=Math.max(1,Math.min(5,Math.round(Number(req.body.rating)||0))),comment=str(req.body.comment,1000);try{await tx(async c=>{await c.query(`INSERT INTO reviews(id,booking_id,patient_id,professional_id,rating,comment) VALUES($1,$2,$3,$4,$5,$6)`,[id('rev'),b.id,req.user.id,b.professionalId,rating,comment]);await c.query(`UPDATE professionals SET reviews_count=(SELECT count(*) FROM reviews WHERE professional_id=$1),rating=(SELECT coalesce(avg(rating),0) FROM reviews WHERE professional_id=$1),updated_at=now() WHERE id=$1`,[b.professionalId])})}catch(err){if(err.code==='23505')return res.status(409).json({error:'Η επίσκεψη έχει ήδη αξιολογηθεί.'});throw err}const p=await Professionals.byId(b.professionalId);await Notifications.create(p.userId,'review','Νέα αξιολόγηση',`${rating}/5 ⭐`);res.json({ok:true})})
 
 app.get('/api/notifications',auth,async(req,res)=>res.json(await Notifications.list(req.user.id,req.query)))
 app.patch('/api/notifications/:id/read',auth,async(req,res)=>{await Notifications.read(req.params.id,req.user.id);res.json({ok:true})})
+app.get(
+  '/api/communication/unread',
+  auth,
+  async(req,res)=>{
+
+    const [
+      notifications,
+      messages
+    ]=await Promise.all([
+      Notifications.unreadCount(req.user.id),
+      Bookings.unreadMessageCount(req.user.id)
+    ])
+
+    res.json({
+      notifications,
+      messages,
+      total:
+        Number(notifications||0)+
+        Number(messages||0)
+    })
+  }
+)
+
+
+app.patch(
+  '/api/notifications/read-all',
+  auth,
+  async(req,res)=>{
+
+    res.json(
+      await Notifications.readAll(
+        req.user.id
+      )
+    )
+  }
+)
+
+
+app.get(
+  '/api/bookings/unread',
+  auth,
+  async(req,res)=>{
+
+    const items=
+      await Bookings.conversationUnreadCounts(
+        req.user.id
+      )
+
+    res.json({
+      items,
+      total:
+        items.reduce(
+          (sum,x)=>
+            sum+Number(x.unread||0),
+          0
+        )
+    })
+  }
+)
+
+
+app.patch(
+  '/api/bookings/:id/messages/read',
+  auth,
+  async(req,res)=>{
+
+    const b=
+      await Bookings.byId(
+        req.params.id
+      )
+
+    if(!b){
+      return res.status(404).json({
+        error:'Not found'
+      })
+    }
+
+    const p=
+      await Professionals.byId(
+        b.professionalId
+      )
+
+    if(
+      !canViewBooking(
+        req.user,
+        b,
+        p
+      )
+    ){
+      return res.status(403).json({
+        error:'Δεν επιτρέπεται.'
+      })
+    }
+
+    res.json(
+      await Bookings.markMessagesRead(
+        b.id,
+        req.user.id
+      )
+    )
+  }
+)
 app.post('/api/favorites/:professionalId',auth,requireConsumer,limits.write,async(req,res)=>{const pid=req.params.professionalId;const existing=await one('SELECT id FROM favorites WHERE user_id=$1 AND professional_id=$2',[req.user.id,pid]);if(existing){await sql('DELETE FROM favorites WHERE id=$1',[existing.id]);return res.json({favorite:false})}await sql('INSERT INTO favorites(id,user_id,professional_id) VALUES($1,$2,$3)',[id('fav'),req.user.id,pid]);res.json({favorite:true})})
 app.get('/api/favorites',auth,async(req,res)=>{const rows=await many('SELECT professional_id FROM favorites WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);res.json(rows.map(x=>x.professional_id))})
 

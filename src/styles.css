@@ -6639,3 +6639,2287 @@
   }
 
 }
+
+/* =========================================================
+   MELEO NOTIFICATIONS & REAL-TIME COMMUNICATION V2
+   HEADER BADGES + LIVE STATES
+   ========================================================= */
+
+.account-notification-link{
+  position:relative;
+  display:flex !important;
+  align-items:center;
+  gap:10px;
+  width:100%;
+}
+
+.account-notification-icon{
+  position:relative;
+  width:28px;
+  height:28px;
+  flex:0 0 28px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:9px;
+
+  background:#f3f6f4;
+
+  font-size:14px;
+}
+
+.account-notification-link.has-unread
+.account-notification-icon{
+  background:#edf6f1;
+}
+
+.account-notification-badge{
+  position:absolute;
+
+  top:-6px;
+  right:-7px;
+
+  min-width:17px;
+  height:17px;
+
+  padding:0 4px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:#b94f45;
+  color:#fff;
+
+  border:2px solid #fff;
+
+  font-size:7px;
+  font-weight:900;
+  line-height:1;
+
+  box-shadow:
+    0 3px 8px rgba(132,55,48,.25);
+}
+
+.account-notification-copy{
+  min-width:0;
+  flex:1;
+
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+}
+
+.account-notification-copy strong{
+  color:#26483e;
+
+  font-size:9px;
+  font-weight:800;
+}
+
+.account-notification-copy small{
+  display:block;
+
+  margin-top:1px;
+
+  color:#8a9691;
+
+  font-size:6.8px;
+  line-height:1.35;
+}
+
+.account-notification-link.has-unread
+.account-notification-copy strong{
+  color:#173f36;
+}
+
+.account-live-dot{
+  width:8px;
+  height:8px;
+
+  flex:0 0 8px;
+
+  border-radius:50%;
+
+  background:#55a77d;
+
+  box-shadow:
+    0 0 0 4px rgba(85,167,125,.12);
+
+  animation:
+    meleo-live-pulse 1.8s ease-in-out infinite;
+}
+
+@keyframes meleo-live-pulse{
+
+  0%,
+  100%{
+    box-shadow:
+      0 0 0 4px rgba(85,167,125,.10);
+  }
+
+  50%{
+    box-shadow:
+      0 0 0 7px rgba(85,167,125,.03);
+  }
+}
+
+
+/* =========================================================
+   MOBILE NOTIFICATION BUTTON
+   ========================================================= */
+
+.mobile-notification-button{
+  position:relative;
+
+  display:flex !important;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:10px;
+}
+
+.mobile-notification-button>span{
+  display:flex;
+  align-items:center;
+  gap:7px;
+}
+
+.mobile-notification-button.has-unread{
+  border-color:
+    rgba(31,84,69,.28);
+
+  background:#f3f8f5;
+}
+
+.mobile-notification-badge{
+  min-width:24px;
+  height:24px;
+
+  padding:0 7px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:#173f36;
+  color:#fff;
+
+  font-size:8px;
+  font-weight:900;
+
+  box-shadow:
+    0 4px 12px rgba(23,63,54,.15);
+}
+
+
+/* =========================================================
+   SMALL HEADER LIVE INDICATOR
+   ========================================================= */
+
+.user-pill{
+  position:relative;
+}
+
+.user-pill-live-badge{
+  position:absolute;
+
+  top:-6px;
+  right:-7px;
+
+  min-width:18px;
+  height:18px;
+
+  padding:0 4px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:#b94f45;
+  color:#fff;
+
+  border:2px solid #fff;
+
+  font-size:7px;
+  font-weight:900;
+
+  pointer-events:none;
+}
+
+
+/* =========================================================
+   NOTIFICATION PRIORITY STATES
+   ========================================================= */
+
+.notification-row{
+  position:relative;
+  overflow:hidden;
+}
+
+.notification-row.unread::before{
+  content:'';
+
+  position:absolute;
+
+  left:0;
+  top:0;
+  bottom:0;
+
+  width:3px;
+
+  background:#477e68;
+}
+
+.notification-row.unread{
+  background:#f7fbf9;
+}
+
+.notification-row.priority-high{
+  background:#fffaf2;
+}
+
+.notification-row.priority-critical{
+  background:#fff7f6;
+}
+
+.notification-row.priority-critical::before{
+  background:#b55249;
+}
+
+.notification-row.priority-high::before{
+  background:#b78b3f;
+}
+
+
+/* =========================================================
+   LIVE MESSAGE / NOTIFICATION MICRO STATES
+   ========================================================= */
+
+.communication-live-pill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+
+  padding:5px 8px;
+
+  border-radius:999px;
+
+  background:#edf6f1;
+  color:#3f725d;
+
+  font-size:7px;
+  font-weight:800;
+}
+
+.communication-live-pill::before{
+  content:'';
+
+  width:6px;
+  height:6px;
+
+  border-radius:50%;
+
+  background:#55a77d;
+
+  animation:
+    meleo-live-pulse 1.8s ease-in-out infinite;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width:980px){
+
+  .account-notification-badge{
+    top:-5px;
+    right:-5px;
+  }
+
+}
+
+@media(max-width:700px){
+
+  .mobile-notification-button{
+    min-height:46px;
+  }
+
+  .mobile-notification-badge{
+    min-width:26px;
+    height:26px;
+
+    font-size:8px;
+  }
+
+}
+
+/* =========================================================
+   MELEO NOTIFICATIONS CENTER V2
+   ========================================================= */
+
+.notifications-center-v2{
+  padding-top:12px;
+  padding-bottom:28px;
+}
+
+.notifications-command-hero{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:20px;
+
+  padding:24px;
+  margin-bottom:16px;
+
+  border-radius:24px;
+
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(232,200,117,.15),
+      transparent 34%
+    ),
+    linear-gradient(
+      135deg,
+      #173f36,
+      #214e43
+    );
+
+  color:#fff;
+
+  box-shadow:
+    0 18px 48px rgba(20,58,49,.14);
+}
+
+.notifications-command-copy{
+  max-width:650px;
+}
+
+.notifications-live-kicker{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+
+  color:#e8c875;
+
+  font-size:8px;
+  font-weight:900;
+  letter-spacing:.14em;
+}
+
+.notifications-live-kicker>span{
+  width:7px;
+  height:7px;
+
+  border-radius:50%;
+
+  background:#66bb8d;
+
+  box-shadow:
+    0 0 0 5px rgba(102,187,141,.10);
+
+  animation:
+    meleo-live-pulse 1.8s ease-in-out infinite;
+}
+
+.notifications-command-copy h2{
+  margin:7px 0 5px;
+
+  font-size:28px;
+  line-height:1.1;
+}
+
+.notifications-command-copy p{
+  margin:0;
+
+  max-width:590px;
+
+  color:rgba(255,255,255,.68);
+
+  font-size:10px;
+  line-height:1.55;
+}
+
+.notifications-command-summary{
+  display:flex;
+  flex-direction:column;
+  align-items:flex-end;
+  gap:12px;
+}
+
+.notifications-command-summary>div{
+  min-width:118px;
+
+  padding:12px 14px;
+
+  border-radius:15px;
+
+  background:rgba(255,255,255,.07);
+
+  border:
+    1px solid rgba(255,255,255,.10);
+
+  text-align:right;
+}
+
+.notifications-command-summary small{
+  display:block;
+
+  color:rgba(255,255,255,.52);
+
+  font-size:7px;
+  font-weight:900;
+  letter-spacing:.1em;
+}
+
+.notifications-command-summary strong{
+  display:block;
+
+  margin-top:3px;
+
+  color:#fff;
+
+  font-size:28px;
+  line-height:1;
+  font-weight:900;
+}
+
+
+/* =========================================================
+   TOOLBAR
+   ========================================================= */
+
+.notifications-toolbar-v2{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+
+  padding:12px 14px;
+  margin-bottom:12px;
+
+  border-radius:16px;
+
+  background:#fff;
+
+  border:
+    1px solid rgba(23,63,54,.07);
+
+  box-shadow:
+    0 6px 20px rgba(25,60,51,.04);
+}
+
+.notifications-filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:7px;
+}
+
+.notifications-filters button{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+
+  padding:7px 10px;
+
+  border-radius:999px;
+
+  border:
+    1px solid #e3e9e6;
+
+  background:#f8faf9;
+
+  color:#6f7d78;
+
+  font-size:8px;
+  font-weight:800;
+
+  cursor:pointer;
+
+  transition:
+    .18s ease;
+}
+
+.notifications-filters button:hover{
+  border-color:#cfd9d4;
+  background:#f3f7f5;
+}
+
+.notifications-filters button.active{
+  background:#173f36;
+  border-color:#173f36;
+  color:#fff;
+}
+
+.notifications-filters button span{
+  min-width:18px;
+  height:18px;
+
+  padding:0 5px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:#e9efec;
+  color:#557066;
+
+  font-size:7px;
+  font-weight:900;
+}
+
+.notifications-filters button.active span{
+  background:rgba(255,255,255,.13);
+  color:#fff;
+}
+
+.notifications-mark-all{
+  padding:7px 10px;
+
+  border:0;
+  background:transparent;
+
+  color:#49685f;
+
+  font-size:8px;
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+.notifications-mark-all:hover{
+  color:#173f36;
+}
+
+.notifications-mark-all:disabled{
+  opacity:.35;
+  cursor:default;
+}
+
+
+/* =========================================================
+   NOTIFICATION LIST
+   ========================================================= */
+
+.notification-list-v2{
+  display:flex;
+  flex-direction:column;
+  gap:8px;
+}
+
+.notification-row-v2{
+  width:100%;
+
+  display:grid;
+
+  grid-template-columns:
+    auto minmax(0,1fr) auto;
+
+  align-items:center;
+
+  gap:12px;
+
+  padding:13px 14px;
+
+  border-radius:15px;
+
+  border:
+    1px solid rgba(23,63,54,.06);
+
+  background:#fff;
+
+  text-align:left;
+
+  cursor:pointer;
+
+  box-shadow:
+    0 4px 16px rgba(29,62,53,.035);
+
+  transition:
+    transform .16s ease,
+    box-shadow .16s ease,
+    border-color .16s ease,
+    background .16s ease;
+}
+
+.notification-row-v2:hover{
+  transform:translateY(-1px);
+
+  box-shadow:
+    0 8px 22px rgba(29,62,53,.07);
+
+  border-color:
+    rgba(23,63,54,.12);
+}
+
+.notification-row-v2.unread{
+  background:#f8fcfa;
+
+  border-color:
+    rgba(73,124,103,.14);
+}
+
+.notification-row-v2.priority-high{
+  background:#fffaf3;
+}
+
+.notification-row-v2.priority-critical{
+  background:#fff7f6;
+
+  border-color:
+    rgba(177,75,65,.15);
+}
+
+.notification-row-v2.actionable:hover{
+  border-color:
+    rgba(48,101,83,.20);
+}
+
+
+/* =========================================================
+   ICON
+   ========================================================= */
+
+.notification-v2-icon{
+  position:relative;
+
+  width:42px;
+  height:42px;
+
+  flex:0 0 42px;
+
+  border-radius:13px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  background:#edf4f0;
+
+  color:#315f50;
+
+  font-size:17px;
+}
+
+.notification-row-v2.priority-high
+.notification-v2-icon{
+  background:#f8edd7;
+}
+
+.notification-row-v2.priority-critical
+.notification-v2-icon{
+  background:#f7e2df;
+}
+
+.notification-v2-icon>i{
+  position:absolute;
+
+  right:-2px;
+  top:-2px;
+
+  width:9px;
+  height:9px;
+
+  border-radius:50%;
+
+  background:#58a77f;
+
+  border:2px solid #fff;
+}
+
+
+/* =========================================================
+   CONTENT
+   ========================================================= */
+
+.notification-v2-content{
+  min-width:0;
+}
+
+.notification-v2-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.notification-v2-head b{
+  color:#29463d;
+
+  font-size:9.5px;
+  line-height:1.35;
+}
+
+.notification-v2-head small{
+  flex:0 0 auto;
+
+  color:#98a19d;
+
+  font-size:6.8px;
+}
+
+.notification-v2-content>p{
+  margin:3px 0 7px;
+
+  color:#74827d;
+
+  font-size:8px;
+  line-height:1.5;
+}
+
+.notification-v2-meta{
+  display:flex;
+  flex-wrap:wrap;
+  align-items:center;
+  gap:6px;
+}
+
+.notification-v2-meta>span{
+  padding:4px 6px;
+
+  border-radius:999px;
+
+  background:#f1f5f3;
+
+  color:#677a73;
+
+  font-size:6.5px;
+  font-weight:800;
+}
+
+.notification-priority.high{
+  background:#f7ecd7 !important;
+  color:#9a6c23 !important;
+}
+
+.notification-priority.critical{
+  background:#f6e2df !important;
+  color:#a54b43 !important;
+}
+
+.notification-action-hint{
+  margin-left:auto;
+
+  background:transparent !important;
+
+  color:#416a5d !important;
+}
+
+
+/* =========================================================
+   UNREAD BADGE
+   ========================================================= */
+
+.notification-v2-unread{
+  padding:5px 7px;
+
+  border-radius:999px;
+
+  background:#173f36;
+
+  color:#fff;
+
+  font-size:6.5px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
+
+/* =========================================================
+   LIVE INFO
+   ========================================================= */
+
+.notifications-live-info{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:14px;
+
+  margin-top:14px;
+
+  padding:12px 14px;
+
+  border-radius:15px;
+
+  background:#f5f8f6;
+
+  border:
+    1px solid rgba(23,63,54,.06);
+}
+
+.notifications-live-info>div{
+  display:flex;
+  align-items:center;
+  gap:9px;
+}
+
+.notifications-live-info>div>div{
+  display:flex;
+  flex-direction:column;
+}
+
+.notifications-live-info b{
+  color:#345c4e;
+
+  font-size:8px;
+}
+
+.notifications-live-info small{
+  color:#84918c;
+
+  font-size:6.8px;
+  line-height:1.4;
+}
+
+.notifications-live-dot{
+  width:9px;
+  height:9px;
+
+  flex:0 0 9px;
+
+  border-radius:50%;
+
+  background:#58a77f;
+
+  box-shadow:
+    0 0 0 4px rgba(88,167,127,.10);
+
+  animation:
+    meleo-live-pulse 1.8s ease-in-out infinite;
+}
+
+.notifications-loading{
+  padding:30px;
+
+  text-align:center;
+
+  color:#81908a;
+
+  font-size:8px;
+}
+
+
+/* =========================================================
+   RESPONSIVE
+   ========================================================= */
+
+@media(max-width:760px){
+
+  .notifications-command-hero{
+    flex-direction:column;
+
+    padding:19px;
+
+    border-radius:20px;
+  }
+
+  .notifications-command-summary{
+    width:100%;
+    align-items:stretch;
+  }
+
+  .notifications-command-summary>div{
+    text-align:left;
+  }
+
+  .notifications-toolbar-v2{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .notifications-mark-all{
+    padding-left:0;
+  }
+
+  .notification-row-v2{
+    grid-template-columns:
+      auto minmax(0,1fr);
+  }
+
+  .notification-v2-unread{
+    grid-column:2;
+    justify-self:start;
+  }
+
+  .notification-v2-head{
+    flex-direction:column;
+    gap:2px;
+  }
+
+  .notification-action-hint{
+    margin-left:0;
+  }
+
+  .notifications-live-info{
+    flex-direction:column;
+    align-items:flex-start;
+  }
+
+}
+
+/* =========================================================
+   MELEO CONVERSATION INBOX V2 — CORE LAYOUT
+   ========================================================= */
+
+.meleo-inbox-v2{
+  display:flex;
+  flex-direction:column;
+  gap:16px;
+}
+
+.inbox-v2-head{
+  display:flex;
+  align-items:flex-start;
+  justify-content:space-between;
+  gap:18px;
+
+  padding:18px 20px;
+
+  border-radius:20px;
+
+  background:#fff;
+
+  border:1px solid rgba(23,63,54,.07);
+
+  box-shadow:
+    0 8px 28px rgba(25,60,51,.05);
+}
+
+.inbox-v2-head h3{
+  margin:4px 0 5px;
+  color:#23463c;
+}
+
+.inbox-v2-head p{
+  margin:0;
+  color:#7f8d88;
+}
+
+.inbox-unread-summary{
+  min-width:130px;
+
+  padding:12px 14px;
+
+  border-radius:14px;
+
+  background:#f3f8f5;
+
+  text-align:right;
+}
+
+.inbox-unread-summary strong{
+  display:block;
+
+  color:#173f36;
+
+  font-size:24px;
+  line-height:1;
+}
+
+.inbox-unread-summary span{
+  display:block;
+
+  margin-top:4px;
+
+  color:#74837d;
+
+  font-size:8px;
+}
+
+
+/* =========================================================
+   TWO-PANEL SHELL
+   ========================================================= */
+
+.inbox-shell{
+  display:grid;
+
+  grid-template-columns:
+    minmax(250px,320px)
+    minmax(0,1fr);
+
+  min-height:620px;
+
+  border-radius:20px;
+
+  overflow:hidden;
+
+  background:#fff;
+
+  border:1px solid rgba(23,63,54,.07);
+
+  box-shadow:
+    0 10px 34px rgba(25,60,51,.06);
+}
+
+
+/* =========================================================
+   LEFT CONVERSATION LIST
+   ========================================================= */
+
+.inbox-conversations{
+  min-width:0;
+
+  border-right:
+    1px solid rgba(23,63,54,.07);
+
+  background:#fafcfb;
+}
+
+.inbox-list-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+
+  padding:16px;
+
+  border-bottom:
+    1px solid rgba(23,63,54,.06);
+}
+
+.inbox-list-head>div{
+  display:flex;
+  flex-direction:column;
+}
+
+.inbox-list-head strong{
+  color:#2a4a40;
+}
+
+.inbox-list-head small{
+  margin-top:2px;
+  color:#87958f;
+}
+
+.inbox-total-badge{
+  min-width:24px;
+  height:24px;
+
+  padding:0 6px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:#173f36;
+  color:#fff;
+
+  font-size:8px;
+  font-weight:900;
+}
+
+.inbox-list{
+  max-height:560px;
+  overflow-y:auto;
+}
+
+
+/* =========================================================
+   RIGHT CHAT PANEL
+   ========================================================= */
+
+.inbox-chat-panel{
+  min-width:0;
+
+  display:flex;
+  flex-direction:column;
+
+  background:#fff;
+}
+
+.inbox-chat-head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+
+  padding:16px 18px;
+
+  border-bottom:
+    1px solid rgba(23,63,54,.06);
+}
+
+.inbox-chat-person{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
+
+.inbox-chat-person>div:last-child{
+  display:flex;
+  flex-direction:column;
+}
+
+.inbox-chat-person strong{
+  color:#29483e;
+}
+
+.inbox-chat-person span{
+  margin-top:2px;
+  color:#7f8d88;
+  font-size:8px;
+}
+
+
+/* =========================================================
+   BOOKING CONTEXT
+   ========================================================= */
+
+.inbox-booking-context{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+
+  gap:8px;
+
+  padding:12px 16px;
+
+  background:#f8faf9;
+
+  border-bottom:
+    1px solid rgba(23,63,54,.06);
+}
+
+.inbox-booking-context>div{
+  min-width:0;
+
+  display:flex;
+  flex-direction:column;
+
+  padding:9px 10px;
+
+  border-radius:11px;
+
+  background:#fff;
+
+  border:
+    1px solid rgba(23,63,54,.05);
+}
+
+.inbox-booking-context small{
+  color:#8d9894;
+  font-size:7px;
+}
+
+.inbox-booking-context strong{
+  margin-top:2px;
+
+  color:#35584d;
+
+  font-size:8px;
+
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+
+/* =========================================================
+   MESSAGE AREA
+   ========================================================= */
+
+.inbox-messages{
+  flex:1;
+
+  min-height:340px;
+  max-height:430px;
+
+  padding:18px;
+
+  overflow-y:auto;
+
+  background:
+    linear-gradient(
+      180deg,
+      #fbfcfc,
+      #f7faf8
+    );
+}
+
+
+/* =========================================================
+   COMPOSER CORE
+   ========================================================= */
+
+.inbox-composer{
+  padding:14px 16px;
+
+  border-top:
+    1px solid rgba(23,63,54,.06);
+
+  background:#fff;
+}
+
+.inbox-composer textarea{
+  width:100%;
+  min-height:78px;
+  resize:vertical;
+
+  padding:11px 12px;
+
+  border-radius:12px;
+
+  border:
+    1px solid #dfe7e3;
+
+  background:#fbfcfc;
+}
+
+.inbox-composer-foot{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:12px;
+
+  margin-top:8px;
+}
+
+.inbox-composer-foot small{
+  color:#8a9691;
+  font-size:7px;
+}
+
+
+/* =========================================================
+   MOBILE
+   ========================================================= */
+
+@media(max-width:900px){
+
+  .inbox-shell{
+    grid-template-columns:1fr;
+  }
+
+  .inbox-conversations{
+    border-right:0;
+
+    border-bottom:
+      1px solid rgba(23,63,54,.07);
+  }
+
+  .inbox-list{
+    max-height:280px;
+  }
+
+  .inbox-booking-context{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+  }
+
+}
+
+@media(max-width:620px){
+
+  .inbox-v2-head{
+    flex-direction:column;
+  }
+
+  .inbox-unread-summary{
+    width:100%;
+    text-align:left;
+  }
+
+  .inbox-booking-context{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .inbox-composer-foot{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+}
+
+/* =========================================================
+   MELEO INBOX V2 — CONVERSATION ITEMS
+   ========================================================= */
+
+.inbox-conversation-item{
+  width:100%;
+
+  display:flex;
+  align-items:flex-start;
+  gap:10px;
+
+  padding:13px 14px;
+
+  border:0;
+  border-bottom:
+    1px solid rgba(23,63,54,.05);
+
+  background:transparent;
+
+  text-align:left;
+  cursor:pointer;
+
+  transition:
+    background .16s ease,
+    transform .16s ease;
+}
+
+.inbox-conversation-item:hover{
+  background:#f4f8f6;
+}
+
+.inbox-conversation-item.active{
+  background:#edf5f1;
+}
+
+.inbox-conversation-item.unread{
+  background:#f7fbf9;
+}
+
+.inbox-conversation-item.active.unread{
+  background:#eaf4ef;
+}
+
+
+/* avatar */
+
+.inbox-avatar{
+  width:38px;
+  height:38px;
+
+  flex:0 0 38px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:12px;
+
+  background:#e6f0eb;
+  color:#315e50;
+
+  font-size:9px;
+  font-weight:900;
+}
+
+.inbox-avatar.large{
+  width:44px;
+  height:44px;
+
+  flex-basis:44px;
+
+  border-radius:14px;
+
+  font-size:10px;
+}
+
+
+/* text content */
+
+.inbox-conversation-main{
+  min-width:0;
+  flex:1;
+}
+
+.inbox-conversation-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:8px;
+}
+
+.inbox-conversation-top strong{
+  min-width:0;
+
+  color:#2b4a40;
+
+  font-size:8.8px;
+
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.inbox-conversation-top time{
+  flex:0 0 auto;
+
+  color:#95a09c;
+
+  font-size:6.8px;
+}
+
+.inbox-conversation-item.unread
+.inbox-conversation-top strong{
+  color:#173f36;
+  font-weight:900;
+}
+
+
+.inbox-service{
+  display:block;
+
+  margin-top:2px;
+
+  color:#6f817a;
+
+  font-size:7px;
+
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+
+/* preview */
+
+.inbox-preview-row{
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  margin-top:5px;
+}
+
+.inbox-preview-row p{
+  min-width:0;
+  flex:1;
+
+  margin:0;
+
+  color:#8a9691;
+
+  font-size:7.4px;
+  line-height:1.35;
+
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.inbox-conversation-item.unread
+.inbox-preview-row p{
+  color:#526c63;
+  font-weight:700;
+}
+
+
+/* unread badge */
+
+.conversation-unread{
+  min-width:20px;
+  height:20px;
+
+  padding:0 5px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:#173f36;
+  color:#fff;
+
+  font-size:7px;
+  font-weight:900;
+
+  box-shadow:
+    0 3px 10px rgba(23,63,54,.16);
+}
+
+
+/* active marker */
+
+.inbox-conversation-item.active{
+  position:relative;
+}
+
+.inbox-conversation-item.active::before{
+  content:'';
+
+  position:absolute;
+
+  left:0;
+  top:9px;
+  bottom:9px;
+
+  width:3px;
+
+  border-radius:
+    0 999px 999px 0;
+
+  background:#4d8b72;
+}
+
+
+/* empty state */
+
+.inbox-list-empty{
+  min-height:220px;
+
+  padding:24px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+}
+
+.inbox-list-empty>span{
+  font-size:24px;
+}
+
+.inbox-list-empty b{
+  margin-top:8px;
+
+  color:#36584d;
+}
+
+.inbox-list-empty small{
+  margin-top:4px;
+
+  max-width:190px;
+
+  color:#8c9893;
+
+  line-height:1.45;
+}
+
+
+/* scrollbar */
+
+.inbox-list::-webkit-scrollbar{
+  width:7px;
+}
+
+.inbox-list::-webkit-scrollbar-thumb{
+  background:#dce5e1;
+  border-radius:999px;
+}
+
+.inbox-list::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+/* =========================================================
+   MELEO INBOX V2 — MESSAGE BUBBLES
+   ========================================================= */
+
+.inbox-message-row{
+  display:flex;
+  margin-bottom:10px;
+}
+
+.inbox-message-row.mine{
+  justify-content:flex-end;
+}
+
+.inbox-message-row.theirs{
+  justify-content:flex-start;
+}
+
+
+/* base bubble */
+
+.inbox-message-bubble{
+  max-width:min(76%,560px);
+
+  padding:10px 12px;
+
+  border-radius:14px;
+
+  background:#fff;
+
+  border:
+    1px solid rgba(23,63,54,.07);
+
+  box-shadow:
+    0 4px 14px rgba(27,61,52,.04);
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble{
+  background:#173f36;
+  border-color:#173f36;
+
+  color:#fff;
+
+  border-bottom-right-radius:5px;
+}
+
+.inbox-message-row.theirs
+.inbox-message-bubble{
+  background:#fff;
+
+  border-bottom-left-radius:5px;
+}
+
+
+/* sender */
+
+.inbox-message-bubble>b{
+  display:block;
+
+  margin-bottom:3px;
+
+  color:#41675a;
+
+  font-size:7.4px;
+  font-weight:900;
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble>b{
+  color:rgba(255,255,255,.72);
+}
+
+
+/* message text */
+
+.inbox-message-bubble p{
+  margin:0;
+
+  font-size:8.6px;
+  line-height:1.55;
+
+  color:#435e55;
+
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble p{
+  color:#fff;
+}
+
+
+/* timestamp */
+
+.inbox-message-bubble small{
+  display:block;
+
+  margin-top:5px;
+
+  color:#9aa49f;
+
+  font-size:6.5px;
+
+  text-align:right;
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble small{
+  color:rgba(255,255,255,.55);
+}
+
+
+/* =========================================================
+   CLARIFICATION MESSAGE
+   ========================================================= */
+
+.inbox-message-bubble.clarification{
+  background:#fff9ee;
+
+  border-color:
+    rgba(180,132,44,.18);
+
+  box-shadow:
+    0 5px 16px rgba(139,101,30,.05);
+}
+
+.inbox-message-bubble.clarification::before{
+  content:'ΧΡΕΙΑΖΟΝΤΑΙ ΔΙΕΥΚΡΙΝΙΣΕΙΣ';
+
+  display:block;
+
+  margin-bottom:5px;
+
+  color:#a97825;
+
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble.clarification{
+  background:#795f2e;
+  border-color:#795f2e;
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble.clarification::before{
+  color:#f1d89d;
+}
+
+
+/* =========================================================
+   QUOTE MESSAGE
+   ========================================================= */
+
+.inbox-message-bubble.quote{
+  background:#f6fbf8;
+
+  border-color:
+    rgba(69,125,101,.18);
+}
+
+.inbox-message-bubble.quote::before{
+  content:'ΠΡΟΤΑΣΗ ΚΟΣΤΟΥΣ';
+
+  display:block;
+
+  margin-bottom:5px;
+
+  color:#4b846c;
+
+  font-size:6px;
+  font-weight:900;
+  letter-spacing:.08em;
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble.quote{
+  background:#28594b;
+  border-color:#28594b;
+}
+
+.inbox-message-row.mine
+.inbox-message-bubble.quote::before{
+  color:#a9d7c2;
+}
+
+
+/* =========================================================
+   CHAT EMPTY STATE
+   ========================================================= */
+
+.chat-empty{
+  min-height:280px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+
+  padding:30px;
+}
+
+.chat-empty>span{
+  font-size:30px;
+}
+
+.chat-empty strong{
+  margin-top:8px;
+
+  color:#34584c;
+}
+
+.chat-empty p{
+  margin:5px 0 0;
+
+  max-width:270px;
+
+  color:#89958f;
+
+  font-size:8px;
+  line-height:1.5;
+}
+
+
+/* =========================================================
+   SEND BUTTON
+   ========================================================= */
+
+.inbox-send-button{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+
+  min-width:110px;
+
+  padding:9px 13px;
+
+  border:0;
+  border-radius:11px;
+
+  background:#173f36;
+  color:#fff;
+
+  font-size:8px;
+  font-weight:900;
+
+  cursor:pointer;
+
+  transition:
+    transform .15s ease,
+    opacity .15s ease,
+    box-shadow .15s ease;
+}
+
+.inbox-send-button:hover:not(:disabled){
+  transform:translateY(-1px);
+
+  box-shadow:
+    0 7px 18px rgba(23,63,54,.16);
+}
+
+.inbox-send-button:disabled{
+  opacity:.38;
+  cursor:default;
+}
+
+
+/* =========================================================
+   NO SELECTION
+   ========================================================= */
+
+.inbox-no-selection{
+  flex:1;
+
+  min-height:420px;
+
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+
+  padding:30px;
+}
+
+.inbox-no-selection>span{
+  font-size:34px;
+}
+
+.inbox-no-selection h3{
+  margin:8px 0 4px;
+
+  color:#35594d;
+}
+
+.inbox-no-selection p{
+  margin:0;
+
+  max-width:300px;
+
+  color:#8a9691;
+
+  font-size:8px;
+  line-height:1.5;
+}
+
+
+/* =========================================================
+   MESSAGE AREA SCROLLBAR
+   ========================================================= */
+
+.inbox-messages::-webkit-scrollbar{
+  width:7px;
+}
+
+.inbox-messages::-webkit-scrollbar-thumb{
+  background:#dce5e1;
+  border-radius:999px;
+}
+
+.inbox-messages::-webkit-scrollbar-track{
+  background:transparent;
+}
+
+/* =========================================================
+   MELEO INBOX V2 — MOBILE EXPERIENCE
+   ========================================================= */
+
+@media(max-width:760px){
+
+  .meleo-inbox-v2{
+    gap:12px;
+  }
+
+  .inbox-v2-head{
+    padding:16px;
+    border-radius:16px;
+  }
+
+  .inbox-shell{
+    display:block;
+    min-height:0;
+    border-radius:16px;
+  }
+
+  .inbox-conversations{
+    border-right:0;
+  }
+
+  .inbox-list{
+    max-height:340px;
+  }
+
+  .inbox-chat-panel{
+    border-top:
+      1px solid rgba(23,63,54,.07);
+  }
+
+  .inbox-chat-head{
+    padding:14px;
+  }
+
+  .inbox-booking-context{
+    grid-template-columns:
+      repeat(2,minmax(0,1fr));
+
+    padding:10px 12px;
+  }
+
+  .inbox-messages{
+    min-height:300px;
+    max-height:420px;
+
+    padding:14px 12px;
+  }
+
+  .inbox-message-bubble{
+    max-width:86%;
+  }
+
+  .inbox-composer{
+    padding:12px;
+  }
+
+  .inbox-composer textarea{
+    min-height:70px;
+  }
+
+  .inbox-composer-foot{
+    gap:8px;
+  }
+
+  .inbox-send-button{
+    width:100%;
+  }
+
+  .inbox-no-selection{
+    min-height:260px;
+  }
+
+}
+
+
+@media(max-width:480px){
+
+  .inbox-v2-head h3{
+    font-size:18px;
+  }
+
+  .inbox-unread-summary{
+    padding:10px 12px;
+  }
+
+  .inbox-unread-summary strong{
+    font-size:21px;
+  }
+
+  .inbox-conversation-item{
+    padding:12px;
+  }
+
+  .inbox-avatar{
+    width:35px;
+    height:35px;
+    flex-basis:35px;
+  }
+
+  .inbox-avatar.large{
+    width:40px;
+    height:40px;
+    flex-basis:40px;
+  }
+
+  .inbox-booking-context{
+    grid-template-columns:1fr 1fr;
+  }
+
+  .inbox-booking-context>div{
+    padding:8px;
+  }
+
+  .inbox-message-bubble{
+    max-width:92%;
+  }
+
+  .inbox-message-bubble p{
+    font-size:8.2px;
+  }
+
+  .inbox-composer-foot small{
+    display:none;
+  }
+
+}
+
+/* =========================================================
+   MELEO PATIENT INBOX — CORE LAYOUT
+   ========================================================= */
+
+.patient-inbox-list{
+  margin-top:12px;
+
+  border-radius:18px;
+
+  overflow:hidden;
+
+  background:#fff;
+
+  border:
+    1px solid rgba(23,63,54,.07);
+
+  box-shadow:
+    0 8px 26px rgba(25,60,51,.05);
+}
+
+.patient-inbox-chat{
+  margin-top:14px;
+
+  border-radius:18px;
+
+  overflow:hidden;
+
+  background:#fff;
+
+  border:
+    1px solid rgba(23,63,54,.07);
+
+  box-shadow:
+    0 10px 30px rgba(25,60,51,.06);
+}
+
+
+/* =========================================================
+   PATIENT SECTION TABS
+   ========================================================= */
+
+.patient-section-tabs{
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  margin-bottom:16px;
+
+  padding:6px;
+
+  border-radius:14px;
+
+  background:#f4f7f5;
+
+  border:
+    1px solid rgba(23,63,54,.06);
+}
+
+.patient-section-tabs button{
+  flex:1;
+
+  min-height:42px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  gap:7px;
+
+  position:relative;
+
+  padding:9px 12px;
+
+  border:0;
+  border-radius:10px;
+
+  background:transparent;
+
+  color:#71817a;
+
+  font-size:8px;
+  font-weight:800;
+
+  cursor:pointer;
+
+  transition:
+    background .16s ease,
+    color .16s ease,
+    box-shadow .16s ease;
+}
+
+.patient-section-tabs button:hover{
+  color:#31594d;
+}
+
+.patient-section-tabs button.active{
+  background:#fff;
+  color:#173f36;
+
+  box-shadow:
+    0 4px 14px rgba(23,63,54,.07);
+}
+
+.patient-section-tabs button>b{
+  min-width:20px;
+  height:20px;
+
+  padding:0 5px;
+
+  display:flex;
+  align-items:center;
+  justify-content:center;
+
+  border-radius:999px;
+
+  background:#173f36;
+  color:#fff;
+
+  font-size:7px;
+  font-weight:900;
+}
+
+
+/* =========================================================
+   PATIENT CHAT PANEL
+   ========================================================= */
+
+.patient-inbox-chat .inbox-chat-head{
+  background:#fff;
+}
+
+.patient-inbox-chat .inbox-booking-context{
+  background:#f7faf8;
+}
+
+.patient-inbox-chat .inbox-messages{
+  min-height:350px;
+  max-height:460px;
+}
+
+.patient-inbox-chat .inbox-composer{
+  background:#fff;
+}
+
+
+/* =========================================================
+   PATIENT MOBILE
+   ========================================================= */
+
+@media(max-width:700px){
+
+  .patient-section-tabs{
+    width:100%;
+  }
+
+  .patient-section-tabs button{
+    min-height:44px;
+
+    padding:8px 7px;
+
+    font-size:7.5px;
+  }
+
+  .patient-inbox-list,
+  .patient-inbox-chat{
+    border-radius:15px;
+  }
+
+  .patient-inbox-chat .inbox-messages{
+    min-height:300px;
+    max-height:400px;
+  }
+
+}
+
+@media(max-width:480px){
+
+  .patient-section-tabs{
+    gap:5px;
+    padding:5px;
+  }
+
+  .patient-section-tabs button{
+    gap:5px;
+  }
+
+  .patient-section-tabs button>b{
+    min-width:18px;
+    height:18px;
+  }
+
+}
+
+/* =========================================================
+   MELEO PATIENT INBOX — DESKTOP 2-PANEL
+   ========================================================= */
+
+@media(min-width:901px){
+
+  .patient-inbox-list,
+  .patient-inbox-chat{
+    margin-top:0;
+  }
+
+  .patient-command-panel:has(.patient-inbox-list){
+    display:grid;
+
+    grid-template-columns:
+      minmax(260px,320px)
+      minmax(0,1fr);
+
+    gap:14px;
+  }
+
+  .patient-command-panel:has(.patient-section-tabs)
+  .patient-section-tabs,
+
+  .patient-command-panel:has(.patient-section-tabs)
+  .patient-panel-head{
+    grid-column:1 / -1;
+  }
+
+  .patient-command-panel:has(.patient-inbox-list)
+  .patient-inbox-list{
+    grid-column:1;
+  }
+
+  .patient-command-panel:has(.patient-inbox-list)
+  .patient-inbox-chat{
+    grid-column:2;
+
+    min-height:620px;
+  }
+
+  .patient-inbox-list{
+    max-height:620px;
+    overflow-y:auto;
+  }
+
+  .patient-inbox-chat{
+    display:flex;
+    flex-direction:column;
+  }
+
+  .patient-inbox-chat .inbox-messages{
+    flex:1;
+
+    min-height:370px;
+    max-height:430px;
+  }
+
+}
