@@ -123,8 +123,41 @@ app.get('/api/location/reverse',limits.geo,async(req,res)=>{const lat=Number(req
 app.post('/api/analytics/professional-event',limits.analytics,async(req,res)=>{const pid=str(req.body.professionalId,80),type=str(req.body.type,40),sid=str(req.body.sessionId,100);if(!['impression','profile_view','phone_click'].includes(type)||!pid)return res.status(400).json({error:'Invalid event'});const windowMin=type==='impression'?60:type==='profile_view'?30:5;const fp=fingerprint(pid,type,sid,sha256(req.ip||''),new Date().toISOString().slice(0,13));const accepted=await Analytics.event(pid,type,fp,windowMin);res.json({ok:true,accepted})})
 app.get('/api/professional/analytics',auth,requireRole('professional'),async(req,res)=>{const p=await Professionals.byUser(req.user.id);res.json(await Analytics.summary(p.id,Math.min(365,Math.max(1,Number(req.query.days)||30))))})
 
+
+async function meleoTrustForProfessional(professionalId){
+  const p=await one(`SELECT id,verified,rating,reviews_count "reviewsCount" FROM professionals WHERE id=$1`,[professionalId])
+  if(!p)return null
+  const stats=await one(`
+    SELECT
+      count(*)::int total,
+      count(*) FILTER (WHERE status='completed')::int completed,
+      count(*) FILTER (WHERE status='cancelled')::int cancelled,
+      count(*) FILTER (WHERE status<>'pending')::int progressed,
+      count(*) FILTER (WHERE status='completed' AND created_at>=now()-interval '90 days')::int recent_completed
+    FROM bookings WHERE professional_id=$1
+  `,[professionalId])
+  const total=Number(stats?.total||0),completed=Number(stats?.completed||0),cancelled=Number(stats?.cancelled||0)
+  const reviews=Number(p.reviewsCount||0),rating=Number(p.rating||0)
+  const closed=completed+cancelled
+  const completionRate=closed?Math.round((completed/closed)*100):100
+  const responseRate=total?Math.round((Number(stats?.progressed||0)/total)*100):100
+  const cancellationReliability=closed?Math.round((completed/closed)*100):100
+  const eligible=completed>=5&&reviews>=3
+  if(!eligible)return {eligible:false,label:'MELEO Verified · Νέος επαγγελματίας',completed,reviews,minCompleted:5,minReviews:3}
+  const verificationPoints=p.verified?20:0
+  const reviewPoints=Math.round(Math.max(0,Math.min(25,(rating/5)*25)))
+  const completionPoints=Math.round(Math.max(0,Math.min(20,(completionRate/100)*20)))
+  const responsePoints=Math.round(Math.max(0,Math.min(15,(responseRate/100)*15)))
+  const reliabilityPoints=Math.round(Math.max(0,Math.min(10,(cancellationReliability/100)*10)))
+  const recent=Number(stats?.recent_completed||0)
+  const activityPoints=recent>=8?10:recent>=5?8:recent>=2?6:4
+  const score=Math.max(0,Math.min(100,verificationPoints+reviewPoints+completionPoints+responsePoints+reliabilityPoints+activityPoints))
+  const label=score>=90?'Εξαιρετική αξιοπιστία':score>=80?'Πολύ υψηλή αξιοπιστία':score>=70?'Υψηλή αξιοπιστία':score>=60?'Καλή αξιοπιστία':'Αναπτυσσόμενη αξιοπιστία'
+  return {eligible:true,score,label,completed,reviews,rating:Number(rating.toFixed(1)),completionRate,responseRate,breakdown:{verification:verificationPoints,reviews:reviewPoints,completion:completionPoints,response:responsePoints,reliability:reliabilityPoints,activity:activityPoints}}
+}
+
 app.get('/api/professionals',async(req,res)=>{const result=await Professionals.search(req.query);res.json(result)})
-app.get('/api/professionals/:id',limits.profile,async(req,res)=>{const p=await Professionals.byId(req.params.id);if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))return res.status(404).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος.'});res.json({professional:p})})
+app.get('/api/professionals/:id',limits.profile,async(req,res)=>{const p=await Professionals.byId(req.params.id);if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))return res.status(404).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος.'});const trust=await meleoTrustForProfessional(p.id);res.json({professional:{...p,trust}})})
 app.get('/api/seo/resolve',async(req,res)=>{const specialtySlug=str(req.query.specialty,120),citySlug=str(req.query.city,120);const rows=await many(`SELECT DISTINCT specialty,city FROM professionals WHERE verified=true AND admin_suspended=false AND subscription_status='active' AND specialty<>'' AND city<>'' LIMIT 3000`);const match=rows.find(x=>slugify(x.specialty)===specialtySlug&&slugify(x.city)===citySlug);if(!match)return res.status(404).json({error:'Not found'});res.json(match)})
 
 app.get('/api/professionals/:id/reviews',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:10,maxLimit:50});const items=await many(`SELECT r.id,r.rating,r.comment,r.created_at "createdAt",u.name "patientName" FROM reviews r JOIN users u ON u.id=r.patient_id WHERE r.professional_id=$1 ORDER BY r.created_at DESC LIMIT $2 OFFSET $3`,[req.params.id,limit,offset]);const c=await one('SELECT count(*)::int total FROM reviews WHERE professional_id=$1',[req.params.id]);res.json({items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)})})
@@ -164,6 +197,21 @@ app.get('/api/notifications',auth,async(req,res)=>res.json(await Notifications.l
 app.patch('/api/notifications/:id/read',auth,async(req,res)=>{await Notifications.read(req.params.id,req.user.id);res.json({ok:true})})
 app.post('/api/favorites/:professionalId',auth,requireConsumer,limits.write,async(req,res)=>{const pid=req.params.professionalId;const existing=await one('SELECT id FROM favorites WHERE user_id=$1 AND professional_id=$2',[req.user.id,pid]);if(existing){await sql('DELETE FROM favorites WHERE id=$1',[existing.id]);return res.json({favorite:false})}await sql('INSERT INTO favorites(id,user_id,professional_id) VALUES($1,$2,$3)',[id('fav'),req.user.id,pid]);res.json({favorite:true})})
 app.get('/api/favorites',auth,async(req,res)=>{const rows=await many('SELECT professional_id FROM favorites WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);res.json(rows.map(x=>x.professional_id))})
+
+app.get('/api/care-team',auth,async(req,res)=>{
+  if(!['patient','professional'].includes(req.user.role))return res.status(403).json({error:'Δεν επιτρέπεται.'})
+  const favs=await many('SELECT professional_id "professionalId" FROM favorites WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id])
+  const items=[]
+  for(const f of favs){
+    const p=await Professionals.byId(f.professionalId)
+    if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))continue
+    const last=await one(`SELECT id,service,date,time,address,status,agreed_price "agreedPrice" FROM bookings WHERE patient_id=$1 AND professional_id=$2 AND status='completed' ORDER BY date DESC,time DESC,created_at DESC LIMIT 1`,[req.user.id,p.id])
+    const trust=await meleoTrustForProfessional(p.id)
+    items.push({...p,trust,lastCompleted:last||null})
+  }
+  res.json({items})
+})
+
 app.post('/api/reports',auth,limits.write,async(req,res)=>{const rid=id('rpt');await sql(`INSERT INTO reports(id,reporter_user_id,target_type,target_id,reason,details) VALUES($1,$2,$3,$4,$5,$6)`,[rid,req.user.id,str(req.body.targetType,40),str(req.body.targetId,80),str(req.body.reason,200),str(req.body.details,1500)]);res.json({ok:true,id:rid})})
 
 // Multi-instance SSE via Postgres LISTEN/NOTIFY + persisted live_events.
