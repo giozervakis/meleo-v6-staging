@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from 'react'
+import React, { useEffect, useRef, useState } from 'react'
 import { api } from '../../lib/api'
 import { serviceMap, specialtyOptions } from '../../domain/catalog'
 import type { Booking, Plan } from '../../domain/types'
@@ -115,6 +115,7 @@ function ProfessionalDashboard({user,professional,token,onRefresh,setToast,cfg,s
   const [selectedConversation,setSelectedConversation]=useState<string>('')
   const [messageDraft,setMessageDraft]=useState('')
   const [messageSending,setMessageSending]=useState(false)
+  const inboxMessagesRef=useRef<HTMLDivElement|null>(null)
 
   const [form,setForm]=useState<any>(professional||{})
   const [vr,setVr]=useState({
@@ -345,6 +346,21 @@ const activeConversation=
   messageBookings[0]
   ||
   null
+  
+  useEffect(()=>{
+
+  const el=inboxMessagesRef.current
+
+  if(!el)return
+
+  requestAnimationFrame(()=>{
+    el.scrollTop=el.scrollHeight
+  })
+
+},[
+  activeConversation?.id,
+  activeConversation?.messages?.length
+])
  if(!professional || !['active','past_due'].includes(professional.subscriptionStatus) || !professional.onboardingCompleted) return <ProfessionalOnboarding user={user} professional={professional} token={token} onRefresh={onRefresh} setToast={setToast} cfg={cfg}/>
  return <section className="dashboard-pro"><div className="pro-sidebar"><Mark/><div className="pro-user"><div className="avatar">{initials(user.name)}</div><div><b>{user.name}</b><small>{professional?.verified?'✓ Verified':'Αναμονή επαλήθευσης'}</small></div></div><nav>{[['overview','⌂','Επισκόπηση'],
  ['requests','◇','Αιτήματα'],
@@ -716,7 +732,10 @@ const activeConversation=
 
 </div>
 
-      <div className="inbox-messages">
+      <div
+  className="inbox-messages"
+  ref={inboxMessagesRef}
+>
 
         {(activeConversation.messages||[]).length===0
           ?

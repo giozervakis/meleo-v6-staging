@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useMemo, useState } from 'react'
+import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from './lib/api'
 import { viewFromPath, pathForView, pushView } from './lib/router'
 import type { User, Professional, BookingMessage, Booking, Plan, AppConfig } from './domain/types'
@@ -2623,6 +2623,7 @@ function PatientDashboard({user,token,openPro,startBooking,cfg,setView,setToast}
  const [patientConversation,setPatientConversation]=useState<string>('')
  const [patientMessageDraft,setPatientMessageDraft]=useState('')
  const [patientMessageSending,setPatientMessageSending]=useState(false)
+ const patientInboxMessagesRef=useRef<HTMLDivElement|null>(null)
  const [patientSection,setPatientSection]=useState<'bookings'|'messages'>('bookings')
  const [recovery,setRecovery]=useState<Record<string,any[]>>({});const [recoveryBusy,setRecoveryBusy]=useState<string>('')
  async function refresh(){
@@ -2876,6 +2877,20 @@ const activePatientConversation=
   patientMessageBookings[0]
   ||
   null
+useEffect(()=>{
+
+  const el=patientInboxMessagesRef.current
+
+  if(!el)return
+
+  requestAnimationFrame(()=>{
+    el.scrollTop=el.scrollHeight
+  })
+
+},[
+  activePatientConversation?.id,
+  activePatientConversation?.messages?.length
+])
 
 const upcomingBookings = bookings
   .filter((b:any)=>
@@ -4011,7 +4026,10 @@ onClick={e=>{
           </div>
 
 
-          <div className="inbox-messages">
+          <div
+  className="inbox-messages"
+  ref={patientInboxMessagesRef}
+>
 
             {(activePatientConversation.messages||[]).length===0
               ?
