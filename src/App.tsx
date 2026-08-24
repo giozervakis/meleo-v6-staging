@@ -745,7 +745,21 @@ useEffect(()=>{
     })()
   },[])
 
-  function logged(_t:string,u:User){setToken('cookie');setUser(u);setView(u.role==='admin'?'admin':u.role==='professional'?'pro-dashboard':'home');refreshMe('cookie');setToast(`Καλώς ήρθες, ${u.name.split(' ')[0]}`)}
+  function logged(_t:string,u:User){
+  setToken('cookie')
+  setUser(u)
+
+  setView(
+    u.role === 'admin'
+      ? 'admin'
+      : u.role === 'professional'
+        ? 'pro-dashboard'
+        : 'patient-dashboard'
+  )
+
+  refreshMe('cookie')
+  setToast(`Καλώς ήρθες, ${u.name.split(' ')[0]}`)
+}
   async function logout(){try{await api('/auth/logout',{method:'POST'},token)}catch{}setToken('cookie');setUser(null);setProfessional(null);setView('home')}
   async function toggleFav(id:string){if(!user){setView('auth');return}if(!['patient','professional'].includes(user.role))return;const r=await api('/favorites/'+id,{method:'POST'},token);setFavorites(x=>r.favorite?[...x,id]:x.filter(v=>v!==id))}
   function openPro(p:Professional){setSelected(p);setViewState('profile');history.pushState({view:'profile'},'',`/professionals/${p.id}`);window.scrollTo({top:0,behavior:'smooth'})}

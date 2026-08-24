@@ -2,7 +2,34 @@ import { test, expect } from '@playwright/test'
 
 async function openAuth(page:any){await page.goto('/login');await expect(page.getByRole('heading',{name:'Καλώς ήρθες ξανά'})).toBeVisible()}
 
-test('patient demo login reaches patient dashboard',async({page})=>{await openAuth(page);await page.getByRole('button',{name:'Συνοδός',exact:true}).click();await page.getByRole('button',{name:'Σύνδεση',exact:true}).last().click();await page.goto('/dashboard');await expect(page.getByText('Οι κρατήσεις μου')).toBeVisible()})
+test('patient demo login reaches patient dashboard',async({page})=>{
+  await openAuth(page)
+
+  await page
+    .getByRole('button',{name:'Συνοδός',exact:true})
+    .click()
+
+  await page
+    .getByRole('button',{name:'Σύνδεση',exact:true})
+    .last()
+    .click()
+
+	console.log('URL AFTER LOGIN:', page.url())
+	console.log(
+	'BODY AFTER LOGIN:',
+	(await page.locator('body').innerText()).slice(0,1500)
+)
+
+  await expect(
+    page.getByRole('heading',{
+      name:'Η επόμενη φροντίδα σου'
+    })
+  ).toBeVisible()
+
+  await expect(
+    page.getByText('Οι κρατήσεις μου').first()
+  ).toBeVisible()
+})
 
 test('professional demo login lazy-loads professional area',async({page})=>{await openAuth(page);await page.getByRole('button',{name:'Επαγγελματίας',exact:true}).click();await page.getByRole('button',{name:'Σύνδεση',exact:true}).last().click();await expect(page.locator('body')).toContainText(/Dashboard|Professional|Συνδρομή|Αιτήματα/i)})
 

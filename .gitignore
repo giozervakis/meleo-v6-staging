@@ -11,3 +11,6 @@ reports/*.json
 reports/playwright-html/
 test-results/
 playwright-report/
+
+# Local encrypted verification uploads
+secure_uploads/
