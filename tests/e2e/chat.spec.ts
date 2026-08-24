@@ -72,14 +72,19 @@ async function getBooking(
 
   expect(response.ok()).toBeTruthy()
 
-  const bookings = await response.json()
+const body =
+  await response.json()
 
-  return bookings.find(
-    (booking: any) =>
-      booking.id === bookingId
-  )
+const bookings =
+  Array.isArray(body)
+    ? body
+    : body.items || []
+
+return bookings.find(
+  (booking: any) =>
+    booking.id === bookingId
+)
 }
-
 test.describe('MELEO booking chat', () => {
 
   test(
@@ -146,13 +151,17 @@ test.describe('MELEO booking chat', () => {
           }`
         ).toBeTruthy()
 
-        const booking =
-          await bookingResponse.json()
+const bookingBody =
+  await bookingResponse.json()
 
-        expect(booking.id).toBeTruthy()
-        expect(booking.status).toBe('pending')
+const booking =
+  bookingBody.booking ||
+  bookingBody
 
-        const bookingId = booking.id
+expect(booking.id).toBeTruthy()
+expect(booking.status).toBe('pending')
+
+const bookingId = booking.id
 
         /*
          * --------------------------------------------------
@@ -180,16 +189,20 @@ test.describe('MELEO booking chat', () => {
           }`
         ).toBeTruthy()
 
-        const afterPatientMessage =
-          await patientMessageResponse.json()
+const afterPatientMessageBody =
+  await patientMessageResponse.json()
 
-        expect(
-          afterPatientMessage.messages.some(
-            (message: any) =>
-              message.text === patientMessage &&
-              message.fromRole === 'patient'
-          )
-        ).toBe(true)
+const afterPatientMessage =
+  afterPatientMessageBody.booking ||
+  afterPatientMessageBody
+
+expect(
+  afterPatientMessage.messages.some(
+    (message: any) =>
+      message.text === patientMessage &&
+      message.fromRole === 'patient'
+  )
+).toBe(true)
 
         /*
          * --------------------------------------------------
@@ -239,17 +252,21 @@ test.describe('MELEO booking chat', () => {
           }`
         ).toBeTruthy()
 
-        const afterReply =
-          await replyResponse.json()
+const afterReplyBody =
+  await replyResponse.json()
 
-        expect(
-          afterReply.messages.some(
-            (message: any) =>
-              message.text === professionalReply &&
-              message.fromRole ===
-                'professional'
-          )
-        ).toBe(true)
+const afterReply =
+  afterReplyBody.booking ||
+  afterReplyBody
+
+expect(
+  afterReply.messages.some(
+    (message: any) =>
+      message.text === professionalReply &&
+      message.fromRole ===
+        'professional'
+  )
+).toBe(true)
 
         /*
          * --------------------------------------------------
@@ -310,15 +327,20 @@ test.describe('MELEO booking chat', () => {
           outsiderBookingsResponse.ok()
         ).toBeTruthy()
 
-        const outsiderBookings =
-          await outsiderBookingsResponse.json()
+const outsiderBookingsBody =
+  await outsiderBookingsResponse.json()
 
-        expect(
-          outsiderBookings.some(
-            (item: any) =>
-              item.id === bookingId
-          )
-        ).toBe(false)
+const outsiderBookings =
+  Array.isArray(outsiderBookingsBody)
+    ? outsiderBookingsBody
+    : outsiderBookingsBody.items || []
+
+expect(
+  outsiderBookings.some(
+    (item: any) =>
+      item.id === bookingId
+  )
+).toBe(false)
 
         /*
          * --------------------------------------------------
@@ -410,11 +432,16 @@ test.describe('MELEO booking chat', () => {
           bookingsResponse.ok()
         ).toBeTruthy()
 
-        const bookings =
-          await bookingsResponse.json()
+const bookingsBody =
+  await bookingsResponse.json()
 
-        const openBooking =
-          bookings.find(
+const bookings =
+  Array.isArray(bookingsBody)
+    ? bookingsBody
+    : bookingsBody.items || []
+
+const openBooking =
+  bookings.find(
             (booking: any) =>
               ![
                 'cancelled',

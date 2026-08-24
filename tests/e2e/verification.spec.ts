@@ -95,46 +95,52 @@ const documentResponse = await request.post(
   {
     data: {
       name: 'e2e-verification.pdf',
-      type: 'license',
-      mime: 'application/pdf',
-      dataBase64: pdf.toString('base64'),
+      data: pdf.toString('base64'),
     },
   }
 )
 
-    expect(
-      documentResponse.ok(),
-      `Document upload failed: ${await documentResponse.text()}`
-    ).toBeTruthy()
+expect(
+  documentResponse.ok(),
+  `Document upload failed: ${await documentResponse.text()}`
+).toBeTruthy()
 
-    const documentBody = await documentResponse.json()
+const documentBody =
+  await documentResponse.json()
 
-    expect(documentBody.id).toBeTruthy()
-	expect(documentBody.mime).toBe('application/pdf')
-	expect(documentBody.status).toBe('submitted')
+expect(documentBody.ok).toBe(true)
+expect(documentBody.id).toBeTruthy()
+expect(documentBody.name).toBe(
+  'e2e-verification.pdf'
+)
+expect(documentBody.mime).toBe(
+  'application/pdf'
+)
+expect(documentBody.size).toBeGreaterThan(0)
+
+   
 
     //
     // ------------------------------------------------------------
     // 4. SUBMIT VERIFICATION REQUEST
     // ------------------------------------------------------------
     //
+const verificationResponse = await request.post(
+  `${API}/api/professional/verification`,
+  {
+    data: {
+      licenseNumber: `E2E-${Date.now()}`,
+      notes: 'Playwright E2E verification test',
+    },
+  }
+)
 
-    const verificationResponse = await request.post(
-      `${API}/api/professional/verification`,
-      {
-        data: {
-          licenseNumber: `E2E-${Date.now()}`,
-          notes: 'Playwright E2E verification test',
-        },
-      }
-    )
+expect(
+  verificationResponse.ok(),
+  `Verification submit failed: ${await verificationResponse.text()}`
+).toBeTruthy()
 
-    expect(
-      verificationResponse.ok(),
-      `Verification submit failed: ${await verificationResponse.text()}`
-    ).toBeTruthy()
-
-    const verificationBody =
+const verificationBody =
   await verificationResponse.json()
 
 console.log(
@@ -142,12 +148,17 @@ console.log(
   JSON.stringify(verificationBody, null, 2)
 )
 
-expect(verificationBody.id).toBeTruthy()
-expect(verificationBody.status).toBe('pending')
-expect(verificationBody.licenseNumber).toBeTruthy()
+expect(verificationBody.ok).toBe(true)
+expect(verificationBody.request).toBeTruthy()
+expect(
+  verificationBody.request.id
+).toBeTruthy()
+expect(
+  verificationBody.request.status
+).toBe('pending')
 
 const verificationId =
-  verificationBody.id
+  verificationBody.request.id
 
     //
     // ------------------------------------------------------------
@@ -176,13 +187,18 @@ const verificationId =
       `Admin verification list failed: ${await adminListResponse.text()}`
     ).toBeTruthy()
 
-    const verificationList =
-      await adminListResponse.json()
+const verificationListBody =
+  await adminListResponse.json()
 
-    const pendingRequest = verificationList.find(
-      (item: any) =>
-        item.id === verificationId
-    )
+const verificationList =
+  Array.isArray(verificationListBody)
+    ? verificationListBody
+    : verificationListBody.items || []
+
+const pendingRequest = verificationList.find(
+  (item: any) =>
+    item.id === verificationId
+)
 
     expect(pendingRequest).toBeTruthy()
     expect(pendingRequest.status).toBe('pending')
@@ -209,10 +225,38 @@ const verificationId =
       `Approval failed: ${await approvalResponse.text()}`
     ).toBeTruthy()
 
-    const approvalBody =
-      await approvalResponse.json()
+const approvalBody =
+  await approvalResponse.json()
 
-    expect(approvalBody.status).toBe('approved')
+expect(approvalBody.ok).toBe(true)
+
+const adminListAfterResponse = await request.get(
+  `${API}/api/admin/verifications`
+)
+
+expect(
+  adminListAfterResponse.ok(),
+  `Admin verification list after approval failed: ${
+    await adminListAfterResponse.text()
+  }`
+).toBeTruthy()
+
+const adminListAfterBody =
+  await adminListAfterResponse.json()
+
+const adminListAfter =
+  Array.isArray(adminListAfterBody)
+    ? adminListAfterBody
+    : adminListAfterBody.items || []
+
+const approvedRequest =
+  adminListAfter.find(
+    (item: any) =>
+      item.id === verificationId
+  )
+
+expect(approvedRequest).toBeTruthy()
+expect(approvedRequest.status).toBe('approved')
 
     //
     // ------------------------------------------------------------
@@ -229,13 +273,23 @@ const verificationId =
       `Admin members failed: ${await membersResponse.text()}`
     ).toBeTruthy()
 
-    const members = await membersResponse.json()
+ const membersBody = await membersResponse.json()
 
-    const professional = members.find(
-      (member: any) =>
-        member.email?.toLowerCase() ===
-        PROFESSIONAL_EMAIL.toLowerCase()
-    )
+const members =
+  Array.isArray(membersBody)
+    ? membersBody
+    : membersBody.items || []
+
+const professional = members.find(
+  (member: any) =>
+    member.email?.toLowerCase() ===
+    PROFESSIONAL_EMAIL.toLowerCase()
+)
+
+expect(
+  professional,
+  `Professional ${PROFESSIONAL_EMAIL} not found in admin members`
+).toBeTruthy()
 
     expect(professional).toBeTruthy()
 

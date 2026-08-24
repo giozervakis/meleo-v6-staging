@@ -95,16 +95,68 @@ function rateLimit({ windowMs, max, name, message = 'Πολλά αιτήματα
     next()
   }
 }
+
+const E2E_MODE =
+  process.env.E2E_MODE === '1'
+  
 const limits = {
-  global: rateLimit({ windowMs: 60_000, max: 300, name: 'global' }),
-  login: rateLimit({ windowMs: 15 * 60_000, max: 20, name: 'login', message: 'Πολλές προσπάθειες σύνδεσης. Δοκίμασε ξανά σε λίγα λεπτά.' }),
-  register: rateLimit({ windowMs: 60 * 60_000, max: 10, name: 'register', message: 'Πολλές εγγραφές από αυτή τη σύνδεση. Δοκίμασε αργότερα.' }),
-  password: rateLimit({ windowMs: 60 * 60_000, max: 8, name: 'password' }),
-  write: rateLimit({ windowMs: 60_000, max: 40, name: 'write' }),
-  geo: rateLimit({ windowMs: 60_000, max: 40, name: 'geo' }),
-  checkout: rateLimit({ windowMs: 10 * 60_000, max: 15, name: 'checkout' }),
-  profile: rateLimit({ windowMs: 60_000, max: 45, name: 'profile', message: 'Πολλά αιτήματα προφίλ. Δοκίμασε ξανά σε λίγο.' }),
-  analytics: rateLimit({ windowMs: 60_000, max: 20, name: 'analytics', message: 'Πάρα πολλά analytics events. Δοκίμασε ξανά αργότερα.' })
+  global: rateLimit({
+    windowMs: 60_000,
+    max: E2E_MODE ? 5000 : 300,
+    name: 'global'
+  }),
+
+  login: rateLimit({
+    windowMs: 15 * 60_000,
+    max: E2E_MODE ? 500 : 20,
+    name: 'login',
+    message: 'Πολλές προσπάθειες σύνδεσης. Δοκίμασε ξανά σε λίγα λεπτά.'
+  }),
+
+  register: rateLimit({
+    windowMs: 60 * 60_000,
+    max: E2E_MODE ? 250 : 10,
+    name: 'register',
+    message: 'Πολλές εγγραφές από αυτή τη σύνδεση. Δοκίμασε αργότερα.'
+  }),
+
+  password: rateLimit({
+    windowMs: 60 * 60_000,
+    max: E2E_MODE ? 250 : 8,
+    name: 'password'
+  }),
+
+  write: rateLimit({
+    windowMs: 60_000,
+    max: E2E_MODE ? 1000 : 40,
+    name: 'write'
+  }),
+
+  geo: rateLimit({
+    windowMs: 60_000,
+    max: E2E_MODE ? 500 : 40,
+    name: 'geo'
+  }),
+
+  checkout: rateLimit({
+    windowMs: 10 * 60_000,
+    max: E2E_MODE ? 250 : 15,
+    name: 'checkout'
+  }),
+
+  profile: rateLimit({
+    windowMs: 60_000,
+    max: E2E_MODE ? 500 : 45,
+    name: 'profile',
+    message: 'Πολλά αιτήματα προφίλ. Δοκίμασε ξανά σε λίγο.'
+  }),
+
+  analytics: rateLimit({
+    windowMs: 60_000,
+    max: E2E_MODE ? 500 : 20,
+    name: 'analytics',
+    message: 'Πάρα πολλά analytics events. Δοκίμασε ξανά αργότερα.'
+  })
 }
 app.use('/api', limits.global)
 

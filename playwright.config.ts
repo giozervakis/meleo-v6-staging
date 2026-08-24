@@ -32,26 +32,41 @@ export default defineConfig({
 
   webServer: [
     {
-  command: 'npm run dev:api',
-  url: 'http://localhost:8787/api/health',
-  reuseExistingServer: true,
-  timeout: 120_000,
-  env: {
-    ...process.env,
-    NODE_ENV: 'development',
-
-    /*
-     * Deterministic local E2E admin credentials.
-     * Σε production δεν χρησιμοποιείται το Playwright config.
-     */
-    ADMIN_PASSWORD:
-      process.env.E2E_ADMIN_PASSWORD || 'admin123'
-  }
-},
-    {
-      command: 'npm run dev:web -- --port 5173',
-      url: 'http://localhost:5173',
+      command: 'npm run dev:api',
+      url: 'http://localhost:8787/api/health',
       reuseExistingServer: true,
+      timeout: 120_000,
+
+      env: {
+        ...process.env,
+
+        NODE_ENV: 'development',
+
+        /*
+         * Deterministic local E2E admin credentials.
+         * Δεν χρησιμοποιείται σε production.
+         */
+        ADMIN_PASSWORD:
+          process.env.E2E_ADMIN_PASSWORD ||
+          'admin123',
+
+        /*
+         * E2E test mode.
+         * Αυξάνει μόνο τα test rate limits.
+         */
+        E2E_MODE: '1'
+      }
+    },
+
+    {
+      command:
+        'npm run dev:web -- --port 5173',
+
+      url:
+        'http://localhost:5173',
+
+      reuseExistingServer: true,
+
       timeout: 120_000
     }
   ],
@@ -59,12 +74,15 @@ export default defineConfig({
   projects: [
     {
       name: 'chromium-desktop',
+
       use: {
         ...devices['Desktop Chrome']
       }
     },
+
     {
       name: 'mobile-chrome',
+
       use: {
         ...devices['Pixel 7']
       }
