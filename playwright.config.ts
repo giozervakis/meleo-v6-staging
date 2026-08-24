@@ -32,15 +32,22 @@ export default defineConfig({
 
   webServer: [
     {
-      command: 'npm run dev:api',
-      url: 'http://localhost:8787/api/health',
-      reuseExistingServer: true,
-      timeout: 120_000,
-      env: {
-        ...process.env,
-        NODE_ENV: 'development'
-      }
-    },
+  command: 'npm run dev:api',
+  url: 'http://localhost:8787/api/health',
+  reuseExistingServer: true,
+  timeout: 120_000,
+  env: {
+    ...process.env,
+    NODE_ENV: 'development',
+
+    /*
+     * Deterministic local E2E admin credentials.
+     * Σε production δεν χρησιμοποιείται το Playwright config.
+     */
+    ADMIN_PASSWORD:
+      process.env.E2E_ADMIN_PASSWORD || 'admin123'
+  }
+},
     {
       command: 'npm run dev:web -- --port 5173',
       url: 'http://localhost:5173',
