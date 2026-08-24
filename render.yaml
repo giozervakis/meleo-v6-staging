@@ -65,7 +65,7 @@ services:
         value: local
 
       # --------------------------------------------------
-      # DEMO / STAGING MODE
+      # DEMO / STAGING / E2E MODE
       # --------------------------------------------------
       - key: SEED_DEMO
         value: "1"
@@ -78,6 +78,12 @@ services:
 
       - key: PAYMENTS_MODE
         value: demo
+
+      # Allows Playwright staging tests to run without
+      # hitting the normal production-grade rate limits.
+      # NEVER enable this in production.
+      - key: E2E_MODE
+        value: "1"
 
       # --------------------------------------------------
       # STAGING ADMIN
