@@ -872,8 +872,64 @@ app.post('/api/professional/subscription/cancel', auth, requireRole('professiona
 
 app.post('/api/professional/subscription/resume', auth, requireRole('professional'), async (req, res, next) => {
   const p = (await read()).professionals.find(x => x.userId === req.user.id)
-  if (!p?.stripeSubscriptionId) return res.status(400).json({ error: 'Δεν υπάρχει συνδρομή προς επαναφορά.' })
-  try { res.json({ professional: await resumeSubscription(p) }) } catch (err) { next(err) }
+
+  if (!p) {
+    return res.status(404).json({
+      error: 'Δεν βρέθηκε επαγγελματικό προφίλ'
+    })
+  }
+
+  /*
+   * Local/demo subscription:
+   * δεν υπάρχει Stripe subscription ID,
+   * άρα επαναφέρουμε το subscription state τοπικά.
+   */
+  if (!p.stripeSubscriptionId) {
+    const updated = await mutate(d => {
+      const pro = d.professionals.find(
+        x => x.userId === req.user.id
+      )
+
+      if (!pro) {
+        throw new Error(
+          'Δεν βρέθηκε επαγγελματικό προφίλ'
+        )
+      }
+
+      pro.subscriptionStatus = 'active'
+
+      pro.featured =
+        pro.subscriptionPlan === 'premium'
+
+      const sub = d.subscriptions.find(
+        s =>
+          s.professionalId === pro.id &&
+          s.status === 'cancelled'
+      )
+
+      if (sub) {
+        sub.status = 'active'
+        sub.updatedAt = now()
+      }
+
+      return pro
+    })
+
+    return res.json({
+      professional: updated
+    })
+  }
+
+  /*
+   * Stripe subscription.
+   */
+  try {
+    res.json({
+      professional: await resumeSubscription(p)
+    })
+  } catch (err) {
+    next(err)
+  }
 })
 
 /* ------------------------------------------------------------------ *
