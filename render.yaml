@@ -84,6 +84,9 @@ services:
       # NEVER enable this in production.
       - key: E2E_MODE
         value: "1"
+        
+      - key: RUN_E2E_RESET_ON_BOOT
+        value: "1"
 
       # --------------------------------------------------
       # STAGING ADMIN
