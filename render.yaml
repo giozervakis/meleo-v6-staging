@@ -86,7 +86,10 @@ services:
         value: admin@meleo.gr
 
       - key: ADMIN_PASSWORD
-        value: admin123
+        generateValue: true
+
+      - key: ADMIN_TOTP_SECRET
+        sync: false
 
       # --------------------------------------------------
       # SECURITY
