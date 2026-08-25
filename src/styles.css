@@ -10493,3 +10493,135 @@
     max-width: 1900px;
   }
 }
+
+/* ============================================================
+   MELEO PROFESSIONAL DASHBOARD FOOTER FIX V1
+   Prevent sidebar / helper cards from overlapping site footer
+   ============================================================ */
+
+@media (min-width: 981px) {
+
+  /*
+   * Ξ¤ΞΏ professional workspace Ο€ΟΞ­Ο€ΞµΞΉ Ξ½Ξ± ΞΊΞ±Ο„Ξ±Ξ»Ξ±ΞΌΞ²Ξ¬Ξ½ΞµΞΉ Ο„ΞΏΟ…Ξ»Ξ¬Ο‡ΞΉΟƒΟ„ΞΏΞ½
+   * ΞΏΞ»ΟΞΊΞ»Ξ·ΟΞΏ Ο„ΞΏ Ξ΄ΞΉΞ±ΞΈΞ­ΟƒΞΉΞΌΞΏ viewport ΞΊΞ¬Ο„Ο‰ Ξ±Ο€Ο Ο„ΞΏ main header.
+   */
+  .dashboard-pro {
+    position: relative;
+    width: 100%;
+    min-height: calc(100vh - 86px);
+    align-items: stretch;
+  }
+
+  /*
+   * Ξ¤ΞΏ content ΞΊΟΞ±Ο„Ξ¬ Ο„ΞΏ dashboard Ξ±Ξ½ΞΏΞΉΟ‡Ο„Ο ΞΌΞ­Ο‡ΟΞΉ Ο„ΞΏ Ο„Ξ­Ξ»ΞΏΟ‚
+   * ΞΊΞ±ΞΉ Ξ΄ΞµΞ½ Ξ±Ο†Ξ®Ξ½ΞµΞΉ Ο„ΞΏ footer Ξ½Ξ± Ξ±Ξ½ΞµΞ²Ξ±Ξ―Ξ½ΞµΞΉ Ο€ΟΟΟ‰ΟΞ±.
+   */
+  .pro-content {
+    position: relative;
+    min-width: 0;
+    min-height: calc(100vh - 86px);
+    padding-bottom: 64px;
+  }
+
+  /*
+   * Ξ¤ΞΏ sidebar Ο€Ξ±ΟΞ±ΞΌΞ­Ξ½ΞµΞΉ ΞΌΞ­ΟƒΞ± ΟƒΟ„ΞΏ grid.
+   * Ξ‘Ξ½ Ο…Ο€Ξ®ΟΟ‡Ξµ fixed/absolute declaration Ο„Ξ·Ξ½ Ξ±ΞΊΟ…ΟΟΞ½ΞΏΟ…ΞΌΞµ.
+   */
+  .pro-sidebar {
+    position: sticky !important;
+    top: 86px;
+    align-self: start;
+
+    height: calc(100vh - 86px);
+    min-height: calc(100vh - 86px);
+    max-height: calc(100vh - 86px);
+
+    overflow-x: hidden;
+    overflow-y: auto;
+
+    box-sizing: border-box;
+    z-index: 5;
+  }
+
+  /*
+   * Ξ¤ΞΏ sidebar Ξ΄ΞΏΟ…Ξ»ΞµΟΞµΞΉ Ο‰Ο‚ Ο€ΟΞ±Ξ³ΞΌΞ±Ο„ΞΉΞΊΞ® ΞΊΞ¬ΞΈΞµΟ„Ξ· ΟƒΟ„Ξ®Ξ»Ξ·.
+   */
+  .pro-sidebar {
+    display: flex;
+    flex-direction: column;
+  }
+
+  /*
+   * Navigation / user information Ξ΄ΞµΞ½ ΟƒΟ…ΞΌΟ€ΞΉΞ­Ξ¶ΞΏΞ½Ο„Ξ±ΞΉ.
+   */
+  .pro-sidebar > * {
+    flex-shrink: 0;
+  }
+
+  /*
+   * Ξ¤ΞΏ Ο„ΞµΞ»ΞµΟ…Ο„Ξ±Ξ―ΞΏ Ξ²ΞΏΞ·ΞΈΞ·Ο„ΞΉΞΊΟ block ΞΌΞ­Ξ½ΞµΞΉ ΞΌΞ­ΟƒΞ± ΟƒΟ„ΞΏ sidebar
+   * ΞΊΞ±ΞΉ ΟΟ‡ΞΉ Ο€Ξ¬Ξ½Ο‰ ΟƒΟ„ΞΏ global footer.
+   */
+  .pro-sidebar > :last-child {
+    position: relative !important;
+    left: auto !important;
+    right: auto !important;
+    bottom: auto !important;
+    margin-top: auto;
+    margin-bottom: 18px;
+  }
+
+}
+
+
+/* ------------------------------------------------------------
+   TABLET
+   ------------------------------------------------------------ */
+
+@media (min-width: 681px) and (max-width: 980px) {
+
+  .dashboard-pro {
+    min-height: auto;
+  }
+
+  .pro-sidebar {
+    position: relative !important;
+    top: auto;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pro-content {
+    min-height: auto;
+  }
+
+}
+
+
+/* ------------------------------------------------------------
+   MOBILE
+   ------------------------------------------------------------ */
+
+@media (max-width: 680px) {
+
+  .dashboard-pro {
+    min-height: auto;
+  }
+
+  .pro-sidebar {
+    position: relative !important;
+    top: auto;
+    height: auto;
+    min-height: auto;
+    max-height: none;
+    overflow: visible;
+  }
+
+  .pro-content {
+    min-height: auto;
+    padding-bottom: 90px;
+  }
+
+}
