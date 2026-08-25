@@ -1783,7 +1783,366 @@ function SmartRequest({
   )
 }
 
-function NowRequest({pros,search,setSearch,loadPros,openPro,setView}:any){const [specialty,setSpecialty]=useState(search.specialty||'Νοσηλευτική');const [busy,setBusy]=useState(false);const [ready,setReady]=useState(false);async function locate(){if(!navigator.geolocation){return}setBusy(true);navigator.geolocation.getCurrentPosition(async pos=>{const next={...search,specialty,service:'',lat:String(pos.coords.latitude),lon:String(pos.coords.longitude),locationQuery:'',locationLabel:'Η τοποθεσία μου'};setSearch(next);await loadPros(next);setReady(true);setBusy(false)},()=>setBusy(false),{enableHighAccuracy:true,timeout:10000})}return <section className="now-page page"><div className="container"><div className="now-hero"><div><span className="mode-kicker">⚡ MELEO NOW</span><h1>Χρειάζεσαι φροντίδα<br/><em>σήμερα;</em></h1><p>Εντόπισε επαγγελματίες που δηλώνουν διαθεσιμότητα και καλύπτουν τη γεωγραφική σου περιοχή.</p></div><div className="now-control"><label>Ειδικότητα<select value={specialty} onChange={e=>setSpecialty(e.target.value)}>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></label><button className="btn btn-dark wide" onClick={locate} disabled={busy}>{busy?'Εντοπισμός…':'⌖ Χρήση τοποθεσίας & εύρεση τώρα'}</button><button className="btn btn-outline wide" onClick={()=>setView('search')}>Αναζήτηση άλλης περιοχής</button></div></div>{ready&&<div className="now-results"><div className="section-title left"><div className="eyebrow">ΔΙΑΘΕΣΙΜΟΙ ΚΟΝΤΑ ΣΟΥ</div><h2>{pros.length?`${pros.length} επιλογές για εσένα`:'Δεν βρέθηκαν άμεσα διαθέσιμοι'}</h2></div><div className="pro-grid">{pros.slice(0,6).map((p:Professional)=><ProCard key={p.id} p={p} open={()=>openPro(p)} favorite={false} toggle={()=>{}}/>)}</div></div>}</div></section>}
+function NowRequest({
+  pros,
+  search,
+  setSearch,
+  loadPros,
+  openPro,
+  setView
+}: any) {
+  const [specialty, setSpecialty] =
+    useState(search.specialty || 'Νοσηλευτική')
+
+  const [busy, setBusy] = useState(false)
+  const [ready, setReady] = useState(false)
+  const [geoError, setGeoError] = useState('')
+  const [locationLabel, setLocationLabel] = useState('')
+  const [accuracy, setAccuracy] = useState<number | null>(null)
+
+  function getPosition(
+    options: PositionOptions
+  ): Promise<GeolocationPosition> {
+    return new Promise((resolve, reject) => {
+      navigator.geolocation.getCurrentPosition(
+        resolve,
+        reject,
+        options
+      )
+    })
+  }
+
+  function geolocationErrorMessage(
+    error: GeolocationPositionError
+  ) {
+    switch (error.code) {
+      case error.PERMISSION_DENIED:
+        return 'Η πρόσβαση στην τοποθεσία δεν επιτράπηκε. Έλεγξε ότι η άδεια τοποθεσίας είναι ενεργή για τη MELEO.'
+
+      case error.POSITION_UNAVAILABLE:
+        return 'Η συσκευή δεν μπόρεσε να προσδιορίσει την τοποθεσία σου. Δοκίμασε ξανά ή επίλεξε περιοχή χειροκίνητα.'
+
+      case error.TIMEOUT:
+        return 'Ο εντοπισμός τοποθεσίας άργησε περισσότερο από το αναμενόμενο. Δοκίμασε ξανά.'
+
+      default:
+        return 'Δεν μπορέσαμε να εντοπίσουμε την τοποθεσία σου.'
+    }
+  }
+
+  async function resolveLocationLabel(
+    lat: string,
+    lon: string
+  ) {
+    let label = 'Η τρέχουσα τοποθεσία μου'
+
+    try {
+      const result = await api(
+        `/location/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`
+      )
+
+      if (result?.label) {
+        label = result.label
+      }
+    } catch (error) {
+      console.warn(
+        'MELEO Now reverse geocoding failed',
+        error
+      )
+    }
+
+    return label
+  }
+
+  async function locate() {
+    setGeoError('')
+    setReady(false)
+    setLocationLabel('')
+    setAccuracy(null)
+
+    if (!window.isSecureContext) {
+      setGeoError(
+        'Η χρήση τοποθεσίας απαιτεί ασφαλή σύνδεση HTTPS.'
+      )
+      return
+    }
+
+    if (!navigator.geolocation) {
+      setGeoError(
+        'Η συσκευή ή ο browser δεν υποστηρίζει υπηρεσίες τοποθεσίας.'
+      )
+      return
+    }
+
+    setBusy(true)
+
+    try {
+      let position: GeolocationPosition
+
+      /*
+       * -------------------------------------------------------
+       * 1η προσπάθεια
+       * Υψηλή ακρίβεια για κινητά / GPS.
+       * -------------------------------------------------------
+       */
+      try {
+        position = await getPosition({
+          enableHighAccuracy: true,
+          timeout: 12000,
+          maximumAge: 30000
+        })
+      } catch (firstError: any) {
+        /*
+         * -----------------------------------------------------
+         * 2η προσπάθεια
+         * Πιο χαλαρή ακρίβεια.
+         *
+         * Είναι σημαντικό σε desktop/laptop όπου ο browser
+         * συχνά χρησιμοποιεί Wi-Fi/IP positioning αντί GPS.
+         * -----------------------------------------------------
+         */
+        if (
+          firstError?.code === 1
+        ) {
+          throw firstError
+        }
+
+        position = await getPosition({
+          enableHighAccuracy: false,
+          timeout: 15000,
+          maximumAge: 5 * 60 * 1000
+        })
+      }
+
+      const latitude =
+        position.coords.latitude
+
+      const longitude =
+        position.coords.longitude
+
+      if (
+        !Number.isFinite(latitude) ||
+        !Number.isFinite(longitude)
+      ) {
+        throw new Error(
+          'Invalid coordinates returned by browser'
+        )
+      }
+
+      const lat = String(latitude)
+      const lon = String(longitude)
+
+      setAccuracy(
+        Number.isFinite(position.coords.accuracy)
+          ? Math.round(position.coords.accuracy)
+          : null
+      )
+
+      /*
+       * Reverse geocoding.
+       */
+      const label =
+        await resolveLocationLabel(lat, lon)
+
+      setLocationLabel(label)
+
+      /*
+       * IMPORTANT:
+       * Χρησιμοποιούμε τα coordinates απευθείας.
+       * Δεν βασιζόμαστε μόνο στο textual city label.
+       */
+      const next = {
+        ...search,
+        specialty,
+        service: '',
+        lat,
+        lon,
+        locationQuery: '',
+        locationLabel: label
+      }
+
+      setSearch(next)
+
+      console.log('MELEO NOW LOCATION', {
+        lat,
+        lon,
+        accuracy: position.coords.accuracy,
+        label
+      })
+
+      await loadPros(next)
+
+      setReady(true)
+    } catch (error: any) {
+      console.error(
+        'MELEO NOW GEOLOCATION ERROR',
+        error
+      )
+
+      if (
+        typeof error?.code === 'number'
+      ) {
+        setGeoError(
+          geolocationErrorMessage(error)
+        )
+      } else {
+        setGeoError(
+          'Η τοποθεσία εντοπίστηκε με πρόβλημα κατά την αναζήτηση. Δοκίμασε ξανά.'
+        )
+      }
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="now-page page">
+      <div className="container">
+
+        <div className="now-hero">
+
+          <div>
+            <span className="mode-kicker">
+              ⚡ MELEO NOW
+            </span>
+
+            <h1>
+              Χρειάζεσαι φροντίδα
+              <br />
+              <em>σήμερα;</em>
+            </h1>
+
+            <p>
+              Εντόπισε επαγγελματίες που δηλώνουν
+              διαθεσιμότητα και καλύπτουν τη
+              γεωγραφική σου περιοχή.
+            </p>
+          </div>
+
+          <div className="now-control">
+
+            <label>
+              Ειδικότητα
+
+              <select
+                value={specialty}
+                onChange={e => {
+                  setSpecialty(e.target.value)
+                  setReady(false)
+                }}
+              >
+                {specialtyOptions.map(x => (
+                  <option key={x}>
+                    {x}
+                  </option>
+                ))}
+              </select>
+            </label>
+
+            <button
+              className="btn btn-dark wide"
+              onClick={locate}
+              disabled={busy}
+            >
+              {busy
+                ? '⌖ Εντοπισμός τοποθεσίας…'
+                : '⌖ Χρήση τοποθεσίας & εύρεση τώρα'}
+            </button>
+
+            {locationLabel && (
+              <div className="location-ok">
+                ✓ Εντοπίστηκε: {locationLabel}
+
+                {accuracy !== null && (
+                  <small
+                    style={{
+                      display: 'block',
+                      marginTop: 4
+                    }}
+                  >
+                    Ακρίβεια περίπου {accuracy} μ.
+                  </small>
+                )}
+              </div>
+            )}
+
+            {geoError && (
+              <div className="location-error">
+                <strong>
+                  Δεν ολοκληρώθηκε ο εντοπισμός.
+                </strong>
+
+                <div>
+                  {geoError}
+                </div>
+
+                <button
+                  type="button"
+                  className="btn btn-outline wide"
+                  style={{ marginTop: 10 }}
+                  onClick={locate}
+                  disabled={busy}
+                >
+                  Δοκιμή ξανά
+                </button>
+              </div>
+            )}
+
+            <button
+              className="btn btn-outline wide"
+              onClick={() => setView('search')}
+            >
+              Αναζήτηση άλλης περιοχής
+            </button>
+
+          </div>
+        </div>
+
+        {ready && (
+          <div className="now-results">
+
+            <div className="section-title left">
+              <div className="eyebrow">
+                ΔΙΑΘΕΣΙΜΟΙ ΚΟΝΤΑ ΣΟΥ
+              </div>
+
+              <h2>
+                {pros.length
+                  ? `${pros.length} επιλογές για εσένα`
+                  : 'Δεν βρέθηκαν άμεσα διαθέσιμοι'}
+              </h2>
+
+              {locationLabel && (
+                <p>
+                  Περιοχή αναζήτησης:{' '}
+                  <strong>
+                    {locationLabel}
+                  </strong>
+                </p>
+              )}
+            </div>
+
+            <div className="pro-grid">
+              {pros
+                .slice(0, 6)
+                .map((p: Professional) => (
+                  <ProCard
+                    key={p.id}
+                    p={p}
+                    open={() => openPro(p)}
+                    favorite={false}
+                    toggle={() => {}}
+                  />
+                ))}
+            </div>
+
+          </div>
+        )}
+
+      </div>
+    </section>
+  )
+}
 
 function SectionTitle({over,title,subtitle}:any){return <div className="section-title"><div className="eyebrow">{over}</div><h2>{title}</h2><p>{subtitle}</p></div>}
 function Step({n,icon,title,text}:any){return <div className="step"><div className="step-top"><span className="step-icon">{icon}</span><span className="step-num">{n}</span></div><h3>{title}</h3><p>{text}</p></div>}
