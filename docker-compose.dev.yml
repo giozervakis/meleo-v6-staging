@@ -44,6 +44,7 @@ services:
       SEED_DEMO: 1
       DEMO_AUTH: 1
       DEMO_CHECKOUT: 1
+      GEOCODING_PROVIDER: ${GEOCODING_PROVIDER:-nominatim}
       SENSITIVE_DATA_KEY: development-only-key-change-before-production-123456
       STORAGE_DRIVER: local
       VERIFICATION_STORAGE_DIR: /app/secure_uploads

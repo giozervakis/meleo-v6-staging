@@ -26,7 +26,10 @@ jobs:
       - uses: actions/setup-node@v4
         with: {node-version: '22', cache: npm}
       - run: npm ci
-      - run: docker compose -f docker-compose.dev.yml up -d --build
+      - name: Start deterministic integration stack
+        env:
+          GEOCODING_PROVIDER: fixture
+        run: docker compose -f docker-compose.dev.yml up -d --build
       - name: Wait for readiness
         run: |
           for i in {1..60}; do curl -fsS http://127.0.0.1:8787/api/ready >/dev/null && exit 0; sleep 2; done

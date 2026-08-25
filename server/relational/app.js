@@ -1,4 +1,4 @@
-﻿import express from 'express'
+import express from 'express'
 import crypto from 'node:crypto'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -88,7 +88,29 @@ app.post('/api/webhooks/stripe',express.raw({type:'application/json',limit:'1mb'
 app.use(express.json({ limit: '12mb' }))
 
 // Persistent Postgres rate limiter. Works across instances.
-function rateLimit({windowMs,max,name,message='Πολλά αιτήματα. Δοκίμασε ξανά σε λίγο.',keyFn}){return async(req,res,next)=>{const rawKey=keyFn?String(keyFn(req)||'anonymous'):String(req.ip||'local');const bucket=`${name}:${sha256(rawKey).slice(0,24)}`;try{let count,ttlMs;if(config.redis.url){try{const r=await redisRateLimit(config.redis.keyPrefix+'rl:'+bucket,windowMs);count=r.count;ttlMs=r.ttlMs}catch(err){console.warn('[MELEO v5.1] Redis limiter fallback:',err.message)}}if(count==null){const row=await one(`INSERT INTO rate_limits(bucket_key,count,reset_at) VALUES($1,1,now()+($2||' milliseconds')::interval) ON CONFLICT(bucket_key) DO UPDATE SET count=CASE WHEN rate_limits.reset_at<=now() THEN 1 ELSE rate_limits.count+1 END,reset_at=CASE WHEN rate_limits.reset_at<=now() THEN now()+($2||' milliseconds')::interval ELSE rate_limits.reset_at END,updated_at=now() RETURNING count,reset_at`,[bucket,String(windowMs)]);count=row.count;ttlMs=Math.max(0,new Date(row.reset_at).getTime()-Date.now())}if(count>max){res.setHeader('Retry-After',Math.max(1,Math.ceil(ttlMs/1000)));return res.status(429).json({error:message})}next()}catch(e){next(e)}}}
+function rateLimit({windowMs,max,name,message='Πολλά αιτήματα. Δοκίμασε ξανά σε λίγο.',keyFn}){return async(req,res,next)=>{
+
+//
+// Deterministic CI / E2E read-load mode.
+//
+// Read-only requests bypass throttling only when E2E_MODE is
+// explicitly enabled outside production.
+//
+// Mutation/auth/security rate limits remain fully active so
+// security E2E tests continue exercising real protections.
+//
+// E2E_MODE itself is forbidden by the production configuration
+// guard, therefore this branch can never be active in production.
+//
+if(
+  config.e2eMode &&
+  !config.isProd &&
+  ['GET','HEAD','OPTIONS'].includes(req.method)
+){
+  return next()
+}
+
+const rawKey=keyFn?String(keyFn(req)||'anonymous'):String(req.ip||'local');const bucket=`${name}:${sha256(rawKey).slice(0,24)}`;try{let count,ttlMs;if(config.redis.url){try{const r=await redisRateLimit(config.redis.keyPrefix+'rl:'+bucket,windowMs);count=r.count;ttlMs=r.ttlMs}catch(err){console.warn('[MELEO v5.1] Redis limiter fallback:',err.message)}}if(count==null){const row=await one(`INSERT INTO rate_limits(bucket_key,count,reset_at) VALUES($1,1,now()+($2||' milliseconds')::interval) ON CONFLICT(bucket_key) DO UPDATE SET count=CASE WHEN rate_limits.reset_at<=now() THEN 1 ELSE rate_limits.count+1 END,reset_at=CASE WHEN rate_limits.reset_at<=now() THEN now()+($2||' milliseconds')::interval ELSE rate_limits.reset_at END,updated_at=now() RETURNING count,reset_at`,[bucket,String(windowMs)]);count=row.count;ttlMs=Math.max(0,new Date(row.reset_at).getTime()-Date.now())}if(count>max){res.setHeader('Retry-After',Math.max(1,Math.ceil(ttlMs/1000)));return res.status(429).json({error:message})}next()}catch(e){next(e)}}}
 const E2E_MODE = config.e2eMode && !config.isProd
 
 const limits = {
@@ -438,9 +460,121 @@ app.get('/api/me/export',auth,async(req,res)=>{const u=await Users.byId(req.user
 app.delete('/api/me',auth,limits.password,async(req,res)=>{const u=await Users.byId(req.user.id);if(req.body.password&&!await verifyPassword(String(req.body.password),u.password_hash))return res.status(400).json({error:'Λάθος κωδικός.'});const p=u.role==='professional'?await Professionals.byUser(u.id):null;if(p?.stripeSubscriptionId&&getStripe()){try{await getStripe().subscriptions.cancel(p.stripeSubscriptionId)}catch(err){await Users.update(u.id,{deletion_pending:true,deletion_requested_at:now()});return res.status(202).json({ok:true,pending:true,message:'Η διαγραφή θα ολοκληρωθεί μόλις ακυρωθεί η συνδρομή.'})}}await Users.update(u.id,{deleted_at:now(),name:'Deleted User',phone:'',account_status:'suspended'});await Sessions.revokeUser(u.id);clearSessionCookie(res);res.json({ok:true})})
 
 // Geocoding with persistent cache. Nominatim only in dev unless explicitly selected.
-async function geocode(pathname){const key=sha256(pathname);if(config.redis.url){try{const hit=await redisGetJson(config.redis.keyPrefix+'geo:'+key);if(hit)return hit}catch(err){console.warn('[MELEO v5.1] Redis geocode cache fallback:',err.message)}}const cached=await one('SELECT payload FROM geocode_cache WHERE cache_key=$1 AND expires_at>now()',[key]);if(cached){if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,cached.payload,86400).catch(()=>{});return cached.payload;}const provider=(process.env.GEOCODING_PROVIDER||'nominatim').toLowerCase();let url,headers={};if(provider==='mapbox'&&process.env.MAPBOX_TOKEN){const q=new URLSearchParams(pathname.split('?')[1]||'');const query=q.get('q')||'';url=`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${encodeURIComponent(process.env.MAPBOX_TOKEN)}&language=el&limit=5`}else{url=`https://nominatim.openstreetmap.org${pathname}`;headers={'User-Agent':`MELEO-Marketplace/5.0 (${config.mail.supportEmail})`,'Accept-Language':'el,en'}}const r=await fetch(url,{headers});if(!r.ok)throw new Error('Geocoding unavailable');let data=await r.json();if(provider==='mapbox'&&data.features)data=data.features.map(f=>({lat:String(f.center[1]),lon:String(f.center[0]),display_name:f.place_name,address:{city:f.context?.find(x=>x.id.startsWith('place.'))?.text||f.text,country:f.context?.find(x=>x.id.startsWith('country.'))?.text||''}}));await sql(`INSERT INTO geocode_cache(cache_key,payload,expires_at) VALUES($1,$2,now()+interval '30 days') ON CONFLICT(cache_key) DO UPDATE SET payload=$2,expires_at=now()+interval '30 days',updated_at=now()`,[key,data]);if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,data,30*86400).catch(()=>{});return data}
-app.get('/api/location/search',limits.geo,async(req,res)=>{const q=str(req.query.q,200);if(!q)return res.json([]);try{const raw=(await geocode(`/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(q)}`)).slice(0,5);res.json(raw.map(x=>{const a=x.address||{};return {label:x.display_name||'',lat:Number(x.lat),lon:Number(x.lon),city:a.city||a.town||a.village||a.municipality||a.county||'',region:a.state||a.region||'',countryCode:String(a.country_code||'').toLowerCase(),country:a.country||''}}))}catch{res.status(503).json({error:'Η υπηρεσία τοποθεσίας δεν είναι διαθέσιμη.'})}})
-app.get('/api/location/reverse',limits.geo,async(req,res)=>{const lat=Number(req.query.lat),lon=Number(req.query.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return res.status(400).json({error:'Invalid coordinates'});try{const x=await geocode(`/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lon}`),a=x.address||{};res.json({label:x.display_name||'',lat,lon,city:a.city||a.town||a.village||a.municipality||a.county||'',region:a.state||a.region||'',countryCode:String(a.country_code||'').toLowerCase(),country:a.country||''})}catch{res.status(503).json({error:'Η υπηρεσία τοποθεσίας δεν είναι διαθέσιμη.'})}})
+async function geocode(pathname){const key=sha256(pathname);if(config.redis.url){try{const hit=await redisGetJson(config.redis.keyPrefix+'geo:'+key);if(hit)return hit}catch(err){console.warn('[MELEO v5.1] Redis geocode cache fallback:',err.message)}}const cached=await one('SELECT payload FROM geocode_cache WHERE cache_key=$1 AND expires_at>now()',[key]);if(cached){if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,cached.payload,86400).catch(()=>{});return cached.payload;}const provider=(process.env.GEOCODING_PROVIDER||'nominatim').toLowerCase();
+
+if(provider==='fixture'){
+  if(config.isProd){
+    throw new Error('Fixture geocoding is forbidden in production')
+  }
+
+  const params=
+    new URLSearchParams(
+      pathname.split('?')[1]||''
+    )
+
+  if(pathname.startsWith('/search')){
+    const query=
+      String(params.get('q')||'')
+        .trim()
+        .toLocaleLowerCase('el-GR')
+
+    const known=
+      query.includes('ηράκλειο')||
+      query.includes('heraklion')||
+      query.includes('iraklio')
+
+    const data=
+      known
+        ? [{
+            lat:'35.3387',
+            lon:'25.1442',
+            display_name:'Ηράκλειο, Κρήτη, Ελλάδα',
+            address:{
+              city:'Ηράκλειο',
+              state:'Κρήτη',
+              country:'Ελλάδα',
+              country_code:'gr'
+            }
+          }]
+        : []
+
+    await sql(
+      `INSERT INTO geocode_cache(cache_key,payload,expires_at)
+       VALUES($1,$2,now()+interval '30 days')
+       ON CONFLICT(cache_key)
+       DO UPDATE SET
+         payload=$2,
+         expires_at=now()+interval '30 days',
+         updated_at=now()`,
+      [key,JSON.stringify(data)]
+    )
+
+    if(config.redis.url){
+      redisSetJson(
+        config.redis.keyPrefix+'geo:'+key,
+        data,
+        30*86400
+      ).catch(()=>{})
+    }
+
+    return data
+  }
+
+  if(pathname.startsWith('/reverse')){
+    const lat=Number(params.get('lat'))
+    const lon=Number(params.get('lon'))
+
+    if(
+      !Number.isFinite(lat)||
+      !Number.isFinite(lon)
+    ){
+      throw new Error(
+        'Invalid fixture coordinates'
+      )
+    }
+
+    const data={
+      lat:String(lat),
+      lon:String(lon),
+      display_name:'Ηράκλειο, Κρήτη, Ελλάδα',
+      address:{
+        city:'Ηράκλειο',
+        state:'Κρήτη',
+        country:'Ελλάδα',
+        country_code:'gr'
+      }
+    }
+
+    await sql(
+      `INSERT INTO geocode_cache(cache_key,payload,expires_at)
+       VALUES($1,$2,now()+interval '30 days')
+       ON CONFLICT(cache_key)
+       DO UPDATE SET
+         payload=$2,
+         expires_at=now()+interval '30 days',
+         updated_at=now()`,
+      [key,JSON.stringify(data)]
+    )
+
+    if(config.redis.url){
+      redisSetJson(
+        config.redis.keyPrefix+'geo:'+key,
+        data,
+        30*86400
+      ).catch(()=>{})
+    }
+
+    return data
+  }
+
+  throw new Error(
+    'Unsupported fixture geocoding request'
+  )
+}
+
+let url,headers={};if(provider==='mapbox'&&process.env.MAPBOX_TOKEN){const q=new URLSearchParams(pathname.split('?')[1]||'');const query=q.get('q')||'';url=`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${encodeURIComponent(process.env.MAPBOX_TOKEN)}&language=el&limit=5`}else{url=`https://nominatim.openstreetmap.org${pathname}`;headers={'User-Agent':`MELEO-Marketplace/5.0 (${config.mail.supportEmail})`,'Accept-Language':'el,en'}}const r=await fetch(url,{headers});if(!r.ok)throw new Error('Geocoding unavailable');let data=await r.json();if(provider==='mapbox'&&data.features)data=data.features.map(f=>({lat:String(f.center[1]),lon:String(f.center[0]),display_name:f.place_name,address:{city:f.context?.find(x=>x.id.startsWith('place.'))?.text||f.text,country:f.context?.find(x=>x.id.startsWith('country.'))?.text||''}}));await sql(`INSERT INTO geocode_cache(cache_key,payload,expires_at) VALUES($1,$2,now()+interval '30 days') ON CONFLICT(cache_key) DO UPDATE SET payload=$2,expires_at=now()+interval '30 days',updated_at=now()`,[key,JSON.stringify(data)]);if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,data,30*86400).catch(()=>{});return data}
+app.get('/api/location/search',limits.geo,async(req,res)=>{const q=str(req.query.q,200);if(!q)return res.json([]);try{const raw=(await geocode(`/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(q)}`)).slice(0,5);res.json(raw.map(x=>{const a=x.address||{};return {label:x.display_name||'',lat:Number(x.lat),lon:Number(x.lon),city:a.city||a.town||a.village||a.municipality||a.county||'',region:a.state||a.region||'',countryCode:String(a.country_code||'').toLowerCase(),country:a.country||''}}))}catch(err){log.error('geocode.search.failed',{message:err?.message||String(err)});res.status(503).json({error:'Η υπηρεσία τοποθεσίας δεν είναι διαθέσιμη.'})}})
+app.get('/api/location/reverse',limits.geo,async(req,res)=>{const lat=Number(req.query.lat),lon=Number(req.query.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return res.status(400).json({error:'Invalid coordinates'});try{const x=await geocode(`/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lon}`),a=x.address||{};res.json({label:x.display_name||'',lat,lon,city:a.city||a.town||a.village||a.municipality||a.county||'',region:a.state||a.region||'',countryCode:String(a.country_code||'').toLowerCase(),country:a.country||''})}catch(err){log.error('geocode.reverse.failed',{message:err?.message||String(err)});res.status(503).json({error:'Η υπηρεσία τοποθεσίας δεν είναι διαθέσιμη.'})}})
 
 app.post('/api/analytics/professional-event',limits.analytics,async(req,res)=>{const pid=str(req.body.professionalId,80),type=str(req.body.type,40),sid=str(req.body.sessionId,100);if(!['impression','profile_view','phone_click'].includes(type)||!pid)return res.status(400).json({error:'Invalid event'});const windowMin=type==='impression'?60:type==='profile_view'?30:5;const fp=fingerprint(pid,type,sid,sha256(req.ip||''),new Date().toISOString().slice(0,13));const accepted=await Analytics.event(pid,type,fp,windowMin);res.json({ok:true,accepted})})
 app.get(
@@ -1421,15 +1555,64 @@ function injectSeo(html,{title,description,canonical,body='',jsonLd=null}){
   return out
 }
 const dist=path.join(root,'dist')
+
+//
+// Public machine-readable discovery endpoints must exist
+// independently of whether the API is also serving the SPA.
+//
+// This keeps integration/load tests deterministic and is also
+// correct for deployments where frontend and API are separated.
+//
+app.get('/robots.txt',(_req,res)=>
+  res
+    .type('text/plain')
+    .send(
+      `User-agent: *\nAllow: /\nSitemap: ${config.appUrl}/sitemap.xml\n`
+    )
+)
+
+app.get('/sitemap.xml',async(_req,res)=>{
+  const pros=await many(
+    `SELECT p.id
+     FROM professionals p
+     JOIN users u ON u.id=p.user_id
+     WHERE p.verified=true
+       AND p.admin_suspended=false
+       AND p.subscription_status='active'
+       AND u.deleted_at IS NULL`
+  )
+
+  const combos=await many(
+    `SELECT DISTINCT specialty,city
+     FROM professionals
+     WHERE verified=true
+       AND admin_suspended=false
+       AND subscription_status='active'
+       AND specialty<>''
+       AND city<>''
+     LIMIT 1000`
+  )
+
+  const urls=[
+    `${config.appUrl}/`,
+    `${config.appUrl}/search`,
+    ...pros.map(
+      p=>`${config.appUrl}/professionals/${p.id}`
+    ),
+    ...combos.map(
+      x=>`${config.appUrl}/care/${encodeURIComponent(slugify(x.specialty))}/${encodeURIComponent(slugify(x.city))}`
+    )
+  ]
+
+  res
+    .type('application/xml')
+    .send(
+      `<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(u=>`<url><loc>${htmlEscape(u)}</loc></url>`).join('')}</urlset>`
+    )
+})
+
 if(config.isHosted&&fs.existsSync(dist)){
  const baseHtml=()=>fs.readFileSync(path.join(dist,'index.html'),'utf8')
- app.get('/robots.txt',(_req,res)=>res.type('text/plain').send(`User-agent: *\nAllow: /\nSitemap: ${config.appUrl}/sitemap.xml\n`))
- app.get('/sitemap.xml',async(_req,res)=>{
-   const pros=await many(`SELECT p.id FROM professionals p JOIN users u ON u.id=p.user_id WHERE p.verified=true AND p.admin_suspended=false AND p.subscription_status='active' AND u.deleted_at IS NULL`)
-   const combos=await many(`SELECT DISTINCT specialty,city FROM professionals WHERE verified=true AND admin_suspended=false AND subscription_status='active' AND specialty<>'' AND city<>'' LIMIT 1000`)
-   const urls=[`${config.appUrl}/`,`${config.appUrl}/search`,...pros.map(p=>`${config.appUrl}/professionals/${p.id}`),...combos.map(x=>`${config.appUrl}/care/${encodeURIComponent(slugify(x.specialty))}/${encodeURIComponent(slugify(x.city))}`)]
-   res.type('application/xml').send(`<?xml version="1.0" encoding="UTF-8"?><urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">${urls.map(u=>`<url><loc>${htmlEscape(u)}</loc></url>`).join('')}</urlset>`)
- })
  app.get('/professionals/:id',async(req,res,next)=>{
    const p=await Professionals.byId(req.params.id);if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))return next()
    const title=`${p.name} · ${p.specialty} | MELEO`

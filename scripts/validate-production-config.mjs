@@ -1,4 +1,4 @@
-﻿const failures = []
+const failures = []
 
 const productionForbidden = {
   E2E_MODE: ['1', 'true', 'yes', 'on'],
@@ -20,6 +20,16 @@ if (normalized(process.env.NODE_ENV) === 'production') {
       failures.push(`${key}=${process.env[key]} is forbidden in production`)
     }
   }
+}
+
+if (
+  String(process.env.GEOCODING_PROVIDER || '')
+    .trim()
+    .toLowerCase() === 'fixture'
+) {
+  failures.push(
+    'GEOCODING_PROVIDER=fixture is forbidden in production'
+  )
 }
 
 if (failures.length) {

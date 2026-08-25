@@ -10,7 +10,8 @@ const forbiddenKeys = [
   'SEED_DEMO',
   'DEMO_AUTH',
   'DEMO_CHECKOUT',
-  'PAYMENTS_MODE'
+  'PAYMENTS_MODE',
+  'GEOCODING_PROVIDER'
 ]
 
 function cleanEnv() {
@@ -72,6 +73,7 @@ unsafeEnv.SEED_DEMO = '1'
 unsafeEnv.DEMO_AUTH = '1'
 unsafeEnv.DEMO_CHECKOUT = '1'
 unsafeEnv.PAYMENTS_MODE = 'demo'
+unsafeEnv.GEOCODING_PROVIDER = 'fixture'
 
 const unsafe = runValidator(unsafeEnv)
 
@@ -87,7 +89,8 @@ const expected = [
   'SEED_DEMO',
   'DEMO_AUTH',
   'DEMO_CHECKOUT',
-  'PAYMENTS_MODE'
+  'PAYMENTS_MODE',
+  'GEOCODING_PROVIDER'
 ]
 
 const missing = expected.filter(key => !output.includes(key))
