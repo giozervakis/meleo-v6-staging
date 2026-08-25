@@ -11312,3 +11312,36 @@
   }
 
 }
+
+/* ============================================================
+   MELEO PROFESSIONAL FOOTER SAFETY FIX V2
+   Restore correct sidebar/footer boundary after Desktop V1.1
+   ============================================================ */
+
+@media (min-width:1100px){
+
+  .dashboard-pro{
+    align-items:start;
+    min-height:calc(100vh - 76px);
+  }
+
+  .pro-sidebar{
+    position:sticky !important;
+    top:76px !important;
+
+    height:calc(100vh - 76px) !important;
+    min-height:0 !important;
+    max-height:calc(100vh - 76px) !important;
+
+    overflow-y:auto !important;
+    overflow-x:hidden !important;
+
+    align-self:start !important;
+  }
+
+  .pro-sidebar-inner,
+  .pro-sidebar > div{
+    overflow:visible;
+  }
+
+}
