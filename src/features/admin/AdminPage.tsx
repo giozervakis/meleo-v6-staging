@@ -211,7 +211,7 @@ const platformOperational=
  return <section className="admin-page admin-control"><div className="container"><DashboardHead eyebrow="MELEO v4 · FOUNDER & OPERATIONS" title="Admin Control Center" subtitle="Ενιαία εικόνα ανάπτυξης, μελών, επαγγελματιών, κρατήσεων, συνδρομών, verification, ποιότητας και λειτουργιών."/>
  <div className="admin-commandbar"><div><span className="live-dot"></span><b>Operations live</b><small>Τελευταία ανανέωση {new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'})}</small></div><button className="btn ghost small" onClick={refresh}>↻ Ανανέωση δεδομένων</button></div>
  <div className="admin-kpi-strip"><div><span>ΣΥΝΟΛΙΚΑ ΜΕΛΗ</span><strong>{stats.accounts.total}</strong><small>+{stats.accounts.new30} / 30 ημέρες · {mp.active30||0} ενεργά</small></div><div><span>ΕΠΑΓΓΕΛΜΑΤΙΕΣ</span><strong>{stats.professionals.total}</strong><small>{stats.professionals.verified} verified · {stats.professionals.pendingVerification} pending</small></div><div><span>PREMIUM SHARE</span><strong>{mp.premiumShare||0}%</strong><small>{stats.professionals.premium} Premium · {stats.professionals.basic} Basic</small></div><div className="revenue-kpi"><span>MRR ΣΥΝΔΡΟΜΩΝ</span><strong><Euro value={stats.revenue.subscriptionMrr}/></strong><small>Collected this month <Euro value={stats.revenue.collectedRevenue}/></small></div></div>
- <div className="admin-tabs"><button className={tab==='overview'?'active':''} onClick={()=>setTab('overview')}>Επισκόπηση</button><button className={tab==='insights'?'active':''} onClick={()=>setTab('insights')}>Insights</button><button className={tab==='members'?'active':''} onClick={()=>setTab('members')}>Μέλη <b>{members.length}</b></button><button className={tab==='bookings'?'active':''} onClick={()=>setTab('bookings')}>Κρατήσεις <b>{bookings.length}</b></button><button className={tab==='revenue'?'active':''} onClick={()=>setTab('revenue')}>Έσοδα</button><button className={tab==='subs'?'active':''} onClick={()=>setTab('subs')}>Συνδρομές</button><button className={tab==='verification'?'active':''} onClick={()=>setTab('verification')}>Verification <b>{stats.professionals.pendingVerification}</b></button><button className={tab==='support'?'active':''} onClick={()=>setTab('support')}>Support</button><button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Log</button></div>
+ <div className="admin-tabs"><button className={tab==='overview'?'active':''} onClick={()=>setTab('overview')}>Επισκόπηση</button><button className={tab==='insights'?'active':''} onClick={()=>setTab('insights')}>Insights</button><button className={tab==='members'?'active':''} onClick={()=>setTab('members')}>Μέλη <b>{members.length}</b></button><button className={tab==='bookings'?'active':''} onClick={()=>setTab('bookings')}>Κρατήσεις <b>{bookings.length}</b></button><button className={tab==='revenue'?'active':''} onClick={()=>setTab('revenue')}>Έσοδα</button><button className={tab==='subs'?'active':''} onClick={()=>setTab('subs')}>Συνδρομές</button><button className={tab==='verification'?'active':''} onClick={()=>setTab('verification')}>Verification <b>{stats.professionals.pendingVerification}</b></button><button className={tab==='support'?'active':''} onClick={()=>setTab('support')}>Support</button><button className={tab==='smart'?'active':''} onClick={()=>setTab('smart')}>🧠 Smart Requests</button><button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Log</button></div>
  {tab==='overview'&&<>
 
   <section className="admin-executive-hero">
@@ -919,9 +919,343 @@ const platformOperational=
  {tab==='revenue'&&<><div className="revenue-hero"><div><span>MONTHLY RECURRING REVENUE</span><strong><Euro value={stats.revenue.subscriptionMrr}/></strong><small>ARR <Euro value={stats.revenue.subscriptionArr}/> · collected this month <Euro value={stats.revenue.collectedRevenue}/></small></div><div className="revenue-breakdown"><span><i>BASIC</i><b>{stats.professionals.basic} × {money(9.99)}</b></span><span><i>PREMIUM</i><b>{stats.professionals.premium} × {money(14.99)}</b></span><span><i>Outstanding</i><b><Euro value={stats.revenue.outstanding}/></b></span><span><i>Failed charges</i><b>{stats.revenue.failedPayments}</b></span></div></div><div className="admin-grid-2"><div className="panel"><div className="panel-heading"><h3>Revenue health</h3><span>Subscription engine</span></div><div className="finance-lines"><span><i>MRR</i><b><Euro value={stats.revenue.subscriptionMrr}/></b></span><span><i>Collected current month</i><b><Euro value={stats.revenue.collectedRevenue}/></b></span><span><i>Failed value</i><b><Euro value={stats.revenue.failedRevenue}/></b></span><span><i>Past due professionals</i><b>{stats.professionals.pastDue}</b></span><span><i>Cancelled</i><b>{stats.professionals.churned}</b></span></div></div><div className="panel"><div className="panel-heading"><h3>Marketplace economics</h3><span>Informational</span></div><div className="finance-lines"><span><i>Completed GMV</i><b><Euro value={stats.revenue.marketplaceGmv}/></b></span><span><i>Avg completed booking</i><b><Euro value={stats.bookings.avgValue}/></b></span><span><i>Platform take rate</i><b>0%</b></span><span><i>Revenue model</i><b>Subscriptions only</b></span></div></div></div><div className="admin-finance-note">Το GMV είναι πληροφοριακό και δεν αποτελεί έσοδο της MELEO. Για λογιστική συμφωνία χρησιμοποιούνται τα πραγματικά payment records και τα παραστατικά του payment provider.</div></>}
  {tab==='subs'&&<AdminSubscriptions token={token} setToast={setToast}/>} 
  {tab==='verification'&&<div className="panel"><div className="panel-heading"><h3>Verification Operations</h3><span>Manual & submitted professional verification</span></div>{vers.length?vers.map(v=><div className="admin-row" key={v.id}><div><b>{v.name}</b><span>{v.specialty||'Επαγγελματίας'} · {v.subscriptionPlan?String(v.subscriptionPlan).toUpperCase():'—'} · {v.city||'—'}</span><span>{v.email||'—'} · {v.phone||'—'}</span><span>Άδεια/μητρώο: {v.licenseNumber||'—'} · Δικαιολογητικά: {v.documentCount||0}</span>{v.documents?.length>0&&<span className="verification-doc-links">{v.documents.map((d:any)=><a key={d.id} href={`/api/admin/verification-documents/${d.id}`}>Λήψη: {d.name}</a>)}</span>}<small>{v.createdAt?.slice(0,16).replace('T',' ')}</small></div><span className={'status '+v.status}>{v.status}</span><div className="admin-actions">{v.status!=='approved'&&<button className="positive-lite" onClick={()=>decide(v.id,'approved')}>Έγκριση</button>}{v.status!=='rejected'&&<button className="danger-lite" onClick={()=>decide(v.id,'rejected')}>Απόρριψη</button>}</div></div>):<Empty title="Καμία εκκρεμότητα" text="Τα νέα αιτήματα verification θα εμφανίζονται εδώ."/>}</div>}
- {tab==='support'&&<AdminSupport token={token} setToast={setToast}/>} {tab==='audit'&&<div className="panel admin-table-panel"><div className="table-toolbar"><div><h3>Audit Log</h3><span>Ιχνηλασιμότητα κρίσιμων ενεργειών Admin και συστήματος</span></div><button className="btn ghost small" onClick={refresh}>Ανανέωση</button></div><div className="responsive-table"><table><thead><tr><th>Χρόνος</th><th>Actor</th><th>Action</th><th>Metadata</th></tr></thead><tbody>{auditRows.map((x:any)=><tr key={x.id}><td>{new Date(x.at).toLocaleString('el-GR')}</td><td><b>{x.actorName}</b><small>{x.actorEmail}</small></td><td><code>{x.action}</code></td><td><small className="audit-meta">{JSON.stringify(x.meta||{})}</small></td></tr>)}</tbody></table></div></div>}
+ {tab==='support'&&<AdminSupport token={token} setToast={setToast}/>} {tab==='smart'&&<AdminSmartRequests token={token} setToast={setToast}/>} {tab==='audit'&&<div className="panel admin-table-panel"><div className="table-toolbar"><div><h3>Audit Log</h3><span>Ιχνηλασιμότητα κρίσιμων ενεργειών Admin και συστήματος</span></div><button className="btn ghost small" onClick={refresh}>Ανανέωση</button></div><div className="responsive-table"><table><thead><tr><th>Χρόνος</th><th>Actor</th><th>Action</th><th>Metadata</th></tr></thead><tbody>{auditRows.map((x:any)=><tr key={x.id}><td>{new Date(x.at).toLocaleString('el-GR')}</td><td><b>{x.actorName}</b><small>{x.actorEmail}</small></td><td><code>{x.action}</code></td><td><small className="audit-meta">{JSON.stringify(x.meta||{})}</small></td></tr>)}</tbody></table></div></div>}
  </div></section>
 }
+
+function AdminSmartRequests({token,setToast}:any){
+
+ const [rows,setRows]=useState<any[]>([])
+ const [summary,setSummary]=useState<any>({})
+ const [status,setStatus]=useState('all')
+ const [query,setQuery]=useState('')
+ const [busy,setBusy]=useState('')
+
+ async function load(){
+
+   try{
+
+     const params=new URLSearchParams()
+
+     if(status!=='all'){
+       params.set('status',status)
+     }
+
+     if(query.trim()){
+       params.set('q',query.trim())
+     }
+
+     const d=await api(
+       '/admin/smart-requests?'+params.toString(),
+       {},
+       token
+     )
+
+     setRows(
+       Array.isArray(d)
+         ?d
+         :(d.items||[])
+     )
+
+     setSummary(d.summary||{})
+
+   }
+   catch(e:any){
+
+     setToast(
+       e.message||
+       'Αποτυχία φόρτωσης Smart Requests.'
+     )
+
+   }
+
+ }
+
+ useEffect(()=>{
+   load()
+ },[status])
+
+ async function decision(
+   row:any,
+   nextStatus:string
+ ){
+
+   let specialty=row.specialty||''
+   let service=row.service||''
+   let note=row.note||''
+
+   if(nextStatus==='learned'){
+
+     specialty=
+       window.prompt(
+         'Σε ποια ειδικότητα ανήκει;',
+         specialty
+       )||''
+
+     if(!specialty.trim()){
+       return
+     }
+
+     service=
+       window.prompt(
+         'Υπηρεσία (προαιρετικό):',
+         service
+       )||''
+
+   }
+
+   if(
+     nextStatus==='ignored'||
+     nextStatus==='reviewed'
+   ){
+
+     note=
+       window.prompt(
+         'Εσωτερική σημείωση (προαιρετικό):',
+         note
+       )||''
+
+   }
+
+   setBusy(row.id+nextStatus)
+
+   try{
+
+     await api(
+       '/admin/smart-requests/'+row.id,
+       {
+         method:'PATCH',
+         body:JSON.stringify({
+           status:nextStatus,
+           specialty,
+           service,
+           note
+         })
+       },
+       token
+     )
+
+     await load()
+
+     setToast(
+       nextStatus==='learned'
+         ?'Το Smart Request προστέθηκε στη γνώση της MELEO.'
+         :'Η κατάσταση ενημερώθηκε.'
+     )
+
+   }
+   catch(e:any){
+
+     setToast(
+       e.message||
+       'Η ενέργεια απέτυχε.'
+     )
+
+   }
+   finally{
+     setBusy('')
+   }
+
+ }
+
+ return (
+
+   <div className="admin-smart-learning">
+
+     <div className="admin-grid-4">
+
+       <div className="panel">
+         <small>NEW</small>
+         <h2>{summary.new||0}</h2>
+         <span>Νέα άγνωστα αιτήματα</span>
+       </div>
+
+       <div className="panel">
+         <small>LEARNED</small>
+         <h2>{summary.learned||0}</h2>
+         <span>Εκπαιδευμένες φράσεις</span>
+       </div>
+
+       <div className="panel">
+         <small>TOTAL PATTERNS</small>
+         <h2>{summary.total||0}</h2>
+         <span>Μοναδικά patterns</span>
+       </div>
+
+       <div className="panel">
+         <small>REQUEST SIGNALS</small>
+         <h2>{summary.occurrences||0}</h2>
+         <span>Συνολικές εμφανίσεις</span>
+       </div>
+
+     </div>
+
+     <div className="panel">
+
+       <div className="panel-heading">
+
+         <div>
+           <h3>🧠 Smart Request Learning</h3>
+           <span>
+             Πραγματικά αιτήματα που δεν αναγνώρισε
+             ο Smart Request matcher
+           </span>
+         </div>
+
+         <button
+           className="btn ghost small"
+           onClick={load}
+         >
+           ↻ Ανανέωση
+         </button>
+
+       </div>
+
+       <div className="table-toolbar">
+
+         <input
+           value={query}
+           onChange={e=>setQuery(e.target.value)}
+           onKeyDown={e=>{
+             if(e.key==='Enter')load()
+           }}
+           placeholder="Αναζήτηση αιτήματος…"
+         />
+
+         <select
+           value={status}
+           onChange={e=>setStatus(e.target.value)}
+         >
+           <option value="all">Όλα</option>
+           <option value="new">New</option>
+           <option value="reviewed">Reviewed</option>
+           <option value="learned">Learned</option>
+           <option value="ignored">Ignored</option>
+         </select>
+
+         <button
+           className="btn small"
+           onClick={load}
+         >
+           Αναζήτηση
+         </button>
+
+       </div>
+
+       {rows.length
+         ?rows.map((r:any)=>(
+
+           <div
+             className="admin-row smart-learning-row"
+             key={r.id}
+           >
+
+             <div>
+
+               <b>
+                 “{r.text}”
+               </b>
+
+               <span>
+                 {r.occurrences} εμφάνιση
+                 {r.occurrences===1?'':'εις'}
+               </span>
+
+               {r.specialty&&(
+                 <span>
+                   🎯 {r.specialty}
+                   {r.service
+                     ?` · ${r.service}`
+                     :''
+                   }
+                 </span>
+               )}
+
+               <small>
+                 Πρώτη:
+                 {' '}
+                 {new Date(
+                   r.firstSeenAt
+                 ).toLocaleString('el-GR')}
+                 {' · '}
+                 Τελευταία:
+                 {' '}
+                 {new Date(
+                   r.lastSeenAt
+                 ).toLocaleString('el-GR')}
+               </small>
+
+             </div>
+
+             <span
+               className={'status '+r.status}
+             >
+               {r.status}
+             </span>
+
+             <div className="admin-actions">
+
+               {r.status!=='learned'&&(
+                 <button
+                   className="positive-lite"
+                   disabled={
+                     busy===r.id+'learned'
+                   }
+                   onClick={()=>
+                     decision(r,'learned')
+                   }
+                 >
+                   🧠 Learn
+                 </button>
+               )}
+
+               {r.status!=='reviewed'&&(
+                 <button
+                   disabled={
+                     busy===r.id+'reviewed'
+                   }
+                   onClick={()=>
+                     decision(r,'reviewed')
+                   }
+                 >
+                   Reviewed
+                 </button>
+               )}
+
+               {r.status!=='ignored'&&(
+                 <button
+                   className="danger-lite"
+                   disabled={
+                     busy===r.id+'ignored'
+                   }
+                   onClick={()=>
+                     decision(r,'ignored')
+                   }
+                 >
+                   Ignore
+                 </button>
+               )}
+
+             </div>
+
+           </div>
+
+         ))
+         :(
+           <Empty
+             title="Δεν υπάρχουν Smart Requests"
+             text="Όταν ο matcher δεν μπορεί να καταλάβει ένα αίτημα, θα εμφανίζεται εδώ."
+           />
+         )
+       }
+
+     </div>
+
+   </div>
+
+ )
+}
+
 function AdminSupport({token,setToast}:any){
  const [rows,setRows]=useState<any[]>([]);const [reply,setReply]=useState<Record<string,string>>({});async function load(){const d=await api('/support/tickets?limit=100',{},token);setRows(Array.isArray(d)?d:(d.items||[]))}useEffect(()=>{load()},[])
  async function update(id:string,status:string){await api('/support/tickets/'+id,{method:'PATCH',body:JSON.stringify({status})},token);load()}

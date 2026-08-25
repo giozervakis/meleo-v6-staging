@@ -995,6 +995,386 @@ app.patch('/api/support/tickets/:id',auth,requireRole('admin'),limits.write,asyn
 
 app.use('/api/admin',auth,requireRole('admin'),adminIpGuard,limits.admin)
 app.use('/api/admin',(req,res,next)=>['GET','HEAD','OPTIONS'].includes(req.method)?next():limits.adminWrite(req,res,next))
+
+// ============================================================
+// MELEO SMART REQUEST LEARNING v1
+// ============================================================
+
+let smartLearningSchemaReady = false
+
+async function ensureSmartLearningSchema(){
+
+  if(smartLearningSchemaReady)return
+
+  await sql(`
+    CREATE TABLE IF NOT EXISTS smart_request_learning (
+      id text PRIMARY KEY,
+      normalized_text text NOT NULL UNIQUE,
+      sample_text text NOT NULL,
+      occurrences integer NOT NULL DEFAULT 1,
+      status text NOT NULL DEFAULT 'new',
+      learned_specialty text,
+      learned_service text,
+      admin_note text,
+      first_seen_at timestamptz NOT NULL DEFAULT now(),
+      last_seen_at timestamptz NOT NULL DEFAULT now(),
+      reviewed_at timestamptz,
+      reviewed_by text
+    )
+  `)
+
+  await sql(`
+    CREATE INDEX IF NOT EXISTS smart_request_learning_status_idx
+    ON smart_request_learning(status)
+  `)
+
+  await sql(`
+    CREATE INDEX IF NOT EXISTS smart_request_learning_occurrences_idx
+    ON smart_request_learning(occurrences DESC)
+  `)
+
+  smartLearningSchemaReady=true
+}
+
+function normalizeSmartRequest(value){
+
+  return String(value||'')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g,'')
+    .toLowerCase()
+    .replace(/ς/g,'σ')
+    .replace(/[^\p{L}\p{N}\s]/gu,' ')
+    .replace(/\s+/g,' ')
+    .trim()
+}
+
+
+// ------------------------------------------------------------
+// PUBLIC / SMART REQUEST TRACKING
+// ------------------------------------------------------------
+
+app.post(
+  '/api/smart-request/unmatched',
+  limits.write,
+  async(req,res)=>{
+
+    await ensureSmartLearningSchema()
+
+    const text=str(req.body.text,500)
+
+    if(!text || text.length<3){
+      return res.status(400).json({
+        error:'Το αίτημα είναι πολύ μικρό.'
+      })
+    }
+
+    const normalized=normalizeSmartRequest(text)
+
+    if(!normalized){
+      return res.status(400).json({
+        error:'Μη έγκυρο αίτημα.'
+      })
+    }
+
+    const existing=await one(
+      `
+      SELECT id
+      FROM smart_request_learning
+      WHERE normalized_text=$1
+      `,
+      [normalized]
+    )
+
+    if(existing){
+
+      await sql(
+        `
+        UPDATE smart_request_learning
+        SET
+          occurrences=occurrences+1,
+          sample_text=$1,
+          last_seen_at=now()
+        WHERE id=$2
+        `,
+        [text,existing.id]
+      )
+
+      return res.json({
+        ok:true,
+        aggregated:true
+      })
+    }
+
+    const sid=id('smart')
+
+    await sql(
+      `
+      INSERT INTO smart_request_learning(
+        id,
+        normalized_text,
+        sample_text
+      )
+      VALUES($1,$2,$3)
+      `,
+      [
+        sid,
+        normalized,
+        text
+      ]
+    )
+
+    res.json({
+      ok:true,
+      id:sid,
+      aggregated:false
+    })
+  }
+)
+
+
+// ------------------------------------------------------------
+// LEARNED RULE LOOKUP
+// ------------------------------------------------------------
+
+app.post(
+  '/api/smart-request/learned-match',
+  async(req,res)=>{
+
+    await ensureSmartLearningSchema()
+
+    const text=str(req.body.text,500)
+    const normalized=normalizeSmartRequest(text)
+
+    if(!normalized){
+      return res.json({
+        match:null
+      })
+    }
+
+    const rows=await many(
+      `
+      SELECT
+        id,
+        normalized_text "normalizedText",
+        learned_specialty "specialty",
+        learned_service "service",
+        occurrences
+      FROM smart_request_learning
+      WHERE status='learned'
+        AND learned_specialty IS NOT NULL
+      ORDER BY occurrences DESC
+      LIMIT 500
+      `
+    )
+
+    let best=null
+    let bestScore=0
+
+    for(const row of rows){
+
+      const phrase=row.normalizedText||''
+
+      if(!phrase)continue
+
+      let score=0
+
+      if(normalized===phrase){
+        score=100
+      }
+      else if(normalized.includes(phrase)){
+        score=80
+      }
+      else if(phrase.includes(normalized) && normalized.length>=8){
+        score=60
+      }
+
+      if(score>bestScore){
+        bestScore=score
+        best=row
+      }
+    }
+
+    res.json({
+      match:best
+        ?{
+            specialty:best.specialty,
+            service:best.service||'',
+            score:bestScore,
+            source:'learned'
+          }
+        :null
+    })
+  }
+)
+
+
+// ------------------------------------------------------------
+// ADMIN LIST
+// ------------------------------------------------------------
+
+app.get(
+  '/api/admin/smart-requests',
+  async(req,res)=>{
+
+    await ensureSmartLearningSchema()
+
+    const status=str(req.query.status,30)
+    const q=str(req.query.q,150)
+
+    const where=[]
+    const params=[]
+
+    if(status && status!=='all'){
+      params.push(status)
+      where.push(`status=$${params.length}`)
+    }
+
+    if(q){
+      params.push(`%${q}%`)
+      where.push(
+        `(sample_text ILIKE $${params.length}
+          OR normalized_text ILIKE $${params.length}
+          OR learned_specialty ILIKE $${params.length}
+          OR learned_service ILIKE $${params.length})`
+      )
+    }
+
+    const rows=await many(
+      `
+      SELECT
+        id,
+        sample_text "text",
+        normalized_text "normalizedText",
+        occurrences,
+        status,
+        learned_specialty "specialty",
+        learned_service "service",
+        admin_note "note",
+        first_seen_at "firstSeenAt",
+        last_seen_at "lastSeenAt",
+        reviewed_at "reviewedAt"
+      FROM smart_request_learning
+      ${where.length?'WHERE '+where.join(' AND '):''}
+      ORDER BY
+        CASE status
+          WHEN 'new' THEN 0
+          WHEN 'reviewed' THEN 1
+          WHEN 'learned' THEN 2
+          ELSE 3
+        END,
+        occurrences DESC,
+        last_seen_at DESC
+      LIMIT 300
+      `,
+      params
+    )
+
+    const summary=await one(
+      `
+      SELECT
+        count(*)::int total,
+        count(*) FILTER(WHERE status='new')::int new,
+        count(*) FILTER(WHERE status='reviewed')::int reviewed,
+        count(*) FILTER(WHERE status='learned')::int learned,
+        count(*) FILTER(WHERE status='ignored')::int ignored,
+        coalesce(sum(occurrences),0)::int occurrences
+      FROM smart_request_learning
+      `
+    )
+
+    res.json({
+      items:rows,
+      summary
+    })
+  }
+)
+
+
+// ------------------------------------------------------------
+// ADMIN DECISION
+// ------------------------------------------------------------
+
+app.patch(
+  '/api/admin/smart-requests/:id',
+  async(req,res)=>{
+
+    await ensureSmartLearningSchema()
+
+    const item=await one(
+      `
+      SELECT *
+      FROM smart_request_learning
+      WHERE id=$1
+      `,
+      [req.params.id]
+    )
+
+    if(!item){
+      return res.status(404).json({
+        error:'Smart request not found'
+      })
+    }
+
+    const status=[
+      'new',
+      'reviewed',
+      'learned',
+      'ignored'
+    ].includes(req.body.status)
+      ?req.body.status
+      :'reviewed'
+
+    const specialty=str(req.body.specialty,150)
+    const service=str(req.body.service,200)
+    const note=str(req.body.note,1000)
+
+    if(status==='learned' && !specialty){
+      return res.status(400).json({
+        error:'Για Learned request απαιτείται ειδικότητα.'
+      })
+    }
+
+    await sql(
+      `
+      UPDATE smart_request_learning
+      SET
+        status=$1,
+        learned_specialty=$2,
+        learned_service=$3,
+        admin_note=$4,
+        reviewed_at=now(),
+        reviewed_by=$5
+      WHERE id=$6
+      `,
+      [
+        status,
+        specialty||null,
+        service||null,
+        note||null,
+        req.user.id,
+        item.id
+      ]
+    )
+
+    await audit(
+      req.user.id,
+      'admin.smart_request.update',
+      {
+        smartRequestId:item.id,
+        status,
+        specialty,
+        service
+      }
+    )
+
+    res.json({
+      ok:true
+    })
+  }
+)
+
+// END MELEO SMART REQUEST LEARNING v1
+
 app.get('/api/admin/stats',async(_req,res)=>res.json(await Admin.stats()))
 app.get(
   '/api/admin/command-center',

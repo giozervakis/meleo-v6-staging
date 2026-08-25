@@ -1466,7 +1466,7 @@ function SmartRequest({
       : ''
   }
 
-  function analyze() {
+  async function analyze() {
     const normalizedText = normalize(text)
 
     if (!normalizedText) {
@@ -1504,9 +1504,77 @@ function SmartRequest({
       .sort((a, b) => b.score - a.score)
 
     if (!scored.length) {
+      /*
+       * ----------------------------------------------------------
+       * 2B. ADMIN-APPROVED LEARNING FALLBACK
+       * ----------------------------------------------------------
+       * Built-in rules always have priority.
+       * Only administrator-approved learning is used.
+       */
+      try {
+        const learnedResponse = await api(
+          '/smart-request/learned-match',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              text
+            })
+          }
+        )
+
+        const learned = learnedResponse?.match
+
+        if (
+          learned?.specialty &&
+          learned.score >= 60
+        ) {
+          setSuggestion({
+            specialty: learned.specialty,
+            service: learned.service || '',
+            confidence:
+              learned.score >= 80
+                ? 'Υψηλή'
+                : 'Μέτρια',
+            score: learned.score,
+            alternatives: [],
+            matched: [],
+            source: 'learned'
+          })
+
+          return
+        }
+      } catch (error) {
+        console.warn(
+          'Smart Request learned-match failed',
+          error
+        )
+      }
+
+      /*
+       * Nothing recognized.
+       * Store it for administrator review.
+       */
+      try {
+        await api(
+          '/smart-request/unmatched',
+          {
+            method: 'POST',
+            body: JSON.stringify({
+              text
+            })
+          }
+        )
+      } catch (error) {
+        console.warn(
+          'Smart Request unmatched logging failed',
+          error
+        )
+      }
+
       setSuggestion({
         unmatched: true
       })
+
       return
     }
 
