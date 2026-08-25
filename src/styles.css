@@ -11633,3 +11633,108 @@
   }
 
 }
+
+/* ============================================================
+   MELEO SEARCH RESULTS — DESKTOP READABILITY V1
+   ============================================================ */
+
+@media (min-width:1101px){
+
+  /* σωστό offset επειδή το header είναι sticky */
+  #meleo-search-results{
+    scroll-margin-top:100px;
+  }
+
+  .discovery-results{
+    gap:20px;
+  }
+
+  .discovery-card-header{
+    padding:22px 20px 15px;
+    gap:14px;
+  }
+
+  .discovery-name-row{
+    gap:7px;
+  }
+
+  .discovery-name-row h3{
+    font-size:18px;
+    line-height:1.22;
+  }
+
+  .discovery-location{
+    margin-top:6px;
+    font-size:11px;
+    line-height:1.45;
+  }
+
+  .discovery-card .identity-avatar{
+    transform:scale(1.08);
+    transform-origin:top left;
+    margin-right:5px;
+    margin-bottom:5px;
+  }
+
+  .smart-match-compact{
+    min-height:64px;
+    padding:0 20px;
+  }
+
+  .smart-match-brand span{
+    font-size:15px;
+  }
+
+  .smart-match-brand b{
+    font-size:12px;
+  }
+
+  .smart-match-compact>strong{
+    font-size:17px;
+  }
+
+  .smart-match-inline{
+    margin:18px 16px 0;
+    padding:15px 16px;
+  }
+
+  .smart-match-inline-head>span{
+    font-size:12px;
+  }
+
+  .smart-match-inline-reasons span{
+    font-size:11px;
+    min-height:28px;
+    padding:5px 9px;
+  }
+
+  .discovery-card .tag-row span{
+    font-size:11px;
+    padding:7px 10px;
+  }
+
+  .discovery-footer{
+    padding:18px 20px 16px;
+  }
+
+  .discovery-price small{
+    font-size:9px;
+  }
+
+  .discovery-price strong{
+    font-size:20px;
+    line-height:1.15;
+  }
+
+  .discovery-price span{
+    font-size:9px;
+    line-height:1.4;
+    max-width:280px;
+  }
+
+  .discovery-open{
+    min-height:46px;
+    padding:0 17px;
+    font-size:11px;
+  }
+}

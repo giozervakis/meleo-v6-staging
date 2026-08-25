@@ -211,7 +211,20 @@ function SearchPage({
           <SearchBox
             search={search}
             setSearch={setSearch}
-            onSearch={()=>loadPros(search)}
+            onSearch={async ()=>{
+  await loadPros(search)
+
+  requestAnimationFrame(()=>{
+    requestAnimationFrame(()=>{
+      document
+        .getElementById('meleo-search-results')
+        ?.scrollIntoView({
+          behavior:'smooth',
+          block:'start'
+        })
+    })
+  })
+}}
           />
 
         </div>
@@ -281,7 +294,10 @@ function SearchPage({
 
         {/* DISCOVERY TOOLBAR */}
 
-        <div className="discovery-toolbar">
+        <div
+  id="meleo-search-results"
+  className="discovery-toolbar"
+>
 
           <div className="discovery-results-summary">
 
