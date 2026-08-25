@@ -15,7 +15,7 @@ function walk(p){
 }
 for(const r of roots) walk(r)
 const entries=files.map(file=>({file,sha256:crypto.createHash('sha256').update(fs.readFileSync(file)).digest('hex'),sizeBytes:fs.statSync(file).size}))
-const manifest={product:'MELEO',version:'6.0.0',channel:'production',generatedAt:new Date().toISOString(),files:entries}
+const manifest={product:'MELEO',version:'6.1.2',channel:'production',generatedAt:new Date().toISOString(),files:entries}
 fs.mkdirSync('reports',{recursive:true})
-fs.writeFileSync('reports/release-manifest-v6.0.0.json',JSON.stringify(manifest,null,2))
+fs.writeFileSync('reports/release-manifest-v6.1.2.json',JSON.stringify(manifest,null,2))
 console.log(`MELEO v6.0 release manifest: ${entries.length} files hashed`)
