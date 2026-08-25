@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+﻿import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from './lib/api'
 import { viewFromPath, pathForView, pushView } from './lib/router'
 import type { User, Professional, BookingMessage, Booking, Plan, AppConfig } from './domain/types'
@@ -630,7 +630,44 @@ export default function App(){
   messages:0,
   total:0
 })
-  const setView=(next:string, replace=false)=>{setViewState(next);pushView(next,selected?.id,replace)}
+  const setView=(next:string, replace=false)=>{
+  setViewState(next)
+  pushView(next,selected?.id,replace)
+}
+
+/* Always start a new MELEO view from the top */
+useEffect(()=>{
+  window.scrollTo({
+    top: 0,
+    left: 0,
+    behavior: 'auto'
+  })
+},[view])
+
+useEffect(()=>{
+  const onPop=()=>{
+    const v=viewFromPath(window.location.pathname)
+    setViewState(v)
+
+    if(v==='profile'){
+      const pid=window.location.pathname.split('/')[2]
+      api('/professionals/'+pid)
+        .then((d:any)=>setSelected(d.professional||d))
+        .catch(()=>setViewState('search'))
+    }
+  }
+
+  window.addEventListener('popstate',onPop)
+
+  if(viewFromPath(window.location.pathname)==='profile'){
+    const pid=window.location.pathname.split('/')[2]
+    api('/professionals/'+pid)
+      .then((d:any)=>setSelected(d.professional||d))
+      .catch(()=>setViewState('search'))
+  }
+
+  return()=>window.removeEventListener('popstate',onPop)
+},[])
   useEffect(()=>{const onPop=()=>{const v=viewFromPath(window.location.pathname);setViewState(v);if(v==='profile'){const pid=window.location.pathname.split('/')[2];api('/professionals/'+pid).then((d:any)=>setSelected(d.professional||d)).catch(()=>setViewState('search'))}};window.addEventListener('popstate',onPop);if(viewFromPath(window.location.pathname)==='profile'){const pid=window.location.pathname.split('/')[2];api('/professionals/'+pid).then((d:any)=>setSelected(d.professional||d)).catch(()=>setViewState('search'))}return()=>window.removeEventListener('popstate',onPop)},[])
   const [identityOpen,setIdentityOpen]=useState(false)
   async function refreshMe(t=token){ try{const d=await api('/me',{},t);setUser(d.user);setProfessional(d.professional);if(['patient','professional'].includes(d.user.role))setFavorites(await api('/favorites',{},t))}catch{setUser(null);setProfessional(null)}finally{setLoading(false)} }
@@ -3177,3 +3214,5 @@ function InlineRegister({onLogged,setView}:any){const [f,setF]=useState({name:''
 
 function MobileNav({user,view,setView}:any){return <nav className="mobile-nav"><button className={view==='home'?'active':''} onClick={()=>setView('home')}><span>⌂</span>Αρχική</button><button className={view==='search'?'active':''} onClick={()=>setView('search')}><span>⌕</span>Αναζήτηση</button><button className="mobile-center" onClick={()=>setView('now')}><span>⚡</span></button><button onClick={()=>setView('become-pro')}><span>✦</span>Pro</button><button onClick={()=>setView(user?user.role==='professional'?'pro-dashboard':user.role==='admin'?'admin':'patient-dashboard':'auth')}><span>○</span>Προφίλ</button></nav>}
 function Empty({title,text}:any){return <div className="empty"><div>◇</div><h3>{title}</h3><p>{text}</p></div>}
+
+
