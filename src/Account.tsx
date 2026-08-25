@@ -8,7 +8,74 @@ import React, { useState } from 'react'
  * δικηγόρο πριν τη δημόσια λειτουργία — ειδικά τα σημεία για ευθύνη,
  * ρόλο της πλατφόρμας, δεδομένα υγείας και συνδρομές.
  */
+function getPasswordChecks(password: string) {
+  const value = String(password || '')
 
+  return {
+    length: value.length >= 8,
+    uppercase: /[A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ]/u.test(value),
+    lowercase: /[a-zα-ωάέήίόύώϊϋΐΰ]/u.test(value),
+    number: /\d/.test(value),
+    special: /[^A-Za-zΑ-Ωα-ωΆΈΉΊΌΎΏΪΫάέήίόύώϊϋΐΰ0-9\s]/u.test(value)
+  }
+}
+
+function isStrongPassword(password: string) {
+  return Object.values(getPasswordChecks(password)).every(Boolean)
+}
+
+function PasswordChecklist({password}:{password:string}) {
+  const checks = getPasswordChecks(password)
+
+  const items = [
+    ['length','Τουλάχιστον 8 χαρακτήρες'],
+    ['uppercase','Ένα κεφαλαίο γράμμα'],
+    ['lowercase','Ένα πεζό γράμμα'],
+    ['number','Έναν αριθμό'],
+    ['special','Έναν ειδικό χαρακτήρα']
+  ] as const
+
+  return (
+    <div className="password-checklist">
+      <strong>Ο νέος κωδικός πρέπει να περιλαμβάνει:</strong>
+
+      {items.map(([key,label])=>(
+        <div
+          key={key}
+          className={checks[key] ? 'password-rule ok' : 'password-rule'}
+        >
+          <span>{checks[key] ? '✓' : '○'}</span>
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PasswordStrength({password}:{password:string}) {
+  const checks = getPasswordChecks(password)
+  const score = Object.values(checks).filter(Boolean).length
+
+  const label =
+    score <= 1 ? 'Πολύ αδύναμος' :
+    score === 2 ? 'Αδύναμος' :
+    score === 3 ? 'Μέτριος' :
+    score === 4 ? 'Ισχυρός' :
+    'Πολύ ισχυρός'
+
+  return (
+    <div className="password-strength">
+      <div className="password-strength-head">
+        <span>Ισχύς κωδικού</span>
+        <strong>{label}</strong>
+      </div>
+
+      <div className="password-strength-bar">
+        <span style={{width:`${(score/5)*100}%`}}/>
+      </div>
+    </div>
+  )
+}
 type ApiFn = (path: string, options?: any, token?: string) => Promise<any>
 
 export function AccountSettings({
@@ -25,21 +92,68 @@ export function AccountSettings({
 }) {
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
   const [busy, setBusy] = useState('')
-  const [error, setError] = useState('')
+  const [passwordError, setPasswordError] = useState('')
+  const [deleteError, setDeleteError] = useState('')
   const [delPassword, setDelPassword] = useState('')
   const [confirmDelete, setConfirmDelete] = useState(false)
+  const [showCurrent,setShowCurrent]=useState(false)
+  const [showNext,setShowNext]=useState(false)
+  const [showConfirm,setShowConfirm]=useState(false)
 
-  async function changePassword(e: React.FormEvent) {
-    e.preventDefault(); setError(''); setBusy('pw')
-    if (pw.next.length < 8) { setError('Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.'); setBusy(''); return }
-    if (pw.next !== pw.confirm) { setError('Οι νέοι κωδικοί δεν ταιριάζουν.'); setBusy(''); return }
-    try {
-      await api('/me/change-password', { method: 'POST', body: JSON.stringify({ currentPassword: pw.current, newPassword: pw.next }) }, token)
-      setPw({ current: '', next: '', confirm: '' }); setToast('Ο κωδικός άλλαξε.')
-    } catch (err: any) { setError(err.message) } finally { setBusy('') }
+async function changePassword(e: React.FormEvent) {
+  e.preventDefault()
+  setPasswordError('')
+
+  if (!pw.current) {
+    setPasswordError('Συμπλήρωσε τον τρέχοντα κωδικό.')
+    return
   }
 
-  async function exportData() {
+  const checks = getPasswordChecks(pw.next)
+
+  if (!Object.values(checks).every(Boolean)) {
+    setPasswordError(
+      'Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει κεφαλαίο γράμμα, πεζό γράμμα, αριθμό και ειδικό χαρακτήρα.'
+    )
+    return
+  }
+
+  if (pw.next !== pw.confirm) {
+    setPasswordError('Οι νέοι κωδικοί δεν ταιριάζουν.')
+    return
+  }
+
+  setBusy('pw')
+
+  try {
+    await api(
+      '/me/change-password',
+      {
+        method: 'POST',
+        body: JSON.stringify({
+          currentPassword: pw.current,
+          newPassword: pw.next
+        })
+      },
+      token
+    )
+
+    setPw({
+      current: '',
+      next: '',
+      confirm: ''
+    })
+
+    setToast('Ο κωδικός άλλαξε επιτυχώς. Συνδέσου ξανά με τον νέο κωδικό.')
+    logout()
+  } catch (err: any) {
+    setPasswordError(err.message)
+  } finally {
+    setBusy('')
+  }
+}
+
+async function exportData() {
     setBusy('export')
     try {
       const data = await api('/me/export', {}, token)
@@ -52,14 +166,30 @@ export function AccountSettings({
     } catch (err: any) { setToast(err.message) } finally { setBusy('') }
   }
 
-  async function deleteAccount() {
-    setError(''); setBusy('delete')
-    try {
-      await api('/me', { method: 'DELETE', body: JSON.stringify({ password: delPassword }) }, token)
-      setToast('Ο λογαριασμός σου διαγράφηκε.')
-      logout()
-    } catch (err: any) { setError(err.message) } finally { setBusy('') }
+ async function deleteAccount() {
+  setDeleteError('')
+  setBusy('delete')
+
+  try {
+    await api(
+      '/me',
+      {
+        method: 'DELETE',
+        body: JSON.stringify({
+          password: delPassword
+        })
+      },
+      token
+    )
+
+    setToast('Ο λογαριασμός σου διαγράφηκε.')
+    logout()
+  } catch (err: any) {
+    setDeleteError(err.message)
+  } finally {
+    setBusy('')
   }
+}
 
   return <section className="page"><div className="container narrow">
     <div className="eyebrow">ΡΥΘΜΙΣΕΙΣ</div>
@@ -98,16 +228,92 @@ export function AccountSettings({
       </div>
     </div>
 	
-    <div className="content-card">
-      <h3>Αλλαγή κωδικού</h3>
-      <form onSubmit={changePassword}>
-        <label>Τρέχων κωδικός<input type="password" required value={pw.current} onChange={e => setPw({ ...pw, current: e.target.value })} /></label>
-        <label>Νέος κωδικός<input type="password" minLength={8} required value={pw.next} onChange={e => setPw({ ...pw, next: e.target.value })} /></label>
-        <label>Επιβεβαίωση<input type="password" minLength={8} required value={pw.confirm} onChange={e => setPw({ ...pw, confirm: e.target.value })} /></label>
-        {error && busy !== 'delete' && <div className="error">{error}</div>}
-        <button className="btn btn-dark" disabled={busy === 'pw'}>{busy === 'pw' ? 'Αποθήκευση…' : 'Αλλαγή κωδικού'}</button>
-      </form>
-    </div>
+<div className="content-card">
+  <h3>Αλλαγή κωδικού</h3>
+
+  <form onSubmit={changePassword}>
+
+    <label>
+      Τρέχων κωδικός
+      <input
+        type={showCurrent ? 'text' : 'password'}
+        required
+        value={pw.current}
+        onChange={e=>setPw({...pw,current:e.target.value})}
+      />
+      <button
+        type="button"
+        className="password-toggle"
+        onClick={()=>setShowCurrent(v=>!v)}
+      >
+        {showCurrent ? 'Απόκρυψη' : 'Εμφάνιση'}
+      </button>
+    </label>
+
+    <label>
+      Νέος κωδικός
+      <input
+        type={showNext ? 'text' : 'password'}
+        minLength={8}
+        required
+        value={pw.next}
+        onChange={e=>setPw({...pw,next:e.target.value})}
+      />
+      <button
+        type="button"
+        className="password-toggle"
+        onClick={()=>setShowNext(v=>!v)}
+      >
+        {showNext ? 'Απόκρυψη' : 'Εμφάνιση'}
+      </button>
+    </label>
+
+    <PasswordStrength password={pw.next}/>
+    <PasswordChecklist password={pw.next}/>
+
+    <label>
+      Επιβεβαίωση
+      <input
+        type={showConfirm ? 'text' : 'password'}
+        minLength={8}
+        required
+        value={pw.confirm}
+        onChange={e=>setPw({...pw,confirm:e.target.value})}
+      />
+      <button
+        type="button"
+        className="password-toggle"
+        onClick={()=>setShowConfirm(v=>!v)}
+      >
+        {showConfirm ? 'Απόκρυψη' : 'Εμφάνιση'}
+      </button>
+    </label>
+
+    {pw.confirm && pw.next !== pw.confirm && (
+      <small className="field-hint">
+        Οι νέοι κωδικοί δεν ταιριάζουν.
+      </small>
+    )}
+
+    {passwordError && (
+  <div className="error">
+    {passwordError}
+  </div>
+)}
+
+    <button
+      className="btn btn-dark"
+      disabled={
+        busy === 'pw' ||
+        !isStrongPassword(pw.next) ||
+        pw.next !== pw.confirm
+      }
+    >
+      {busy === 'pw' ? 'Αποθήκευση…' : 'Αλλαγή κωδικού'}
+    </button>
+
+  </form>
+</div>
 
     <div className="content-card">
       <h3>Τα δεδομένα μου</h3>
@@ -123,9 +329,13 @@ export function AccountSettings({
         ? <button className="text-btn danger" onClick={() => setConfirmDelete(true)}>Θέλω να διαγράψω τον λογαριασμό μου</button>
         : <>
           <label>Επιβεβαίωσε τον κωδικό σου<input type="password" value={delPassword} onChange={e => setDelPassword(e.target.value)} /></label>
-          {error && busy === 'delete' && <div className="error">{error}</div>}
+          {deleteError && (
+  <div className="error">
+    {deleteError}
+  </div>
+)}
           <div className="danger-actions">
-            <button className="btn btn-dark" onClick={() => { setConfirmDelete(false); setDelPassword(''); setError('') }}>Άκυρο</button>
+            <button className="btn btn-dark" onClick={() => { setConfirmDelete(false); setDelPassword(''); setDeleteError('') }}>Άκυρο</button>
             <button className="text-btn danger" disabled={busy === 'delete' || !delPassword} onClick={deleteAccount}>{busy === 'delete' ? 'Διαγραφή…' : 'Οριστική διαγραφή'}</button>
           </div>
         </>}

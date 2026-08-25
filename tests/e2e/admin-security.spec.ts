@@ -1,6 +1,9 @@
-﻿import { test, expect, type APIRequestContext } from '@playwright/test'
+import { test, expect, type APIRequestContext } from '@playwright/test'
+import { generateTotp } from './totp-helper'
 
-const API = 'http://localhost:8787'
+const API =
+  process.env.E2E_API_URL ||
+  'http://localhost:8787'
 
 const PATIENT_EMAIL = 'patient@meleo.gr'
 const PATIENT_PASSWORD = 'demo123'
@@ -12,6 +15,9 @@ const ADMIN_EMAIL = 'admin@meleo.gr'
 const ADMIN_PASSWORD =
   process.env.E2E_ADMIN_PASSWORD || 'admin123'
 
+const ADMIN_TOTP_SECRET =
+  process.env.E2E_ADMIN_TOTP_SECRET || ''
+
 async function login(
   request: APIRequestContext,
   email: string,
@@ -19,9 +25,17 @@ async function login(
 ) {
   const response = await request.post(`${API}/api/auth/login`, {
     data: {
-      email,
-      password
-    }
+  email,
+  password,
+  ...(email === ADMIN_EMAIL &&
+  ADMIN_TOTP_SECRET
+    ? {
+        totp: generateTotp(
+          ADMIN_TOTP_SECRET
+        )
+      }
+    : {})
+}
   })
 
   expect(

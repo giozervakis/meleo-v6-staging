@@ -4,7 +4,9 @@ import {
   type APIRequestContext
 } from '@playwright/test'
 
-const API = 'http://localhost:8787'
+const API =
+  process.env.E2E_API_URL ||
+  'http://localhost:8787'
 
 const PATIENT = {
   email: 'patient@meleo.gr',

@@ -2655,6 +2655,82 @@ function ProCard({p,open,favorite,toggle}:any){
   )
 }
 
+function getPasswordChecks(password: string) {
+  const value = String(password || '')
+
+  return {
+    length: value.length >= 8,
+    uppercase: /[A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ]/u.test(value),
+    lowercase: /[a-zα-ωάέήίόύώϊϋΐΰ]/u.test(value),
+    number: /\d/.test(value),
+    special: /[^A-Za-zΑ-Ωα-ωΆΈΉΊΌΎΏΪΫάέήίόύώϊϋΐΰ0-9\s]/u.test(value)
+  }
+}
+
+function isStrongPassword(password: string) {
+  return Object.values(getPasswordChecks(password)).every(Boolean)
+}
+
+function PasswordChecklist({ password }: { password: string }) {
+  const checks = getPasswordChecks(password)
+
+  const items = [
+    ['length', 'Τουλάχιστον 8 χαρακτήρες'],
+    ['uppercase', 'Ένα κεφαλαίο γράμμα'],
+    ['lowercase', 'Ένα πεζό γράμμα'],
+    ['number', 'Έναν αριθμό'],
+    ['special', 'Έναν ειδικό χαρακτήρα']
+  ] as const
+
+  return (
+    <div className="password-checklist">
+      <strong>Ο κωδικός πρέπει να περιλαμβάνει:</strong>
+
+      {items.map(([key, label]) => (
+        <div
+          key={key}
+          className={
+            checks[key]
+              ? 'password-rule ok'
+              : 'password-rule'
+          }
+        >
+          <span>
+            {checks[key] ? '✓' : '○'}
+          </span>
+
+          <span>{label}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function PasswordStrength({password}:{password:string}) {
+  const checks = getPasswordChecks(password)
+  const score = Object.values(checks).filter(Boolean).length
+
+  const label =
+    score <= 1 ? 'Πολύ αδύναμος' :
+    score === 2 ? 'Αδύναμος' :
+    score === 3 ? 'Μέτριος' :
+    score === 4 ? 'Ισχυρός' :
+    'Πολύ ισχυρός'
+
+  return (
+    <div className="password-strength">
+      <div className="password-strength-head">
+        <span>Ισχύς κωδικού</span>
+        <strong>{label}</strong>
+      </div>
+
+      <div className="password-strength-bar">
+        <span style={{width:`${(score/5)*100}%`}}/>
+      </div>
+    </div>
+  )
+}
+
 
 function Auth({onLogged,cfg,setView}:{onLogged:(t:string,u:User)=>void;cfg:AppConfig;setView:(v:string)=>void}){
  const [mode,setMode]=useState<'login'|'register'|'forgot'>('login');
@@ -2665,19 +2741,271 @@ function Auth({onLogged,cfg,setView}:{onLogged:(t:string,u:User)=>void;cfg:AppCo
  const [info,setInfo]=useState('');
  const [busy,setBusy]=useState(false);
  const [socialBusy,setSocialBusy]=useState(''); const [needs2fa,setNeeds2fa]=useState(false); const [totp,setTotp]=useState('');
- async function submit(e:React.FormEvent){e.preventDefault();setError('');setInfo('');setBusy(true);try{
-   if(mode==='forgot'){const r=await api('/auth/forgot-password',{method:'POST',body:JSON.stringify({email:form.email})});setInfo(r.message||'Έλεγξε το email σου.');return}
-   const body=mode==='login'?{email:form.email,password:form.password,totp}:{...form,role,acceptedTerms:accepted}
-   const r=await api('/auth/'+mode,{method:'POST',body:JSON.stringify(body)});onLogged('cookie',r.user)
- }catch(e:any){setError(e.message);if(String(e.message).includes('2FA'))setNeeds2fa(true)}finally{setBusy(false)}}
+ const [showPassword,setShowPassword]=useState(false);
+async function submit(e:React.FormEvent){
+  e.preventDefault()
+
+  setError('')
+  setInfo('')
+
+  /*
+   * ----------------------------------------------------------
+   * PASSWORD POLICY — REGISTER
+   * ----------------------------------------------------------
+   */
+  if(
+    mode === 'register' &&
+    !isStrongPassword(form.password)
+  ){
+    setError(
+      'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει κεφαλαίο γράμμα, πεζό γράμμα, αριθμό και ειδικό χαρακτήρα.'
+    )
+    return
+  }
+
+  setBusy(true)
+
+  try{
+
+    /*
+     * --------------------------------------------------------
+     * FORGOT PASSWORD
+     * --------------------------------------------------------
+     */
+    if(mode === 'forgot'){
+      const r = await api(
+        '/auth/forgot-password',
+        {
+          method:'POST',
+          body:JSON.stringify({
+            email:form.email
+          })
+        }
+      )
+
+      setInfo(
+        r.message ||
+        'Έλεγξε το email σου.'
+      )
+
+      return
+    }
+
+    /*
+     * --------------------------------------------------------
+     * LOGIN / REGISTER
+     * --------------------------------------------------------
+     */
+    const body =
+      mode === 'login'
+        ? {
+            email:form.email,
+            password:form.password,
+            totp
+          }
+        : {
+            ...form,
+            role,
+            acceptedTerms:accepted
+          }
+
+    const r = await api(
+      '/auth/' + mode,
+      {
+        method:'POST',
+        body:JSON.stringify(body)
+      }
+    )
+
+    onLogged(
+      'cookie',
+      r.user
+    )
+
+  }catch(e:any){
+
+    setError(e.message)
+
+    if(
+      String(e.message).includes('2FA')
+    ){
+      setNeeds2fa(true)
+    }
+
+  }finally{
+
+    setBusy(false)
+
+  }
+}
  async function social(provider:string){setSocialBusy(provider);setError('');try{const r=await api('/auth/social-demo',{method:'POST',body:JSON.stringify({provider})});onLogged('cookie',r.user)}catch(e:any){setError(e.message)}finally{setSocialBusy('')}}
  function demo(kind:'patient'|'professional'|'admin'){const accounts={patient:{email:'patient@meleo.gr',password:'demo123'},professional:{email:'maria@meleo.gr',password:'demo123'},admin:{email:'admin@meleo.gr',password:'admin123'}};setMode('login');setForm({...form,...accounts[kind]})}
- return <section className="auth-page"><div className="auth-art"><Mark/><div className="auth-quote"><span>“</span><h2>Η φροντίδα είναι προσωπική.<br/>Η τεχνολογία πρέπει να την κάνει απλούστερη.</h2><p>MELEO · Care, beautifully connected.</p></div></div><div className="auth-panel"><div className="auth-mobile-brand"><Mark/></div><div className="auth-inner"><div className="auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>{setMode('login');setError('');setInfo('')}}>Σύνδεση</button><button className={mode==='register'?'active':''} onClick={()=>{setMode('register');setError('');setInfo('')}}>Νέα εγγραφή</button></div><h1>{mode==='login'?'Καλώς ήρθες ξανά':mode==='forgot'?'Επαναφορά κωδικού':'Δημιούργησε λογαριασμό'}</h1><p>{mode==='login'?'Συνδέσου για να συνεχίσεις στη MELEO.':mode==='forgot'?'Δώσε το email του λογαριασμού σου και θα λάβεις σύνδεσμο επαναφοράς.':'Επίλεξε πώς θέλεις να χρησιμοποιήσεις τη MELEO.'}</p>{mode==='register'&&<div className="role-toggle"><button className={role==='patient'?'active':''} onClick={()=>setRole('patient')}><Icon>⌂</Icon><b>Χρειάζομαι φροντίδα</b><small>Συνοδός / ασθενής</small></button><button className={role==='professional'?'active':''} onClick={()=>setRole('professional')}><Icon>✦</Icon><b>Είμαι επαγγελματίας</b><small>Απαιτείται συνδρομή BASIC ή PREMIUM</small></button></div>}<form onSubmit={submit}>{mode==='register'&&<><label>Ονοματεπώνυμο<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Κινητό / Τηλέφωνο<input required value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label></>}<label>Email<input type="email" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>{mode!=='forgot'&&<label>Κωδικός<input type="password" minLength={8} required value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/>{mode==='register'&&<small className="field-hint">Τουλάχιστον 8 χαρακτήρες.</small>}</label>}{mode==='login'&&needs2fa&&<label>Κωδικός 2FA<input inputMode="numeric" maxLength={6} placeholder="123456" value={totp} onChange={e=>setTotp(e.target.value.replace(/\D/g,''))}/><small className="field-hint">Άνοιξε την εφαρμογή Authenticator του διαχειριστή.</small></label>}{mode==='register'&&<label className="consent-row"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>Αποδέχομαι τους <button type="button" className="inline-link" onClick={()=>setView('terms')}>Όρους Χρήσης</button> και την <button type="button" className="inline-link" onClick={()=>setView('privacy')}>Πολιτική Απορρήτου</button>.</span></label>}{error&&<div className="error">{error}</div>}{info&&<div className="info-box">{info}</div>}<button className="btn btn-dark wide" disabled={busy||(mode==='register'&&!accepted)}>{busy?'Παρακαλώ...':mode==='login'?'Σύνδεση':mode==='forgot'?'Αποστολή συνδέσμου':'Δημιουργία λογαριασμού'}</button></form>{mode==='login'&&<button className="text-btn" onClick={()=>{setMode('forgot');setError('');setInfo('')}}>Ξέχασα τον κωδικό μου</button>}{mode==='forgot'&&<button className="text-btn" onClick={()=>{setMode('login');setError('');setInfo('')}}>← Επιστροφή στη σύνδεση</button>}{cfg.demoAuth&&<div className="auth-secondary"><div className="auth-divider"><span>ή συνέχισε γρήγορα</span></div><div className="secondary-social"><button onClick={()=>social('google')} disabled={!!socialBusy}><b>G</b><span>{socialBusy==='google'?'Σύνδεση…':'Google'}</span></button><button onClick={()=>social('apple')} disabled={!!socialBusy}><b>●</b><span>{socialBusy==='apple'?'Σύνδεση…':'Apple'}</span></button></div><small>Demo σύνδεση — διαθέσιμη μόνο εκτός production.</small></div>}{cfg.demoAuth&&mode==='login'&&<div className="demo-box"><small>DEMO ACCOUNTS</small><div><button onClick={()=>demo('patient')}>Συνοδός</button><button onClick={()=>demo('professional')}>Επαγγελματίας</button><button onClick={()=>demo('admin')}>Admin</button></div><p>Πάτησε ρόλο και μετά «Σύνδεση».</p></div>}</div></div></section>
+ return <section className="auth-page"><div className="auth-art"><Mark/><div className="auth-quote"><span>“</span><h2>Η φροντίδα είναι προσωπική.<br/>Η τεχνολογία πρέπει να την κάνει απλούστερη.</h2><p>MELEO · Care, beautifully connected.</p></div></div><div className="auth-panel"><div className="auth-mobile-brand"><Mark/></div><div className="auth-inner"><div className="auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>{setMode('login');setError('');setInfo('')}}>Σύνδεση</button><button className={mode==='register'?'active':''} onClick={()=>{setMode('register');setError('');setInfo('')}}>Νέα εγγραφή</button></div><h1>{mode==='login'?'Καλώς ήρθες ξανά':mode==='forgot'?'Επαναφορά κωδικού':'Δημιούργησε λογαριασμό'}</h1><p>{mode==='login'?'Συνδέσου για να συνεχίσεις στη MELEO.':mode==='forgot'?'Δώσε το email του λογαριασμού σου και θα λάβεις σύνδεσμο επαναφοράς.':'Επίλεξε πώς θέλεις να χρησιμοποιήσεις τη MELEO.'}</p>{mode==='register'&&<div className="role-toggle"><button className={role==='patient'?'active':''} onClick={()=>setRole('patient')}><Icon>⌂</Icon><b>Χρειάζομαι φροντίδα</b><small>Συνοδός / ασθενής</small></button><button className={role==='professional'?'active':''} onClick={()=>setRole('professional')}><Icon>✦</Icon><b>Είμαι επαγγελματίας</b><small>Απαιτείται συνδρομή BASIC ή PREMIUM</small></button></div>}<form onSubmit={submit}>{mode==='register'&&<><label>Ονοματεπώνυμο<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Κινητό / Τηλέφωνο<input required value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label></>}<label>Email<input type="email" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>{mode !== 'forgot' && (
+  <label>
+    Κωδικός
+
+    <input
+      type={showPassword ? 'text' : 'password'}
+      minLength={8}
+      required
+      value={form.password}
+      onChange={e =>
+        setForm({
+          ...form,
+          password:e.target.value
+        })
+      }
+    />
+
+<button
+  type="button"
+  className="password-toggle"
+  onClick={()=>setShowPassword(v=>!v)}
+  aria-label={showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'}
+>
+  {showPassword ? 'Απόκρυψη' : 'Εμφάνιση'}
+</button>
+    {mode === 'register' && (
+      <PasswordChecklist
+        password={form.password}
+      />
+    )}
+  </label>
+)}{mode==='login'&&needs2fa&&<label>Κωδικός 2FA<input inputMode="numeric" maxLength={6} placeholder="123456" value={totp} onChange={e=>setTotp(e.target.value.replace(/\D/g,''))}/><small className="field-hint">Άνοιξε την εφαρμογή Authenticator του διαχειριστή.</small></label>}{mode==='register'&&<label className="consent-row"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>Αποδέχομαι τους <button type="button" className="inline-link" onClick={()=>setView('terms')}>Όρους Χρήσης</button> και την <button type="button" className="inline-link" onClick={()=>setView('privacy')}>Πολιτική Απορρήτου</button>.</span></label>}{error&&<div className="error">{error}</div>}{info&&<div className="info-box">{info}</div>}<button className="btn btn-dark wide" disabled={busy||(mode==='register'&&!accepted)}>{busy?'Παρακαλώ...':mode==='login'?'Σύνδεση':mode==='forgot'?'Αποστολή συνδέσμου':'Δημιουργία λογαριασμού'}</button></form>{mode==='login'&&<button className="text-btn" onClick={()=>{setMode('forgot');setError('');setInfo('')}}>Ξέχασα τον κωδικό μου</button>}{mode==='forgot'&&<button className="text-btn" onClick={()=>{setMode('login');setError('');setInfo('')}}>← Επιστροφή στη σύνδεση</button>}{cfg.demoAuth&&<div className="auth-secondary"><div className="auth-divider"><span>ή συνέχισε γρήγορα</span></div><div className="secondary-social"><button onClick={()=>social('google')} disabled={!!socialBusy}><b>G</b><span>{socialBusy==='google'?'Σύνδεση…':'Google'}</span></button><button onClick={()=>social('apple')} disabled={!!socialBusy}><b>●</b><span>{socialBusy==='apple'?'Σύνδεση…':'Apple'}</span></button></div><small>Demo σύνδεση — διαθέσιμη μόνο εκτός production.</small></div>}{cfg.demoAuth&&mode==='login'&&<div className="demo-box"><small>DEMO ACCOUNTS</small><div><button onClick={()=>demo('patient')}>Συνοδός</button><button onClick={()=>demo('professional')}>Επαγγελματίας</button><button onClick={()=>demo('admin')}>Admin</button></div><p>Πάτησε ρόλο και μετά «Σύνδεση».</p></div>}</div></div></section>
 }
 function ResetPassword({token,setView,setToast}:any){
- const [password,setPassword]=useState('');const [confirm,setConfirm]=useState('');const [error,setError]=useState('');const [busy,setBusy]=useState(false)
- async function submit(e:React.FormEvent){e.preventDefault();setError('');if(password.length<8)return setError('Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες.');if(password!==confirm)return setError('Οι κωδικοί δεν ταιριάζουν.');setBusy(true);try{await api('/auth/reset-password',{method:'POST',body:JSON.stringify({token,password})});setToast('Ο κωδικός άλλαξε. Συνδέσου με τον νέο κωδικό.');setView('auth')}catch(e:any){setError(e.message)}finally{setBusy(false)}}
- return <section className="page"><div className="container narrow"><div className="form-card"><div className="eyebrow">ΑΣΦΑΛΕΙΑ ΛΟΓΑΡΙΑΣΜΟΥ</div><h1>Όρισε νέο κωδικό</h1><form onSubmit={submit}><label>Νέος κωδικός<input type="password" minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/></label><label>Επιβεβαίωση κωδικού<input type="password" minLength={8} required value={confirm} onChange={e=>setConfirm(e.target.value)}/></label>{error&&<div className="error">{error}</div>}<button className="btn btn-dark wide" disabled={busy}>{busy?'Αποθήκευση…':'Αποθήκευση νέου κωδικού'}</button></form><small className="terms">Για ασφάλεια, όλες οι ενεργές συνεδρίες αποσυνδέονται μετά την αλλαγή.</small></div></div></section>
+  const [password,setPassword]=useState('')
+  const [confirm,setConfirm]=useState('')
+  const [error,setError]=useState('')
+  const [busy,setBusy]=useState(false)
+  const [showPassword,setShowPassword]=useState(false)
+  const [showConfirm,setShowConfirm]=useState(false)
+
+  async function submit(e:React.FormEvent){
+    e.preventDefault()
+    setError('')
+
+    if(!isStrongPassword(password)){
+      setError(
+        'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει κεφαλαίο γράμμα, πεζό γράμμα, αριθμό και ειδικό χαρακτήρα.'
+      )
+      return
+    }
+
+    if(password!==confirm){
+      setError('Οι κωδικοί δεν ταιριάζουν.')
+      return
+    }
+
+    setBusy(true)
+
+    try{
+      await api('/auth/reset-password',{
+        method:'POST',
+        body:JSON.stringify({token,password})
+      })
+
+      setToast('Ο κωδικός άλλαξε. Συνδέσου με τον νέο κωδικό.')
+      setView('auth')
+    }catch(e:any){
+      setError(e.message)
+    }finally{
+      setBusy(false)
+    }
+  }
+
+  return (
+    <section className="page">
+      <div className="container narrow">
+        <div className="form-card">
+
+          <div className="eyebrow">
+            ΑΣΦΑΛΕΙΑ ΛΟΓΑΡΙΑΣΜΟΥ
+          </div>
+
+          <h1>Όρισε νέο κωδικό</h1>
+
+          <form onSubmit={submit}>
+
+            <label>
+              Νέος κωδικός
+
+              <input
+                type={showPassword ? 'text' : 'password'}
+                minLength={8}
+                required
+                value={password}
+                onChange={e=>setPassword(e.target.value)}
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={()=>setShowPassword(v=>!v)}
+              >
+                {showPassword ? 'Απόκρυψη' : 'Εμφάνιση'}
+              </button>
+            </label>
+
+            <PasswordStrength password={password}/>
+
+            <PasswordChecklist password={password}/>
+
+            <label>
+              Επιβεβαίωση κωδικού
+
+              <input
+                type={showConfirm ? 'text' : 'password'}
+                minLength={8}
+                required
+                value={confirm}
+                onChange={e=>setConfirm(e.target.value)}
+              />
+
+              <button
+                type="button"
+                className="password-toggle"
+                onClick={()=>setShowConfirm(v=>!v)}
+              >
+                {showConfirm ? 'Απόκρυψη' : 'Εμφάνιση'}
+              </button>
+            </label>
+
+            {confirm && password!==confirm && (
+              <small className="field-hint">
+                Οι κωδικοί δεν ταιριάζουν.
+              </small>
+            )}
+
+            {error&&(
+              <div className="error">
+                {error}
+              </div>
+            )}
+
+            <button
+              className="btn btn-dark wide"
+              disabled={
+                busy ||
+                !isStrongPassword(password) ||
+                password!==confirm
+              }
+            >
+              {busy
+                ? 'Αποθήκευση…'
+                : 'Αποθήκευση νέου κωδικού'}
+            </button>
+
+          </form>
+
+          <small className="terms">
+            Για ασφάλεια, όλες οι ενεργές συνεδρίες αποσυνδέονται μετά την αλλαγή.
+          </small>
+
+        </div>
+      </div>
+    </section>
+  )
 }
 function ReviewComposer({booking,token,onDone,setToast}:any){
  const [rating,setRating]=useState(Number(booking.review?.rating||0));const [comment,setComment]=useState(booking.review?.comment||'');const [busy,setBusy]=useState(false)

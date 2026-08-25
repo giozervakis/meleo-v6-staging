@@ -9432,3 +9432,43 @@
   }
 
 }
+
+.password-toggle{
+  margin-top:8px;
+  border:0;
+  background:transparent;
+  font-weight:700;
+  cursor:pointer;
+  opacity:.75;
+}
+
+.password-toggle:hover{
+  opacity:1;
+}
+
+.password-strength{
+  margin-top:12px;
+}
+
+.password-strength-head{
+  display:flex;
+  justify-content:space-between;
+  gap:12px;
+  font-size:.86rem;
+  margin-bottom:7px;
+}
+
+.password-strength-bar{
+  height:7px;
+  border-radius:999px;
+  background:rgba(20,30,50,.08);
+  overflow:hidden;
+}
+
+.password-strength-bar span{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:currentColor;
+  transition:width .25s ease;
+}

@@ -4,7 +4,9 @@ import {
   type APIRequestContext
 } from '@playwright/test'
 
-const API = 'http://localhost:8787'
+const API =
+  process.env.E2E_API_URL ||
+  'http://localhost:8787'
 
 const PATIENT = {
   email: 'patient@meleo.gr',
@@ -98,18 +100,26 @@ async function waitForSseMessageCreated(
   const state =
     await context.storageState()
 
-  const cookieHeader =
-    state.cookies
-      .filter(
-        cookie =>
-          cookie.domain === 'localhost' ||
-          cookie.domain.endsWith('.localhost')
+  const apiHost = new URL(API).hostname
+
+const cookieHeader =
+  state.cookies
+    .filter(cookie => {
+      const domain =
+        cookie.domain.startsWith('.')
+          ? cookie.domain.slice(1)
+          : cookie.domain
+
+      return (
+        domain === apiHost ||
+        apiHost.endsWith(`.${domain}`)
       )
-      .map(
-        cookie =>
-          `${cookie.name}=${cookie.value}`
-      )
-      .join('; ')
+    })
+    .map(
+      cookie =>
+        `${cookie.name}=${cookie.value}`
+    )
+    .join('; ')
 
   expect(
     cookieHeader.length,
