@@ -11098,3 +11098,217 @@
   }
 
 }
+
+/* ============================================================
+   MELEO PROFESSIONAL DESKTOP EXPERIENCE V1.1
+   FINAL REFINEMENT
+   ============================================================ */
+
+@media (min-width: 1100px) {
+
+  /* ----------------------------------------------------------
+     1. SIDEBAR — no nested desktop scrollbar
+     ---------------------------------------------------------- */
+
+  .dashboard-pro {
+    align-items: stretch;
+  }
+
+  .pro-sidebar {
+    height: auto;
+    min-height: calc(100vh - 76px);
+    overflow: visible;
+    align-self: stretch;
+  }
+
+  .pro-sidebar-inner,
+  .pro-sidebar > div {
+    overflow: visible;
+  }
+
+
+  /* ----------------------------------------------------------
+     2. CONTENT — slightly tighter vertical rhythm
+     ---------------------------------------------------------- */
+
+  .pro-content {
+    padding-top: 34px;
+    padding-bottom: 52px;
+  }
+
+  .pro-top {
+    margin-bottom: 26px;
+  }
+
+  .pro-top h2 {
+    font-size: clamp(38px, 2.8vw, 48px);
+  }
+
+
+  /* ----------------------------------------------------------
+     3. HERO / COMMAND CENTER
+     ---------------------------------------------------------- */
+
+  .pro-content .command-hero,
+  .pro-content .dashboard-hero,
+  .pro-content .pro-hero {
+    padding-top: 26px;
+    padding-bottom: 26px;
+  }
+
+
+  /* ----------------------------------------------------------
+     4. KPI CARDS
+     ---------------------------------------------------------- */
+
+  .stat-grid {
+    gap: 14px;
+  }
+
+  .stat-card {
+    min-height: 126px;
+    padding: 20px 20px;
+  }
+
+  .stat-card strong {
+    margin: 9px 0 8px;
+    font-size: clamp(32px, 2.4vw, 40px);
+  }
+
+  .stat-card span {
+    font-size: 12.5px;
+  }
+
+  .stat-card small {
+    font-size: 10.5px;
+  }
+
+
+  /* ----------------------------------------------------------
+     5. GENERAL PANELS
+     ---------------------------------------------------------- */
+
+  .pro-panels {
+    gap: 18px;
+    margin-top: 18px;
+  }
+
+  .panel {
+    padding: 24px;
+  }
+
+  .panel-heading {
+    margin-bottom: 16px;
+  }
+
+  .panel-heading h3 {
+    font-size: 25px;
+  }
+
+
+  /* ----------------------------------------------------------
+     6. REQUEST ROWS
+     ---------------------------------------------------------- */
+
+  .request-row {
+    min-height: 66px;
+    gap: 14px;
+    padding: 14px 0;
+  }
+
+  .request-icon {
+    width: 44px;
+    height: 44px;
+  }
+
+  .request-row b {
+    font-size: 14.5px;
+  }
+
+  .request-row span {
+    font-size: 12.5px;
+  }
+
+  .request-row small {
+    font-size: 10.5px;
+  }
+
+
+  /* ----------------------------------------------------------
+     7. PROFILE COMPLETION
+     ---------------------------------------------------------- */
+
+  .completion {
+    gap: 16px;
+    margin: 17px 0;
+  }
+
+  .completion-ring {
+    width: 82px;
+    height: 82px;
+  }
+
+
+  /* ----------------------------------------------------------
+     8. LARGE DASHBOARD SECTIONS
+     Reduce excessive vertical whitespace
+     ---------------------------------------------------------- */
+
+  .large-panel {
+    min-height: 0;
+  }
+
+  .pro-content section {
+    scroll-margin-top: 100px;
+  }
+
+
+  /* ----------------------------------------------------------
+     9. TRUST / MATCH / VALUE / INSIGHTS
+     Common vertical tightening
+     ---------------------------------------------------------- */
+
+  .pro-content [class*="trust"],
+  .pro-content [class*="match"],
+  .pro-content [class*="value"],
+  .pro-content [class*="insight"] {
+    scroll-margin-top: 100px;
+  }
+
+
+  /* ----------------------------------------------------------
+     10. FINAL AREA / RECENT ACTIVITY
+     Make bottom section visually intentional
+     ---------------------------------------------------------- */
+
+  .pro-content .recent-activity,
+  .pro-content .recent-requests,
+  .pro-content [class*="recent"] {
+    max-width: none;
+  }
+
+
+  /* ----------------------------------------------------------
+     11. CONSISTENT SECTION SPACING
+     ---------------------------------------------------------- */
+
+  .pro-content > section,
+  .pro-content > .panel,
+  .pro-content > div[class*="section"] {
+    margin-bottom: 24px;
+  }
+
+
+  /* ----------------------------------------------------------
+     12. DESKTOP TYPOGRAPHY BALANCE
+     ---------------------------------------------------------- */
+
+  .pro-content h3 {
+    line-height: 1.15;
+  }
+
+  .pro-content p {
+    line-height: 1.5;
+  }
+
+}
