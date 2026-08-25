@@ -11357,3 +11357,279 @@
   }
 
 }
+
+/* ============================================================
+   MELEO PATIENT DASHBOARD — DESKTOP EXPERIENCE V1
+   Desktop layout / scale / density polish
+   ============================================================ */
+
+@media (min-width:1100px){
+
+  /* ----------------------------------------------------------
+     PAGE
+     ---------------------------------------------------------- */
+
+  .patient-care-page{
+    min-height:calc(100vh - 76px);
+  }
+
+  .patient-care-page > .container{
+    width:min(calc(100% - 64px), 1680px);
+    max-width:1680px;
+  }
+
+
+  /* ----------------------------------------------------------
+     HERO
+     ---------------------------------------------------------- */
+
+  .patient-care-hero{
+    padding:34px 38px;
+    margin-bottom:22px;
+    border-radius:28px;
+    gap:38px;
+  }
+
+  .patient-care-hero-copy{
+    max-width:860px;
+  }
+
+  .patient-care-hero h1{
+    font-size:clamp(38px,3vw,48px);
+    line-height:1.04;
+    letter-spacing:-.035em;
+  }
+
+  .patient-care-hero p{
+    max-width:760px;
+    margin-top:12px;
+    font-size:15px;
+    line-height:1.65;
+  }
+
+  .patient-care-hero-status{
+    margin-top:19px;
+    gap:9px;
+  }
+
+  .patient-care-hero-status span,
+  .patient-care-hero-status b{
+    min-height:34px;
+    padding:0 13px;
+    font-size:11px;
+  }
+
+  .patient-care-identity{
+    min-width:290px;
+  }
+
+
+  /* ----------------------------------------------------------
+     METRICS
+     ---------------------------------------------------------- */
+
+  .patient-care-metrics{
+    grid-template-columns:repeat(6,minmax(0,1fr));
+    gap:14px;
+    margin-bottom:22px;
+  }
+
+  .patient-care-metric{
+    min-height:104px;
+    padding:19px 18px;
+    border-radius:19px;
+  }
+
+  .patient-care-metric strong{
+    font-size:27px;
+    line-height:1;
+  }
+
+  .patient-care-metric span{
+    font-size:11px;
+    line-height:1.35;
+  }
+
+
+  /* ----------------------------------------------------------
+     MAIN DESKTOP WORKSPACE
+     ---------------------------------------------------------- */
+
+  .patient-care-grid{
+    grid-template-columns:
+      minmax(0,1fr)
+      minmax(320px,370px);
+
+    gap:24px;
+    align-items:start;
+  }
+
+  .patient-care-main{
+    gap:22px;
+  }
+
+  .patient-care-side{
+    top:94px;
+    gap:18px;
+  }
+
+
+  /* ----------------------------------------------------------
+     MAIN PANELS
+     ---------------------------------------------------------- */
+
+  .patient-command-panel{
+    padding:28px;
+    border-radius:24px;
+  }
+
+  .patient-panel-head{
+    gap:18px;
+    margin-bottom:20px;
+  }
+
+  .patient-panel-head small{
+    margin-bottom:6px;
+    font-size:10px;
+    letter-spacing:.12em;
+  }
+
+  .patient-panel-head h3{
+    font-size:23px;
+    line-height:1.15;
+  }
+
+  .patient-panel-head > span{
+    padding:7px 10px;
+    font-size:11px;
+  }
+
+
+  /* ----------------------------------------------------------
+     REQUESTS / MESSAGES TABS
+     ---------------------------------------------------------- */
+
+  .patient-section-tabs{
+    gap:8px;
+    padding:7px;
+    margin-bottom:20px;
+    border-radius:16px;
+  }
+
+  .patient-section-tabs button{
+    min-height:50px;
+    padding:11px 18px;
+    font-size:13px;
+  }
+
+  .patient-section-tabs button > span{
+    font-size:17px;
+  }
+
+  .patient-section-tabs button > b{
+    min-width:24px;
+    height:24px;
+    font-size:11px;
+  }
+
+
+  /* ----------------------------------------------------------
+     REQUEST CARDS
+     ---------------------------------------------------------- */
+
+  .patient-command-panel .patient-request-wrap{
+    margin-top:12px;
+    margin-bottom:18px;
+  }
+
+  .patient-command-panel .booking-card-premium{
+    padding:23px 24px 23px 27px;
+    gap:22px;
+    border-radius:20px;
+  }
+
+  .patient-command-panel .patient-request-detail{
+    padding:26px;
+  }
+
+
+  /* ----------------------------------------------------------
+     INBOX — REAL DESKTOP WORKSPACE
+     ---------------------------------------------------------- */
+
+  .patient-command-panel:has(.patient-inbox-list){
+    grid-template-columns:
+      minmax(330px,390px)
+      minmax(0,1fr);
+
+    gap:18px;
+  }
+
+  .patient-command-panel:has(.patient-inbox-list)
+  .patient-inbox-chat{
+    min-height:640px;
+  }
+
+  .patient-command-panel:has(.patient-inbox-list)
+  .patient-inbox-list{
+    max-height:640px;
+  }
+
+
+  /* ----------------------------------------------------------
+     RIGHT CARE STATUS COLUMN
+     ---------------------------------------------------------- */
+
+  .patient-care-side > *{
+    width:100%;
+  }
+
+  .patient-care-side .patient-command-panel{
+    padding:22px;
+  }
+
+
+  /* ----------------------------------------------------------
+     GENERAL DESKTOP TYPOGRAPHY
+     ---------------------------------------------------------- */
+
+  .patient-care-main p,
+  .patient-care-side p{
+    line-height:1.55;
+  }
+
+}
+
+
+/* ============================================================
+   LARGE DESKTOP
+   ============================================================ */
+
+@media (min-width:1500px){
+
+  .patient-care-page > .container{
+    width:min(calc(100% - 96px), 1780px);
+    max-width:1780px;
+  }
+
+  .patient-care-grid{
+    grid-template-columns:
+      minmax(0,1fr)
+      390px;
+
+    gap:30px;
+  }
+
+  .patient-command-panel{
+    padding:30px;
+  }
+
+  .patient-care-hero{
+    padding:38px 42px;
+  }
+
+  .patient-care-hero h1{
+    font-size:50px;
+  }
+
+}
