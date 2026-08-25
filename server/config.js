@@ -1,4 +1,4 @@
-// MELEO — κεντρική διαχείριση ρυθμίσεων & έλεγχοι ασφαλείας κατά την εκκίνηση.
+﻿// MELEO — κεντρική διαχείριση ρυθμίσεων & έλεγχοι ασφαλείας κατά την εκκίνηση.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -96,6 +96,10 @@ export const config = {
   demoAuth: bool(process.env.DEMO_AUTH, !isProd),
   demoCheckout: bool(process.env.DEMO_CHECKOUT, !isProd),
 
+  // E2E test mode. It may be enabled in development/staging only.
+  // Production readiness validation hard-fails if E2E_MODE is enabled.
+  e2eMode: bool(process.env.E2E_MODE, false),
+
   // ----- Νομικά -----
   legal: {
     company: process.env.LEGAL_COMPANY_NAME || '',
@@ -133,6 +137,11 @@ export function assertProductionReady() {
   const warn = []
 
   if (config.isProd) {
+    if (config.e2eMode) fatal.push('E2E_MODE must NEVER be enabled in production.')
+    if (bool(process.env.SEED_DEMO, false)) fatal.push('SEED_DEMO must NEVER be enabled in production.')
+    if (bool(process.env.DEMO_AUTH, false)) fatal.push('DEMO_AUTH must NEVER be enabled in production.')
+    if (bool(process.env.DEMO_CHECKOUT, false)) fatal.push('DEMO_CHECKOUT must NEVER be enabled in production.')
+    if (String(process.env.PAYMENTS_MODE || '').trim().toLowerCase() === 'demo') fatal.push('PAYMENTS_MODE=demo is forbidden in production.')
     if (!config.appUrl.startsWith('https://')) fatal.push('APP_URL: απαιτείται δημόσιο https URL (π.χ. https://meleo.gr).')
     if (!config.databaseUrl) fatal.push('DATABASE_URL: σε production απαιτείται PostgreSQL. Ο JSON driver δεν υποστηρίζεται (δεν αντέχει πολλά instances ούτε ασφαλή backups).')
     if (config.redis.required && !config.redis.url) fatal.push('REDIS_URL: απαιτείται στο production v5.1 για shared rate limiting/cache μεταξύ πολλαπλών instances.')

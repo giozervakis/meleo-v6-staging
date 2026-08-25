@@ -14,3 +14,11 @@ playwright-report/
 
 # Local encrypted verification uploads
 secure_uploads/
+
+# MELEO local test / migration artifacts
+staging-failures.txt
+*.bak
+*.before-*
+*.failed-*
+*.smart-connect-*
+*.smart-learning-*

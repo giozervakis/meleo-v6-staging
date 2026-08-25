@@ -47,7 +47,10 @@
     "release:launch-guard": "node scripts/launch-guard.mjs",
     "v60-check": "node scripts/v60-check.mjs",
     "start:render-staging": "node scripts/render-staging-start.mjs",
-    "render:check": "node scripts/render-staging-check.mjs"
+    "render:check": "node scripts/render-staging-check.mjs",
+    "validate:production": "node scripts/validate-production-config.mjs",
+    "validate:production:selftest": "node scripts/validate-production-config-selftest.mjs",
+    "ci:production": "npm run ci:gate && npm run validate:production:selftest"
   },
   "dependencies": {
     "express": "5.2.1",

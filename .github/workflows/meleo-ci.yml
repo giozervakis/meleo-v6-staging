@@ -1,0 +1,46 @@
+name: MELEO CI
+
+on:
+  push:
+    branches:
+      - main
+      - master
+
+  pull_request:
+    branches:
+      - main
+      - master
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: meleo-ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  production-gate:
+    name: Production Gate
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: MELEO CI gate
+        run: npm run ci:gate
+
+      - name: Production configuration guard self-test
+        run: npm run validate:production:selftest

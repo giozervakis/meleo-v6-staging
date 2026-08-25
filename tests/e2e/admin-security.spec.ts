@@ -1,19 +1,34 @@
 import { test, expect, type APIRequestContext } from '@playwright/test'
 import { generateTotp } from './totp-helper'
 
+function requiredEnv(name: string) {
+  const value = process.env[name]
+
+  if (!value) {
+    throw new Error(
+      `${name} is required for MELEO E2E tests`
+    )
+  }
+
+  return value
+}
+
+
 const API =
   process.env.E2E_API_URL ||
   'http://localhost:8787'
 
 const PATIENT_EMAIL = 'patient@meleo.gr'
-const PATIENT_PASSWORD = 'demo123'
+const PATIENT_PASSWORD =
+  requiredEnv('E2E_PATIENT_PASSWORD')
 
 const PROFESSIONAL_EMAIL = 'maria@meleo.gr'
-const PROFESSIONAL_PASSWORD = 'demo123'
+const PROFESSIONAL_PASSWORD =
+  requiredEnv('E2E_PROFESSIONAL_PASSWORD')
 
 const ADMIN_EMAIL = 'admin@meleo.gr'
 const ADMIN_PASSWORD =
-  process.env.E2E_ADMIN_PASSWORD || 'admin123'
+  requiredEnv('E2E_ADMIN_PASSWORD')
 
 const ADMIN_TOTP_SECRET =
   process.env.E2E_ADMIN_TOTP_SECRET || ''
