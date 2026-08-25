@@ -16,8 +16,14 @@ export function getPool(){
   pool = new pg.Pool({
     connectionString: config.databaseUrl,
     max: Math.max(5, config.databasePoolMax || 10),
+    connectionTimeoutMillis: Math.max(1000, config.databaseConnectionTimeoutMs || 5000),
+    idleTimeoutMillis: Math.max(5000, config.databaseIdleTimeoutMs || 30000),
+    statement_timeout: Math.max(1000, config.databaseStatementTimeoutMs || 15000),
+    query_timeout: Math.max(1000, config.databaseQueryTimeoutMs || 20000),
+    keepAlive: true,
+    allowExitOnIdle: false,
     ssl: needsSsl ? { rejectUnauthorized:false } : undefined,
-    application_name:'meleo-v5'
+    application_name:'meleo-v6'
   })
   pool.on('error', err=>console.error('[MELEO v5] pg pool error:',err.message))
   return pool

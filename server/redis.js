@@ -113,9 +113,60 @@ async function connect() {
 
 function rawCommand(args, targetSocket = socket) {
   return new Promise((resolve, reject) => {
-    if (!targetSocket || targetSocket.destroyed) return reject(new Error('Redis not connected'))
-    pending.push({ resolve, reject })
-    targetSocket.write(encodeCommand(args))
+    if (!targetSocket || targetSocket.destroyed) {
+      return reject(new Error('Redis not connected'))
+    }
+
+    let settled = false
+    let timer
+
+    const item = {
+      resolve(value) {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        resolve(value)
+      },
+
+      reject(err) {
+        if (settled) return
+        settled = true
+        clearTimeout(timer)
+        reject(err)
+      }
+    }
+
+    timer = setTimeout(() => {
+      item.reject(new Error('Redis command timeout'))
+
+      // Redis RESP replies are ordered. Once one command times out,
+      // reset the connection so a late reply cannot be associated
+      // with the next pending command.
+      try {
+        targetSocket.destroy(
+          new Error('Redis command timeout')
+        )
+      } catch {}
+    }, Math.max(
+      500,
+      config.redis.commandTimeoutMs || 3000
+    ))
+
+    pending.push(item)
+
+    try {
+      targetSocket.write(
+        encodeCommand(args)
+      )
+    } catch (err) {
+      const index = pending.indexOf(item)
+
+      if (index !== -1) {
+        pending.splice(index, 1)
+      }
+
+      item.reject(err)
+    }
   })
 }
 

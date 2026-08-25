@@ -1,4 +1,4 @@
-﻿// MELEO — κεντρική διαχείριση ρυθμίσεων & έλεγχοι ασφαλείας κατά την εκκίνηση.
+// MELEO — κεντρική διαχείριση ρυθμίσεων & έλεγχοι ασφαλείας κατά την εκκίνηση.
 import fs from 'node:fs'
 import path from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -35,13 +35,18 @@ export const config = {
   databaseUrl: process.env.DATABASE_URL || '',
   databaseSsl: bool(process.env.DATABASE_SSL, false),
   databasePoolMax: Number(process.env.DATABASE_POOL_MAX || 10),
+  databaseConnectionTimeoutMs: Number(process.env.DATABASE_CONNECTION_TIMEOUT_MS || 5000),
+  databaseIdleTimeoutMs: Number(process.env.DATABASE_IDLE_TIMEOUT_MS || 30000),
+  databaseStatementTimeoutMs: Number(process.env.DATABASE_STATEMENT_TIMEOUT_MS || 15000),
+  databaseQueryTimeoutMs: Number(process.env.DATABASE_QUERY_TIMEOUT_MS || 20000),
 
   // ----- Redis (shared cache / rate limiting for multi-instance deployment) -----
   redis: {
     url: process.env.REDIS_URL || '',
     required: bool(process.env.REDIS_REQUIRED, isProd || isStaging),
     keyPrefix: process.env.REDIS_KEY_PREFIX || 'meleo:v51:',
-    connectTimeoutMs: Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 2500)
+    connectTimeoutMs: Number(process.env.REDIS_CONNECT_TIMEOUT_MS || 2500),
+    commandTimeoutMs: Number(process.env.REDIS_COMMAND_TIMEOUT_MS || 3000)
   },
 
   // ----- Observability / worker -----

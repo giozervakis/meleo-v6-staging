@@ -213,7 +213,97 @@ await ensureDemoData();await ensureAdmin()
 
 app.get('/api/config',(_req,res)=>res.json({env:config.env,demoAuth:config.demoAuth,demoCheckout:config.demoCheckout,paymentsEnabled:config.stripeEnabled,mailEnabled:config.mailEnabled,portalEnabled:config.stripeEnabled&&config.stripe.portalEnabled,plans:Object.values(PLANS),termsVersion:config.legal.termsVersion,emergencyNumber:config.emergencyNumber,legal:{company:config.legal.company,vatNumber:config.legal.vatNumber,address:config.legal.address,supportEmail:config.mail.supportEmail,dpoEmail:config.legal.dpoEmail}}))
 app.get('/api/health',async(_req,res)=>{const counts=await one(`SELECT (SELECT count(*) FROM users)::int users,(SELECT count(*) FROM professionals)::int professionals`);res.json({ok:true,service:'MELEO API',version:APP_VERSION,instance:process.env.INSTANCE_ID||process.env.HOSTNAME||'local',env:config.env,storage:{database:'postgres-relational',documents:config.storage.driver,multiInstanceSafe:config.storage.driver==='s3',redis:Boolean(config.redis.url)},...counts})})
-app.get('/api/ready',async(_req,res)=>{try{await one('SELECT 1 ok');let redis=true;if(config.redis.url){try{redis=await redisPing()}catch{redis=false}}const objectStorage=await storageReady();if((config.redis.required&&!redis)||(config.isProd&&!objectStorage))return res.status(503).json({ok:false,checks:{database:true,redis,objectStorage}});res.json({ok:true,service:'MELEO',version:APP_VERSION,instance:process.env.INSTANCE_ID||process.env.HOSTNAME||'local',checks:{database:true,redis,objectStorage,payments:config.isProd?config.stripeEnabled:true,mail:config.isProd?config.mailEnabled:true,admin2fa:config.isProd?Boolean(config.admin.totpSecret):true}})}catch{res.status(503).json({ok:false})}})
+let shuttingDown = false
+let shutdownStartedAt = null
+
+app.get('/api/ready',async(_req,res)=>{
+  if(shuttingDown){
+    return res.status(503).json({
+      ok:false,
+      service:'MELEO',
+      version:APP_VERSION,
+      state:'draining',
+      shutdownStartedAt
+    })
+  }
+
+  try{
+    await one('SELECT 1 ok')
+
+    let redis=true
+
+    if(config.redis.url){
+      try{
+        redis=await redisPing()
+      }catch{
+        redis=false
+      }
+    }
+
+    const objectStorage=
+      await storageReady()
+
+    const checks={
+      database:true,
+      redis,
+      objectStorage,
+      payments:
+        config.isProd
+          ? config.stripeEnabled
+          : true,
+      mail:
+        config.isProd
+          ? config.mailEnabled
+          : true,
+      admin2fa:
+        config.isProd
+          ? Boolean(config.admin.totpSecret)
+          : true
+    }
+
+    if(
+      (config.redis.required&&!redis) ||
+      (config.isProd&&!objectStorage)
+    ){
+      return res.status(503).json({
+        ok:false,
+        service:'MELEO',
+        version:APP_VERSION,
+        state:'degraded',
+        checks
+      })
+    }
+
+    res.json({
+      ok:true,
+      service:'MELEO',
+      version:APP_VERSION,
+      instance:
+        process.env.INSTANCE_ID||
+        process.env.HOSTNAME||
+        'local',
+      state:'ready',
+      checks
+    })
+  }catch(err){
+    log.error(
+      'api.readiness.failed',
+      {
+        message:
+          err?.message||
+          String(err)
+      }
+    )
+
+    res.status(503).json({
+      ok:false,
+      service:'MELEO',
+      version:APP_VERSION,
+      state:'degraded'
+    })
+  }
+})
+
 app.get('/api/metrics',async(req,res)=>{if(config.isHosted){const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!config.observability.metricsToken||supplied!==config.observability.metricsToken)return res.status(404).end()}const q=await queueStats();const pool=getPool();res.type('text/plain; version=0.0.4').send(metricsText({background_jobs_pending:q.pending,background_jobs_processing:q.processing,background_jobs_failed:q.failed,postgres_pool_total:pool.totalCount,postgres_pool_idle:pool.idleCount,postgres_pool_waiting:pool.waitingCount}))})
 app.get('/api/plans',(_req,res)=>res.json(Object.values(PLANS)))
 
@@ -1665,6 +1755,205 @@ setInterval(async()=>{try{
  const pending=await many(`SELECT u.id,p.stripe_subscription_id FROM users u LEFT JOIN professionals p ON p.user_id=u.id WHERE u.deletion_pending=true LIMIT 20`);for(const x of pending){try{if(x.stripe_subscription_id&&getStripe())await getStripe().subscriptions.cancel(x.stripe_subscription_id);await Users.update(x.id,{deletion_pending:false,deleted_at:now(),name:'Deleted User',phone:'',account_status:'suspended'});await Sessions.revokeUser(x.id);await audit(null,'account.deletion.finalized',{userId:x.id})}catch(err){console.warn('[MELEO v5] deletion retry failed',x.id,err.message)}}
  }catch(e){console.error('[MELEO v5 sweep]',e.message)}},15*60_000).unref()
 
-const server=app.listen(config.port,()=>{log.info('api.started',{version:APP_VERSION,url:`http://localhost:${config.port}`,instance:process.env.INSTANCE_ID||process.env.HOSTNAME||'local'});console.log(`MELEO v${APP_VERSION} relational API [${process.env.INSTANCE_ID||process.env.HOSTNAME||'local'}] → http://localhost:${config.port}`)})
-async function shutdown(){server.close();try{await listener.query('UNLISTEN meleo_live');listener.release()}catch{}await closeRedis();await closePool();process.exit(0)}
-process.on('SIGTERM',shutdown);process.on('SIGINT',shutdown)
+const server=app.listen(config.port,()=>{
+  log.info('api.started',{
+    version:APP_VERSION,
+    url:`http://localhost:${config.port}`,
+    instance:
+      process.env.INSTANCE_ID||
+      process.env.HOSTNAME||
+      'local'
+  })
+
+  console.log(
+    `MELEO v${APP_VERSION} relational API [${process.env.INSTANCE_ID||process.env.HOSTNAME||'local'}] → http://localhost:${config.port}`
+  )
+})
+
+server.keepAliveTimeout = 65000
+server.headersTimeout = 66000
+
+async function shutdown(
+  signal='shutdown',
+  exitCode=0
+){
+  if(shuttingDown) return
+
+  shuttingDown=true
+  shutdownStartedAt=
+    new Date().toISOString()
+
+  log.warn(
+    'api.shutdown.started',
+    {
+      signal,
+      shutdownStartedAt
+    }
+  )
+
+  const forceTimer=setTimeout(
+    ()=>{
+      log.error(
+        'api.shutdown.forced',
+        {signal}
+      )
+
+      process.exit(1)
+    },
+    30000
+  )
+
+  forceTimer.unref()
+
+  try{
+    /*
+     * Tell Node to stop accepting new connections.
+     *
+     * Do NOT await this yet because SSE connections
+     * are long-lived and must be closed first.
+     */
+    const httpClosed=
+      new Promise(resolve=>{
+        server.close(()=>resolve())
+      })
+
+    /*
+     * Close SSE clients immediately so server.close()
+     * can drain successfully.
+     */
+    for(
+      const clients
+      of liveClients.values()
+    ){
+      for(const client of clients){
+        try{
+          client.write(
+            'event: shutdown\n' +
+            'data: {"reason":"server_restart"}\n\n'
+          )
+        }catch{}
+
+        try{
+          client.end()
+        }catch{}
+      }
+    }
+
+    liveClients.clear()
+
+    /*
+     * Close idle keep-alive connections where
+     * supported by the current Node runtime.
+     */
+    try{
+      server.closeIdleConnections?.()
+    }catch{}
+
+    await httpClosed
+
+    try{
+      await listener.query(
+        'UNLISTEN meleo_live'
+      )
+    }catch(err){
+      log.warn(
+        'api.shutdown.unlisten_failed',
+        {
+          message:
+            err?.message||
+            String(err)
+        }
+      )
+    }
+
+    try{
+      listener.release()
+    }catch{}
+
+    await closeRedis()
+    await closePool()
+
+    clearTimeout(forceTimer)
+
+    log.info(
+      'api.shutdown.completed',
+      {signal}
+    )
+
+    process.exit(exitCode)
+  }catch(err){
+    clearTimeout(forceTimer)
+
+    log.error(
+      'api.shutdown.failed',
+      {
+        signal,
+        message:
+          err?.message||
+          String(err),
+        stack:err?.stack
+      }
+    )
+
+    process.exit(1)
+  }
+}
+
+process.on(
+  'SIGTERM',
+  ()=>shutdown('SIGTERM',0)
+)
+
+process.on(
+  'SIGINT',
+  ()=>shutdown('SIGINT',0)
+)
+
+process.on(
+  'uncaughtException',
+  err=>{
+    log.error(
+      'process.uncaught_exception',
+      {
+        message:
+          err?.message||
+          String(err),
+        stack:err?.stack
+      }
+    )
+
+    shutdown(
+      'uncaughtException',
+      1
+    ).catch(
+      ()=>process.exit(1)
+    )
+  }
+)
+
+process.on(
+  'unhandledRejection',
+  reason=>{
+    const err=
+      reason instanceof Error
+        ? reason
+        : new Error(
+            String(reason)
+          )
+
+    log.error(
+      'process.unhandled_rejection',
+      {
+        message:err.message,
+        stack:err.stack
+      }
+    )
+
+    shutdown(
+      'unhandledRejection',
+      1
+    ).catch(
+      ()=>process.exit(1)
+    )
+  }
+)
