@@ -125,6 +125,8 @@ const {
   }
 )
 
+const baseHtml=()=>fs.readFileSync(path.join(root,'dist','index.html'),'utf8')
+
 registerPublicWebRoutes(
   app,
   {
@@ -132,7 +134,12 @@ registerPublicWebRoutes(
     many,
     one,
     Professionals,
-    slugify
+    slugify,
+  allowsVisibility,
+  injectSeo,
+  baseHtml,
+  APP_VERSION,
+  RELEASE_CHANNEL
   }
 )
 
@@ -1178,7 +1185,7 @@ registerAdminVerificationRoutes(
 function slugify(v=''){return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\u0370-\u03ff]+/g,'-').replace(/^-+|-+$/g,'')}
 function htmlEscape(v=''){return String(v).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]))}
 function injectSeo(html,{title,description,canonical,body='',jsonLd=null}){
-  let out=html.replace(/<title>.*?<\/title>/i,`<title>${htmlEscape(title)}</title>`)
+  let out=html.replace(/<title>.*?<\/title>/i,`<title>${htmlEscape(title)}</title>`).replace(/<meta\s+name=["']description["'][^>]*>/i,'')
   const meta=`<meta name="description" content="${htmlEscape(description)}"><link rel="canonical" href="${htmlEscape(canonical)}"><meta property="og:title" content="${htmlEscape(title)}"><meta property="og:description" content="${htmlEscape(description)}"><meta property="og:url" content="${htmlEscape(canonical)}"><meta property="og:type" content="website">${jsonLd?`<script type="application/ld+json">${JSON.stringify(jsonLd).replace(/</g,'\\u003c')}</script>`:''}`
   out=out.replace('</head>',`${meta}</head>`)
   if(body)out=out.replace('<div id="root"></div>',`<div id="root"><main class="seo-prerender">${body}</main></div>`)
@@ -1194,7 +1201,6 @@ const dist=path.join(root,'dist')
 // correct for deployments where frontend and API are separated.
 //
 if(config.isHosted&&fs.existsSync(dist)){
- const baseHtml=()=>fs.readFileSync(path.join(dist,'index.html'),'utf8')
    app.use(express.static(dist,{maxAge:'1h',etag:true}))
  app.get(/.*/,(_req,res)=>res.sendFile(path.join(dist,'index.html')))
 }else app.use((err,req,res,_next)=>{
