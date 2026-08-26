@@ -37,7 +37,8 @@ const routeFiles = [
   'server/routes/care-team.routes.js',
   'server/routes/support.routes.js',
   'server/routes/reports.routes.js',
-  'server/routes/communication-summary.routes.js'
+  'server/routes/communication-summary.routes.js',
+  'server/routes/location.routes.js'
 ]
 
 
@@ -481,6 +482,26 @@ assertSoleOwner(
   'GET',
   '/api/communication/unread',
   'server/routes/communication-summary.routes.js'
+)
+
+
+/*
+ * Location ownership - Part 4A-8F2
+ */
+assertSoleOwner(
+  'GET',
+  '/api/location/search',
+  'server/routes/location.routes.js'
+)
+
+
+/*
+ * Location ownership - Part 4A-8F2
+ */
+assertSoleOwner(
+  'GET',
+  '/api/location/reverse',
+  'server/routes/location.routes.js'
 )
 
 

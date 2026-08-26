@@ -36,6 +36,7 @@ import { registerCareTeamRoutes } from '../routes/care-team.routes.js'
 import { registerSupportRoutes } from '../routes/support.routes.js'
 import { registerReportRoutes } from '../routes/reports.routes.js'
 import { registerCommunicationSummaryRoutes } from '../routes/communication-summary.routes.js'
+import { registerLocationRoutes } from '../routes/location.routes.js'
 
 assertProductionReady()
 await migrate()
@@ -474,8 +475,13 @@ if(provider==='fixture'){
 }
 
 let url,headers={};if(provider==='mapbox'&&process.env.MAPBOX_TOKEN){const q=new URLSearchParams(pathname.split('?')[1]||'');const query=q.get('q')||'';url=`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${encodeURIComponent(process.env.MAPBOX_TOKEN)}&language=el&limit=5`}else{url=`https://nominatim.openstreetmap.org${pathname}`;headers={'User-Agent':`MELEO-Marketplace/5.0 (${config.mail.supportEmail})`,'Accept-Language':'el,en'}}const r=await fetch(url,{headers});if(!r.ok)throw new Error('Geocoding unavailable');let data=await r.json();if(provider==='mapbox'&&data.features)data=data.features.map(f=>({lat:String(f.center[1]),lon:String(f.center[0]),display_name:f.place_name,address:{city:f.context?.find(x=>x.id.startsWith('place.'))?.text||f.text,country:f.context?.find(x=>x.id.startsWith('country.'))?.text||''}}));await sql(`INSERT INTO geocode_cache(cache_key,payload,expires_at) VALUES($1,$2,now()+interval '30 days') ON CONFLICT(cache_key) DO UPDATE SET payload=$2,expires_at=now()+interval '30 days',updated_at=now()`,[key,JSON.stringify(data)]);if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,data,30*86400).catch(()=>{});return data}
-app.get('/api/location/search',limits.geo,async(req,res)=>{const q=str(req.query.q,200);if(!q)return res.json([]);try{const raw=(await geocode(`/search?format=jsonv2&addressdetails=1&limit=5&q=${encodeURIComponent(q)}`)).slice(0,5);res.json(raw.map(x=>{const a=x.address||{};return {label:x.display_name||'',lat:Number(x.lat),lon:Number(x.lon),city:a.city||a.town||a.village||a.municipality||a.county||'',region:a.state||a.region||'',countryCode:String(a.country_code||'').toLowerCase(),country:a.country||''}}))}catch(err){log.error('geocode.search.failed',{message:err?.message||String(err)});res.status(503).json({error:'Η υπηρεσία τοποθεσίας δεν είναι διαθέσιμη.'})}})
-app.get('/api/location/reverse',limits.geo,async(req,res)=>{const lat=Number(req.query.lat),lon=Number(req.query.lon);if(!Number.isFinite(lat)||!Number.isFinite(lon))return res.status(400).json({error:'Invalid coordinates'});try{const x=await geocode(`/reverse?format=jsonv2&addressdetails=1&lat=${lat}&lon=${lon}`),a=x.address||{};res.json({label:x.display_name||'',lat,lon,city:a.city||a.town||a.village||a.municipality||a.county||'',region:a.state||a.region||'',countryCode:String(a.country_code||'').toLowerCase(),country:a.country||''})}catch(err){log.error('geocode.reverse.failed',{message:err?.message||String(err)});res.status(503).json({error:'Η υπηρεσία τοποθεσίας δεν είναι διαθέσιμη.'})}})
+registerLocationRoutes({
+  app,
+  limits,
+  str,
+  geocode,
+  log
+})
 
 app.post('/api/analytics/professional-event',limits.analytics,async(req,res)=>{const pid=str(req.body.professionalId,80),type=str(req.body.type,40),sid=str(req.body.sessionId,100);if(!['impression','profile_view','phone_click'].includes(type)||!pid)return res.status(400).json({error:'Invalid event'});const windowMin=type==='impression'?60:type==='profile_view'?30:5;const fp=fingerprint(pid,type,sid,sha256(req.ip||''),new Date().toISOString().slice(0,13));const accepted=await Analytics.event(pid,type,fp,windowMin);res.json({ok:true,accepted})})
 app.get(
