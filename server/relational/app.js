@@ -43,6 +43,7 @@ import { registerSmartRequestRoutes } from '../routes/smart-request.routes.js'
 import { registerSeoRoutes } from '../routes/seo.routes.js'
 import { registerAdminReportsRoutes } from '../routes/admin-reports.routes.js'
 import { registerAdminVerificationRoutes } from '../routes/admin-verification.routes.js'
+import { registerAdminMembersRoutes } from '../routes/admin-members.routes.js'
 
 assertProductionReady()
 await migrate()
@@ -1008,6 +1009,20 @@ registerSupportRoutes(
 app.use('/api/admin',auth,requireRole('admin'),adminIpGuard,limits.admin)
 app.use('/api/admin',(req,res,next)=>['GET','HEAD','OPTIONS'].includes(req.method)?next():limits.adminWrite(req,res,next))
 
+registerAdminMembersRoutes({
+  app,
+  one,
+  many,
+  pagination,
+  id,
+  str,
+  now,
+  audit,
+  Users,
+  Professionals
+})
+
+
 registerAdminReportsRoutes({
   app,
   pagination,
@@ -1099,9 +1114,6 @@ app.get(
     )
   }
 )
-app.get('/api/admin/members',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:30,maxLimit:100});const q=str(req.query.q,100),role=str(req.query.role,30);const where=["u.deleted_at IS NULL","u.role<>'admin'"],vals=[];let i=1;if(q){where.push(`(u.name ILIKE $${i} OR u.email ILIKE $${i})`);vals.push(`%${q}%`);i++}if(role){where.push(`u.role=$${i++}`);vals.push(role)}vals.push(limit,offset);const rows=await many(`SELECT u.id,u.name,u.email,u.phone,u.role,u.email_verified "emailVerified",u.account_status "accountStatus",u.suspended_at "suspendedAt",u.suspension_reason "suspensionReason",u.deletion_pending "deletionPending",u.last_login_at "lastLoginAt",u.created_at "createdAt",p.id "professionalId",p.specialty,p.verified,p.featured,p.rating,p.reviews_count reviews,p.city,p.subscription_plan "subscriptionPlan",p.subscription_status "subscriptionStatus",p.subscription_price "subscriptionPrice",p.billing_mode "billingMode",p.current_period_end "currentPeriodEnd",p.onboarding_stage "onboardingStage",p.onboarding_completed "onboardingCompleted",v.id "verificationRequestId",v.status "verificationStatus" FROM users u LEFT JOIN professionals p ON p.user_id=u.id LEFT JOIN LATERAL (SELECT id,status FROM verification_requests vr WHERE vr.professional_id=p.id ORDER BY submitted_at DESC LIMIT 1) v ON true WHERE ${where.join(' AND ')} ORDER BY u.created_at DESC LIMIT $${i++} OFFSET $${i}`,[...vals]);const items=rows.map(m=>{let lifecycleStatus='';if(m.deletionPending)lifecycleStatus='deletion_pending';else if(m.role==='professional'){if(m.verified)lifecycleStatus='approved';else if(m.verificationStatus==='pending')lifecycleStatus='pending_verification';else if(m.verificationStatus==='rejected')lifecycleStatus='verification_rejected';else if(!['active','past_due'].includes(m.subscriptionStatus||''))lifecycleStatus='awaiting_subscription';else if(!m.specialty||!m.city)lifecycleStatus='profile_incomplete';else lifecycleStatus='verification_required'}return {...m,lifecycleStatus,subscriptionPrice:Number(m.subscriptionPrice||0),rating:Number(m.rating||0),reviews:Number(m.reviews||0)}});const c=await one(`SELECT count(*)::int total FROM users u WHERE u.deleted_at IS NULL AND u.role<>'admin'`);res.json({items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)})})
-
-app.patch('/api/admin/members/:id/action',limits.write,async(req,res)=>{const u=await Users.byId(req.params.id);if(!u)return res.status(404).json({error:'Not found'});const p=u.role==='professional'?await Professionals.byUser(u.id):null,action=str(req.body.action,40),reason=str(req.body.reason,500);if(action==='suspend'){await Users.update(u.id,{account_status:'suspended',suspended_at:now(),suspension_reason:reason});await Sessions.revokeUser(u.id)}else if(action==='reactivate')await Users.update(u.id,{account_status:'active',suspended_at:null,suspension_reason:''});else if(action==='verify'&&p)await Professionals.update(p.id,{verified:true,onboardingStage:'approved',onboardingCompleted:true});else if(action==='unverify'&&p)await Professionals.update(p.id,{verified:false,onboardingStage:'verification'});else if(action==='feature'&&p&&p.subscriptionPlan==='premium')await Professionals.update(p.id,{featured:true});else if(action==='unfeature'&&p)await Professionals.update(p.id,{featured:false});else return res.status(400).json({error:'Μη έγκυρη ενέργεια.'});await audit(req.user.id,`admin.member.${action}`,{targetUserId:u.id,reason});res.json({ok:true})})
 app.get('/api/admin/audit',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:50,maxLimit:200});const items=await many(`SELECT a.id,a.actor_id "actorId",u.name "actorName",u.email "actorEmail",a.action,a.meta,a.created_at at FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT $1 OFFSET $2`,[limit,offset]);res.json({items,page,limit})})
 app.get('/api/admin/insights',async(_req,res)=>{
  const topPros=await many(`SELECT p.id,u.name,p.specialty,p.subscription_plan plan,p.verified,p.rating,p.reviews_count reviews,count(b.id)::int requests,count(b.id) FILTER(WHERE b.status='completed')::int completed,coalesce(sum(a.profile_views),0)::int "profileViews",coalesce(sum(a.impressions),0)::int impressions FROM professionals p JOIN users u ON u.id=p.user_id LEFT JOIN bookings b ON b.professional_id=p.id LEFT JOIN professional_analytics_daily a ON a.professional_id=p.id AND a.day>=current_date-30 GROUP BY p.id,u.name ORDER BY completed DESC,requests DESC LIMIT 10`);
