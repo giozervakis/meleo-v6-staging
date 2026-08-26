@@ -46,6 +46,7 @@ const routeFiles = [
   'server/routes/admin-verification.routes.js',
   'server/routes/admin-members.routes.js',
   'server/routes/admin-observability.routes.js',
+  'server/routes/admin-bookings.routes.js',
   'server/routes/seo.routes.js'
 ]
 
@@ -831,5 +832,6 @@ console.log(
 )
 
 console.log(
+  '[PASS] admin bookings route modular',
   '[PASS] 93 unique API routes preserved'
 )

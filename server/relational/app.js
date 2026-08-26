@@ -45,6 +45,7 @@ import { registerAdminReportsRoutes } from '../routes/admin-reports.routes.js'
 import { registerAdminVerificationRoutes } from '../routes/admin-verification.routes.js'
 import { registerAdminMembersRoutes } from '../routes/admin-members.routes.js'
 import { registerAdminObservabilityRoutes } from '../routes/admin-observability.routes.js'
+import { registerAdminBookingsRoutes } from '../routes/admin-bookings.routes.js'
 
 assertProductionReady()
 await migrate()
@@ -1020,6 +1021,11 @@ registerAdminObservabilityRoutes(
   }
 )
 
+registerAdminBookingsRoutes({
+  app,
+  Bookings
+})
+
 
 registerAdminMembersRoutes({
   app,
@@ -1119,7 +1125,6 @@ function normalizeSmartRequest(value){
 
 // END MELEO SMART REQUEST LEARNING v1
 
-app.get('/api/admin/bookings',async(req,res)=>res.json(await Bookings.listForUser({id:req.user.id,role:'admin'},req.query)))
 app.get('/api/admin/subscriptions',async(req,res)=>{const subscriptions=await many(`SELECT s.id,s.professional_id "professionalId",s.stripe_subscription_id "stripeSubscriptionId",s.plan,s.price,s.status,s.stripe_status "stripeStatus",s.billing_mode "billingMode",s.started_at "startedAt",s.current_period_end "currentPeriodEnd",s.cancel_at_period_end "cancelAtPeriodEnd",s.updated_at "updatedAt",u.name "professionalName",u.email FROM subscriptions s JOIN professionals p ON p.id=s.professional_id JOIN users u ON u.id=p.user_id ORDER BY s.updated_at DESC LIMIT 200`);const payments=await many(`SELECT id,professional_id "professionalId",invoice_id "invoiceId",amount,currency,status,provider,hosted_invoice_url "hostedInvoiceUrl",created_at "createdAt" FROM payments ORDER BY created_at DESC LIMIT 200`);res.json({subscriptions:subscriptions.map(x=>({...x,price:Number(x.price||0)})),payments:payments.map(x=>({...x,amount:Number(x.amount||0)}))})})
 
 app.post('/api/admin/professionals/:id/sync-subscription',async(req,res)=>{const p=await Professionals.byId(req.params.id);if(!p)return res.status(404).json({error:'Not found'});if(!p.stripeSubscriptionId||!getStripe())return res.status(400).json({error:'Δεν υπάρχει Stripe subscription.'});const sub=await getStripe().subscriptions.retrieve(p.stripeSubscriptionId);const updated=await applyStripeSubscription(sub);await audit(req.user.id,'admin.subscription.sync',{professionalId:p.id});res.json({professional:updated})})
