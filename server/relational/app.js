@@ -38,6 +38,7 @@ import { registerReportRoutes } from '../routes/reports.routes.js'
 import { registerCommunicationSummaryRoutes } from '../routes/communication-summary.routes.js'
 import { registerLocationRoutes } from '../routes/location.routes.js'
 import { registerAnalyticsRoutes } from '../routes/analytics.routes.js'
+import { registerProfessionalAnalyticsRoutes } from '../routes/professional-analytics.routes.js'
 import { registerSeoRoutes } from '../routes/seo.routes.js'
 
 assertProductionReady()
@@ -494,49 +495,16 @@ registerAnalyticsRoutes({
   sha256
 })
 
-app.get(
-  '/api/professional/analytics',
-  auth,
-  requireRole('professional'),
-  async(req,res)=>{
-    const p=await Professionals.byUser(req.user.id)
 
-    if(!p){
-      return res.status(404).json({
-        error:'Professional profile not found'
-      })
-    }
-
-    const days=Math.min(
-      365,
-      Math.max(
-        1,
-        Number(req.query.days)||30
-      )
-    )
-
-    const analytics=
-      await Analytics.summary(
-        p.id,
-        days
-      )
-
-	const trust=
-	await meleoTrustForProfessional(
-		p.id
-	)
-
-	const smartMatchDiagnostics=
-	await smartMatchDiagnosticsForProfessional(
-		p.id,
-		trust
-	)
-
-	res.json({
-  ...analytics,
-  trust,
-  smartMatchDiagnostics
-})
+registerProfessionalAnalyticsRoutes(
+  app,
+  {
+    auth,
+    requireRole,
+    Professionals,
+    Analytics,
+    meleoTrustForProfessional,
+    smartMatchDiagnosticsForProfessional
   }
 )
 

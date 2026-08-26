@@ -40,6 +40,7 @@ const routeFiles = [
   'server/routes/communication-summary.routes.js',
   'server/routes/location.routes.js',
   'server/routes/analytics.routes.js',
+  'server/routes/professional-analytics.routes.js',
   'server/routes/seo.routes.js'
 ]
 
@@ -524,6 +525,16 @@ assertSoleOwner(
   'GET',
   '/api/seo/resolve',
   'server/routes/seo.routes.js'
+)
+
+
+/*
+ * Professional analytics ownership - Part 4A-8F5A
+ */
+assertSoleOwner(
+  'GET',
+  '/api/professional/analytics',
+  'server/routes/professional-analytics.routes.js'
 )
 
 
