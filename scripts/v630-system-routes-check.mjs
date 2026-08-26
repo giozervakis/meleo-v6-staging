@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs'
+import fs from 'node:fs'
 
 
 const assert =
@@ -48,7 +48,8 @@ const routeFiles = [
   'server/routes/admin-observability.routes.js',
   'server/routes/admin-bookings.routes.js',
   'server/routes/admin-subscriptions.routes.js',
-  'server/routes/seo.routes.js'
+  'server/routes/seo.routes.js',
+  'server/routes/public-web.routes.js'
 ]
 
 
@@ -531,7 +532,8 @@ assertSoleOwner(
 assertSoleOwner(
   'GET',
   '/api/seo/resolve',
-  'server/routes/seo.routes.js'
+  'server/routes/seo.routes.js',
+  'server/routes/public-web.routes.js'
 )
 
 
