@@ -41,6 +41,7 @@ const routeFiles = [
   'server/routes/location.routes.js',
   'server/routes/analytics.routes.js',
   'server/routes/professional-analytics.routes.js',
+  'server/routes/smart-request.routes.js',
   'server/routes/seo.routes.js'
 ]
 
@@ -535,6 +536,34 @@ assertSoleOwner(
   'GET',
   '/api/professional/analytics',
   'server/routes/professional-analytics.routes.js'
+)
+
+
+/*
+ * Smart Request ownership - Part 4A-8F5B
+ */
+assertSoleOwner(
+  'POST',
+  '/api/smart-request/unmatched',
+  'server/routes/smart-request.routes.js'
+)
+
+assertSoleOwner(
+  'POST',
+  '/api/smart-request/learned-match',
+  'server/routes/smart-request.routes.js'
+)
+
+assertSoleOwner(
+  'GET',
+  '/api/admin/smart-requests',
+  'server/routes/smart-request.routes.js'
+)
+
+assertSoleOwner(
+  'PATCH',
+  '/api/admin/smart-requests/:id',
+  'server/routes/smart-request.routes.js'
 )
 
 
