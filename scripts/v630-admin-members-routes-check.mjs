@@ -116,6 +116,67 @@ console.log(
   '[PASS] member dependencies injected'
 )
 
+
+const adminMembersAppSource =
+  fs.readFileSync(
+    'server/relational/app.js',
+    'utf8'
+  )
+
+const adminMembersRouteSource =
+  fs.readFileSync(
+    'server/routes/admin-members.routes.js',
+    'utf8'
+  )
+
+assert(
+  adminMembersRouteSource.includes(
+    'limits.write'
+  ),
+  'Admin Members limits.write dependency lost'
+)
+
+assert(
+  adminMembersRouteSource.includes(
+    'Sessions.revokeUser'
+  ),
+  'Admin Members Sessions revocation dependency lost'
+)
+
+const adminMembersRegistrationIndex =
+  adminMembersAppSource.indexOf(
+    'registerAdminMembersRoutes('
+  )
+
+assert(
+  adminMembersRegistrationIndex >= 0,
+  'Admin Members registrar missing'
+)
+
+const adminMembersRegistrationRegion =
+  adminMembersAppSource.slice(
+    adminMembersRegistrationIndex,
+    adminMembersRegistrationIndex + 3000
+  )
+
+assert(
+  /\blimits\b/.test(
+    adminMembersRegistrationRegion
+  ),
+  'Admin Members limits dependency not injected'
+)
+
+assert(
+  /\bSessions\b/.test(
+    adminMembersRegistrationRegion
+  ),
+  'Admin Members Sessions dependency not injected'
+)
+
+console.log(
+  '[PASS] Admin Members runtime dependency injection preserved'
+)
+
 console.log(
   '[PASS] audit integration preserved'
 )

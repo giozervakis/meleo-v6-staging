@@ -1019,8 +1019,10 @@ registerAdminMembersRoutes({
   now,
   audit,
   Users,
-  Professionals
-})
+  Professionals,
+    limits,
+    Sessions
+  })
 
 
 registerAdminReportsRoutes({
