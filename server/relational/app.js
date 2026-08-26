@@ -44,6 +44,7 @@ import { registerSeoRoutes } from '../routes/seo.routes.js'
 import { registerAdminReportsRoutes } from '../routes/admin-reports.routes.js'
 import { registerAdminVerificationRoutes } from '../routes/admin-verification.routes.js'
 import { registerAdminMembersRoutes } from '../routes/admin-members.routes.js'
+import { registerAdminObservabilityRoutes } from '../routes/admin-observability.routes.js'
 
 assertProductionReady()
 await migrate()
@@ -1009,6 +1010,17 @@ registerSupportRoutes(
 app.use('/api/admin',auth,requireRole('admin'),adminIpGuard,limits.admin)
 app.use('/api/admin',(req,res,next)=>['GET','HEAD','OPTIONS'].includes(req.method)?next():limits.adminWrite(req,res,next))
 
+registerAdminObservabilityRoutes(
+  app,
+  {
+    Admin,
+    pagination,
+    many,
+    one
+  }
+)
+
+
 registerAdminMembersRoutes({
   app,
   one,
@@ -1106,25 +1118,6 @@ function normalizeSmartRequest(value){
 // ------------------------------------------------------------
 
 // END MELEO SMART REQUEST LEARNING v1
-
-app.get('/api/admin/stats',async(_req,res)=>res.json(await Admin.stats()))
-app.get(
-  '/api/admin/command-center',
-  async(_req,res)=>{
-    res.json(
-      await Admin.commandCenter()
-    )
-  }
-)
-app.get('/api/admin/audit',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:50,maxLimit:200});const items=await many(`SELECT a.id,a.actor_id "actorId",u.name "actorName",u.email "actorEmail",a.action,a.meta,a.created_at at FROM audit_logs a LEFT JOIN users u ON u.id=a.actor_id ORDER BY a.created_at DESC LIMIT $1 OFFSET $2`,[limit,offset]);res.json({items,page,limit})})
-app.get('/api/admin/insights',async(_req,res)=>{
- const topPros=await many(`SELECT p.id,u.name,p.specialty,p.subscription_plan plan,p.verified,p.rating,p.reviews_count reviews,count(b.id)::int requests,count(b.id) FILTER(WHERE b.status='completed')::int completed,coalesce(sum(a.profile_views),0)::int "profileViews",coalesce(sum(a.impressions),0)::int impressions FROM professionals p JOIN users u ON u.id=p.user_id LEFT JOIN bookings b ON b.professional_id=p.id LEFT JOIN professional_analytics_daily a ON a.professional_id=p.id AND a.day>=current_date-30 GROUP BY p.id,u.name ORDER BY completed DESC,requests DESC LIMIT 10`);
- const signupByRole=await many(`SELECT role,count(*)::int count,count(*) FILTER(WHERE created_at>=now()-interval '30 days')::int new30 FROM users WHERE deleted_at IS NULL AND role IN ('patient','professional') GROUP BY role`);
- const bookingStatus=await many(`SELECT status name,count(*)::int count FROM bookings GROUP BY status ORDER BY count DESC`);
- const reviewDist=await many(`SELECT gs stars,coalesce(count(r.id),0)::int count FROM generate_series(5,1,-1) gs LEFT JOIN reviews r ON r.rating=gs GROUP BY gs ORDER BY gs DESC`);
- const x=await one(`SELECT (SELECT count(*) FROM users WHERE deleted_at IS NULL AND created_at>=now()-interval '7 days')::int "newUsers7",(SELECT count(*) FROM users WHERE deleted_at IS NULL AND created_at>=now()-interval '30 days')::int "newUsers30",(SELECT count(*) FROM bookings WHERE created_at>=now()-interval '7 days')::int "newBookings7",(SELECT count(*) FROM bookings WHERE created_at>=now()-interval '30 days')::int "newBookings30"`);
- res.json({topPros,signupByRole,bookingStatus,reviewDist,...x})
-})
 
 app.get('/api/admin/bookings',async(req,res)=>res.json(await Bookings.listForUser({id:req.user.id,role:'admin'},req.query)))
 app.get('/api/admin/subscriptions',async(req,res)=>{const subscriptions=await many(`SELECT s.id,s.professional_id "professionalId",s.stripe_subscription_id "stripeSubscriptionId",s.plan,s.price,s.status,s.stripe_status "stripeStatus",s.billing_mode "billingMode",s.started_at "startedAt",s.current_period_end "currentPeriodEnd",s.cancel_at_period_end "cancelAtPeriodEnd",s.updated_at "updatedAt",u.name "professionalName",u.email FROM subscriptions s JOIN professionals p ON p.id=s.professional_id JOIN users u ON u.id=p.user_id ORDER BY s.updated_at DESC LIMIT 200`);const payments=await many(`SELECT id,professional_id "professionalId",invoice_id "invoiceId",amount,currency,status,provider,hosted_invoice_url "hostedInvoiceUrl",created_at "createdAt" FROM payments ORDER BY created_at DESC LIMIT 200`);res.json({subscriptions:subscriptions.map(x=>({...x,price:Number(x.price||0)})),payments:payments.map(x=>({...x,amount:Number(x.amount||0)}))})})

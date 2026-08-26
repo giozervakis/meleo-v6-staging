@@ -45,6 +45,7 @@ const routeFiles = [
   'server/routes/admin-reports.routes.js',
   'server/routes/admin-verification.routes.js',
   'server/routes/admin-members.routes.js',
+  'server/routes/admin-observability.routes.js',
   'server/routes/seo.routes.js'
 ]
 
@@ -601,6 +602,46 @@ assertSoleOwner(
   'PATCH',
   '/api/admin/verifications/:id',
   'server/routes/admin-verification.routes.js'
+)
+
+
+/*
+ * Admin Observability ownership - Part 4A-8F5F
+ */
+assertSoleOwner(
+  'GET',
+  '/api/admin/stats',
+  'server/routes/admin-observability.routes.js'
+)
+
+
+/*
+ * Admin Observability ownership - Part 4A-8F5F
+ */
+assertSoleOwner(
+  'GET',
+  '/api/admin/command-center',
+  'server/routes/admin-observability.routes.js'
+)
+
+
+/*
+ * Admin Observability ownership - Part 4A-8F5F
+ */
+assertSoleOwner(
+  'GET',
+  '/api/admin/audit',
+  'server/routes/admin-observability.routes.js'
+)
+
+
+/*
+ * Admin Observability ownership - Part 4A-8F5F
+ */
+assertSoleOwner(
+  'GET',
+  '/api/admin/insights',
+  'server/routes/admin-observability.routes.js'
 )
 
 
