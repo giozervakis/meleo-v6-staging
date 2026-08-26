@@ -8,7 +8,7 @@ import { encryptSensitive, decryptSensitive, matchTotpStep } from '../security.j
 import { getPool, sql, one, many, tx, migrate, closePool, id, now, sha256, hashPassword, verifyPassword, publicUser, pagination } from './pool.js'
 import { Users, Sessions, Professionals, Notifications, Bookings, Analytics, Admin, audit } from './repositories.js'
 import Stripe from 'stripe'
-import { canViewBooking, canEditBooking, canReviewBooking } from './authorization.js'
+import { canViewBooking, canEditBooking, canViewPatientContact, canReviewBooking } from './authorization.js'
 import { redisRateLimit, redisGetJson, redisSetJson, redisPing, closeRedis } from '../redis.js'
 import { log, requestId } from '../logger.js'
 import { observeRequest, metricsText } from '../metrics.js'
