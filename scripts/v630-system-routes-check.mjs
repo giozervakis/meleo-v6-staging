@@ -38,7 +38,8 @@ const routeFiles = [
   'server/routes/support.routes.js',
   'server/routes/reports.routes.js',
   'server/routes/communication-summary.routes.js',
-  'server/routes/location.routes.js'
+  'server/routes/location.routes.js',
+  'server/routes/analytics.routes.js'
 ]
 
 
@@ -502,6 +503,16 @@ assertSoleOwner(
   'GET',
   '/api/location/reverse',
   'server/routes/location.routes.js'
+)
+
+
+/*
+ * Analytics ownership - Part 4A-8F3
+ */
+assertSoleOwner(
+  'POST',
+  '/api/analytics/professional-event',
+  'server/routes/analytics.routes.js'
 )
 
 
