@@ -36,7 +36,8 @@ const routeFiles = [
   'server/routes/favorites.routes.js',
   'server/routes/care-team.routes.js',
   'server/routes/support.routes.js',
-  'server/routes/reports.routes.js'
+  'server/routes/reports.routes.js',
+  'server/routes/communication-summary.routes.js'
 ]
 
 
@@ -469,6 +470,17 @@ assertSoleOwner(
   'GET',
   '/api/care-team',
   'server/routes/care-team.routes.js'
+)
+
+
+
+/*
+ * Communication summary ownership - Part 4A-8F1
+ */
+assertSoleOwner(
+  'GET',
+  '/api/communication/unread',
+  'server/routes/communication-summary.routes.js'
 )
 
 

@@ -95,6 +95,58 @@ for (
 }
 
 
+const communicationSummaryModule =
+  fs.readFileSync(
+    'server/routes/communication-summary.routes.js',
+    'utf8'
+  )
+
+
+
+assert(
+  communicationSummaryModule.includes(
+    'Notifications.unreadCount(req.user.id)'
+  ),
+  'communication unread notification count coupling changed'
+)
+
+
+assert(
+  communicationSummaryModule.includes(
+    'Bookings.unreadMessageCount(req.user.id)'
+  ),
+  'communication unread booking-message count coupling changed'
+)
+
+assert(
+  !app.includes(
+    '/api/communication/unread'
+  ),
+  'communication unread route still application-owned'
+)
+
+assert(
+  communicationSummaryModule.includes(
+    '/api/communication/unread'
+  ),
+  'communication unread route missing from module'
+)
+
+assert(
+  communicationSummaryModule.includes(
+    'Notifications.unreadCount'
+  ),
+  'notification unread aggregation changed'
+)
+
+assert(
+  communicationSummaryModule.includes(
+    'Bookings.unreadMessageCount'
+  ),
+  'booking-message unread aggregation changed'
+)
+
+
 assert(
   module.includes(
     'registerNotificationRoutes'
@@ -135,28 +187,6 @@ assert(
  * The aggregate communication unread endpoint intentionally
  * remains outside this domain.
  */
-assert(
-  app.includes(
-    "'/api/communication/unread'"
-  ),
-  'communication unread route moved prematurely'
-)
-
-assert(
-  app.includes(
-    'Notifications.unreadCount'
-  ),
-  'communication unread notification count coupling lost'
-)
-
-assert(
-  app.includes(
-    'Bookings.unreadMessageCount'
-  ),
-  'communication unread booking-message coupling lost'
-)
-
-
 console.log(
   'MELEO v6.3.0 notifications routes architecture check: OK'
 )
