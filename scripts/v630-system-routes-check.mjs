@@ -42,6 +42,7 @@ const routeFiles = [
   'server/routes/analytics.routes.js',
   'server/routes/professional-analytics.routes.js',
   'server/routes/smart-request.routes.js',
+  'server/routes/admin-reports.routes.js',
   'server/routes/seo.routes.js'
 ]
 

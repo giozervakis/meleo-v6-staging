@@ -41,6 +41,7 @@ import { registerAnalyticsRoutes } from '../routes/analytics.routes.js'
 import { registerProfessionalAnalyticsRoutes } from '../routes/professional-analytics.routes.js'
 import { registerSmartRequestRoutes } from '../routes/smart-request.routes.js'
 import { registerSeoRoutes } from '../routes/seo.routes.js'
+import { registerAdminReportsRoutes } from '../routes/admin-reports.routes.js'
 
 assertProductionReady()
 await migrate()
@@ -1006,6 +1007,17 @@ registerSupportRoutes(
 app.use('/api/admin',auth,requireRole('admin'),adminIpGuard,limits.admin)
 app.use('/api/admin',(req,res,next)=>['GET','HEAD','OPTIONS'].includes(req.method)?next():limits.adminWrite(req,res,next))
 
+registerAdminReportsRoutes({
+  app,
+  pagination,
+  many,
+  sql,
+  id,
+  str,
+  now
+})
+
+
 // ============================================================
 // MELEO SMART REQUEST LEARNING v1
 // ============================================================
@@ -1110,8 +1122,6 @@ app.get('/api/admin/verification-documents/:id/signed',async(req,res)=>{if(!veri
 app.patch('/api/admin/verifications/:id',async(req,res)=>{const v=await one('SELECT * FROM verification_requests WHERE id=$1',[req.params.id]);if(!v)return res.status(404).json({error:'Not found'});const status=req.body.status==='approved'?'approved':'rejected',approved=status==='approved',note=str(req.body.note||req.body.adminNote,1000);if(!approved&&!note)return res.status(400).json({error:'Ο λόγος απόρριψης είναι υποχρεωτικός.'});const p=await Professionals.byId(v.professional_id);if(!p)return res.status(404).json({error:'Professional not found'});if(approved&&!['active','past_due'].includes(p.subscriptionStatus||''))return res.status(400).json({error:'Δεν μπορεί να εγκριθεί επαγγελματικός λογαριασμός χωρίς ενεργή ή past-due συνδρομή.'});await tx(async c=>{await c.query(`UPDATE verification_requests SET status=$1,admin_note=$2,reviewed_by=$3,reviewed_at=now() WHERE id=$4`,[status,note,req.user.id,v.id]);await c.query(`UPDATE professionals SET verified=$1,onboarding_stage=$2,onboarding_completed=$1,updated_at=now() WHERE id=$3`,[approved,approved?'approved':'verification_rejected',v.professional_id])});const u=await Users.byId(p.userId);if(u){if(approved){await Notifications.create(u.id,'verification','Ο επαγγελματικός σας λογαριασμός ενεργοποιήθηκε','Η επαλήθευση ολοκληρώθηκε. Από το μενού προφίλ της πλατφόρμας επιλέξτε Professional Dashboard για να διαχειριστείτε το επαγγελματικό σας προφίλ και τα αιτήματα.')}else{await Notifications.create(u.id,'verification','Χρειάζεται ενέργεια για τον επαγγελματικό σας λογαριασμό',`Η επαγγελματική ενεργοποίηση δεν ολοκληρώθηκε. Λόγος: ${note}`)}mail.verificationDecision(u.email,u.name,approved,note).catch(()=>{})}await audit(req.user.id,`verification.${status}`,{requestId:v.id,professionalId:v.professional_id,reason:note});res.json({ok:true})})
 app.post('/api/admin/professionals/:id/sync-subscription',async(req,res)=>{const p=await Professionals.byId(req.params.id);if(!p)return res.status(404).json({error:'Not found'});if(!p.stripeSubscriptionId||!getStripe())return res.status(400).json({error:'Δεν υπάρχει Stripe subscription.'});const sub=await getStripe().subscriptions.retrieve(p.stripeSubscriptionId);const updated=await applyStripeSubscription(sub);await audit(req.user.id,'admin.subscription.sync',{professionalId:p.id});res.json({professional:updated})})
 
-app.get('/api/admin/reports',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:30,maxLimit:100});const items=await many(`SELECT r.*,u.name reporter_name,u.email reporter_email FROM reports r JOIN users u ON u.id=r.reporter_user_id ORDER BY created_at DESC LIMIT $1 OFFSET $2`,[limit,offset]);res.json({items,page,limit})})
-app.patch('/api/admin/reports/:id',async(req,res)=>{await sql('UPDATE reports SET status=$1,updated_at=now() WHERE id=$2',[str(req.body.status,40)||'closed',req.params.id]);res.json({ok:true})})
 
 // SEO + static build support.
 function slugify(v=''){return String(v).normalize('NFD').replace(/[\u0300-\u036f]/g,'').toLowerCase().replace(/[^a-z0-9\u0370-\u03ff]+/g,'-').replace(/^-+|-+$/g,'')}
