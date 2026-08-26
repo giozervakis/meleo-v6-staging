@@ -34,6 +34,7 @@ import { registerNotificationRoutes } from '../routes/notifications.routes.js'
 import { registerFavoritesRoutes } from '../routes/favorites.routes.js'
 import { registerCareTeamRoutes } from '../routes/care-team.routes.js'
 import { registerSupportRoutes } from '../routes/support.routes.js'
+import { registerReportRoutes } from '../routes/reports.routes.js'
 
 assertProductionReady()
 await migrate()
@@ -968,7 +969,16 @@ registerCareTeamRoutes(
 
 
 
-app.post('/api/reports',auth,limits.write,async(req,res)=>{const rid=id('rpt');await sql(`INSERT INTO reports(id,reporter_user_id,target_type,target_id,reason,details) VALUES($1,$2,$3,$4,$5,$6)`,[rid,req.user.id,str(req.body.targetType,40),str(req.body.targetId,80),str(req.body.reason,200),str(req.body.details,1500)]);res.json({ok:true,id:rid})})
+registerReportRoutes(
+  app,
+  {
+    auth,
+    limits,
+    sql,
+    id,
+    str
+  }
+)
 
 // Multi-instance SSE via Postgres LISTEN/NOTIFY + persisted live_events.
 const liveClients=new Map();const listener=await getPool().connect();await listener.query('LISTEN meleo_live');listener.on('notification',msg=>{let meta;try{meta=JSON.parse(msg.payload||'{}')}catch{return}const uid=meta.userId,clients=liveClients.get(uid);if(!clients?.size)return;one('SELECT payload FROM live_events WHERE id=$1 AND user_id=$2',[meta.eventId,uid]).then(e=>{if(!e)return;for(const r of [...clients])try{r.write(`event: meleo\ndata: ${JSON.stringify(e.payload)}\n\n`)}catch{clients.delete(r)}}).catch(()=>{})})

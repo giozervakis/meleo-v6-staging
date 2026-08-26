@@ -35,7 +35,8 @@ const routeFiles = [
   'server/routes/notifications.routes.js',
   'server/routes/favorites.routes.js',
   'server/routes/care-team.routes.js',
-  'server/routes/support.routes.js'
+  'server/routes/support.routes.js',
+  'server/routes/reports.routes.js'
 ]
 
 
