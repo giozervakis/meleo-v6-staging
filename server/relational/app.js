@@ -15,6 +15,24 @@ import { observeRequest, metricsText } from '../metrics.js'
 import { queueStats } from '../jobs.js'
 import { verificationObjectKey,profilePhotoObjectKey, putVerificationObject, getVerificationObject, deleteVerificationObject, storageReady, createTemporaryDocumentSignature, verifyTemporaryDocumentSignature } from '../object-storage.js'
 import { APP_VERSION, RELEASE_CHANNEL } from '../version.js'
+import { registerSystemRoutes } from '../routes/system.routes.js'
+import { registerLifecycleRoutes } from '../routes/lifecycle.routes.js'
+import { registerAuthAccountRoutes } from '../routes/auth-account.routes.js'
+import { registerAccountProfileRoutes } from '../routes/account-profile.routes.js'
+import { registerAccountPrivacyRoutes } from '../routes/account-privacy.routes.js'
+import { registerProfessionalCoreRoutes } from '../routes/professional-core.routes.js'
+import { registerProfessionalVerificationRoutes } from '../routes/professional-verification.routes.js'
+import { createBillingService } from '../services/billing.service.js'
+import { registerProfessionalBillingRoutes } from '../routes/professional-billing.routes.js'
+import { registerBookingCoreRoutes } from '../routes/booking-core.routes.js'
+import { registerBookingStateRoutes } from '../routes/booking-state.routes.js'
+import { registerBookingCommunicationRoutes } from '../routes/booking-communication.routes.js'
+import { registerBookingRecoveryRoutes } from '../routes/booking-recovery.routes.js'
+import { registerBookingReviewRoutes } from '../routes/booking-review.routes.js'
+import { registerBookingCalendarRoutes } from '../routes/booking-calendar.routes.js'
+import { registerNotificationRoutes } from '../routes/notifications.routes.js'
+import { registerFavoritesRoutes } from '../routes/favorites.routes.js'
+import { registerCareTeamRoutes } from '../routes/care-team.routes.js'
 
 assertProductionReady()
 await migrate()
@@ -71,6 +89,27 @@ const allowsVisibility=p=>p?.subscriptionStatus==='active'||(p?.subscriptionStat
 app.use((req,res,next)=>{res.setHeader('X-Content-Type-Options','nosniff');res.setHeader('X-Frame-Options','DENY');res.setHeader('Referrer-Policy','strict-origin-when-cross-origin');res.setHeader('Permissions-Policy','camera=(), microphone=(), payment=(self), geolocation=(self)');res.setHeader('Cross-Origin-Opener-Policy','same-origin');res.setHeader('Content-Security-Policy',["default-src 'self'","script-src 'self'","style-src 'self' 'unsafe-inline'","img-src 'self' data:","font-src 'self' data:","connect-src 'self'","form-action 'self' https://checkout.stripe.com https://billing.stripe.com","frame-ancestors 'none'","base-uri 'self'","object-src 'none'"].join('; '));if(config.isHosted)res.setHeader('Strict-Transport-Security','max-age=31536000; includeSubDomains');next()})
 
 // Stripe webhook: idempotency stored relationally, no global DB snapshot.
+const {
+  ensureStripeCustomer,
+  applyStripeSubscription,
+  recordInvoice
+} = createBillingService(
+  {
+    getStripe,
+    Users,
+    Professionals,
+    Notifications,
+    mail,
+    sql,
+    one,
+    id,
+    now,
+    PLANS,
+    isPlan,
+    mapStripeStatus
+  }
+)
+
 app.post('/api/webhooks/stripe',express.raw({type:'application/json',limit:'1mb'}),async(req,res)=>{
  const s=getStripe();if(!s||!config.stripe.webhookSecret)return res.status(503).json({error:'Webhook not configured'})
  let event;try{event=s.webhooks.constructEvent(req.body,req.headers['stripe-signature'],config.stripe.webhookSecret)}catch{return res.status(400).json({error:'Invalid signature'})}
@@ -211,343 +250,112 @@ async function ensureDemoData(){if(!config.seedDemo)return;const c=await one('SE
 async function ensureAdmin(){const email=config.admin.email;const pass=config.admin.password||(config.isProd?'':'admin123');if(!pass)return;let u=await Users.byEmail(email);if(!u){u=await Users.create({id:'u_admin',role:'admin',name:'MELEO Admin',email,phone:'',passwordHash:await hashPassword(pass),emailVerified:true,acceptedTermsAt:now()})}else if(config.admin.password){await Users.update(u.id,{password_hash:await hashPassword(config.admin.password)})}}
 await ensureDemoData();await ensureAdmin()
 
-app.get('/api/config',(_req,res)=>res.json({env:config.env,demoAuth:config.demoAuth,demoCheckout:config.demoCheckout,paymentsEnabled:config.stripeEnabled,mailEnabled:config.mailEnabled,portalEnabled:config.stripeEnabled&&config.stripe.portalEnabled,plans:Object.values(PLANS),termsVersion:config.legal.termsVersion,emergencyNumber:config.emergencyNumber,legal:{company:config.legal.company,vatNumber:config.legal.vatNumber,address:config.legal.address,supportEmail:config.mail.supportEmail,dpoEmail:config.legal.dpoEmail}}))
-app.get('/api/health',async(_req,res)=>{const counts=await one(`SELECT (SELECT count(*) FROM users)::int users,(SELECT count(*) FROM professionals)::int professionals`);res.json({ok:true,service:'MELEO API',version:APP_VERSION,instance:process.env.INSTANCE_ID||process.env.HOSTNAME||'local',env:config.env,storage:{database:'postgres-relational',documents:config.storage.driver,multiInstanceSafe:config.storage.driver==='s3',redis:Boolean(config.redis.url)},...counts})})
+registerSystemRoutes(
+  app,
+  {
+    config,
+    APP_VERSION,
+    PLANS,
+    one,
+    getPool,
+    queueStats,
+    metricsText
+  }
+)
 let shuttingDown = false
 let shutdownStartedAt = null
 
-app.get('/api/ready',async(_req,res)=>{
-  if(shuttingDown){
-    return res.status(503).json({
-      ok:false,
-      service:'MELEO',
-      version:APP_VERSION,
-      state:'draining',
-      shutdownStartedAt
-    })
+registerLifecycleRoutes(
+  app,
+  {
+    config,
+    one,
+    redisPing,
+    storageReady,
+    APP_VERSION,
+    log,
+    getShuttingDown:()=>shuttingDown,
+    getShutdownStartedAt:()=>shutdownStartedAt
   }
+)
 
-  try{
-    await one('SELECT 1 ok')
+registerAuthAccountRoutes(
+  app,
+  {
+    config,
+    limits,
+    auth,
+    requireVerifiedEmail,
 
-    let redis=true
+    str,
+    isEmail,
+    passwordPolicy,
+    passwordPolicyError,
 
-    if(config.redis.url){
-      try{
-        redis=await redisPing()
-      }catch{
-        redis=false
-      }
-    }
+    Users,
+    Sessions,
+    Professionals,
 
-    const objectStorage=
-      await storageReady()
+    hashPassword,
+    verifyPassword,
+    matchTotpStep,
 
-    const checks={
-      database:true,
-      redis,
-      objectStorage,
-      payments:
-        config.isProd
-          ? config.stripeEnabled
-          : true,
-      mail:
-        config.isProd
-          ? config.mailEnabled
-          : true,
-      admin2fa:
-        config.isProd
-          ? Boolean(config.admin.totpSecret)
-          : true
-    }
+    createToken,
+    consumeToken,
+    issueSession,
+    clearSessionCookie,
 
-    if(
-      (config.redis.required&&!redis) ||
-      (config.isProd&&!objectStorage)
-    ){
-      return res.status(503).json({
-        ok:false,
-        service:'MELEO',
-        version:APP_VERSION,
-        state:'degraded',
-        checks
-      })
-    }
+    mail,
+    audit,
+    publicUser,
 
-    res.json({
-      ok:true,
-      service:'MELEO',
-      version:APP_VERSION,
-      instance:
-        process.env.INSTANCE_ID||
-        process.env.HOSTNAME||
-        'local',
-      state:'ready',
-      checks
-    })
-  }catch(err){
-    log.error(
-      'api.readiness.failed',
-      {
-        message:
-          err?.message||
-          String(err)
-      }
-    )
-
-    res.status(503).json({
-      ok:false,
-      service:'MELEO',
-      version:APP_VERSION,
-      state:'degraded'
-    })
+    id,
+    now,
+    sha256
   }
-})
+)
 
-app.get('/api/metrics',async(req,res)=>{if(config.isHosted){const supplied=String(req.headers.authorization||'').replace(/^Bearer\s+/i,'');if(!config.observability.metricsToken||supplied!==config.observability.metricsToken)return res.status(404).end()}const q=await queueStats();const pool=getPool();res.type('text/plain; version=0.0.4').send(metricsText({background_jobs_pending:q.pending,background_jobs_processing:q.processing,background_jobs_failed:q.failed,postgres_pool_total:pool.totalCount,postgres_pool_idle:pool.idleCount,postgres_pool_waiting:pool.waitingCount}))})
-app.get('/api/plans',(_req,res)=>res.json(Object.values(PLANS)))
 
-app.post('/api/auth/register',limits.register,async(req,res)=>{const role=req.body.role==='professional'?'professional':'patient',name=str(req.body.name,120),email=str(req.body.email,200).toLowerCase(),phone=str(req.body.phone,40),password=String(req.body.password||'');if(!name||!isEmail(email))return res.status(400).json({error:'Συμπλήρωσε σωστά όνομα και email.'});if(!passwordPolicy(password).valid)return res.status(400).json(passwordPolicyError);const existing=await Users.byEmail(email);if(existing){const roleLabel=existing.role==='professional'?'Επαγγελματίας':existing.role==='patient'?'Συνοδός / Ασθενής':'Διαχειριστής';const wantsProfessional=role==='professional';return res.status(409).json({error:wantsProfessional&&existing.role==='patient'?`Υπάρχει ήδη λογαριασμός MELEO με αυτό το email ως ${roleLabel}. Συνδέσου στον υπάρχοντα λογαριασμό σου και επίλεξε «Γίνε επαγγελματίας». Δεν χρειάζεται δεύτερος λογαριασμός.`:`Είσαι ήδη εγγεγραμμένος στη MELEO ως ${roleLabel} με αυτό το email. Συνδέσου στον υπάρχοντα λογαριασμό σου.`,code:'ACCOUNT_EXISTS',existingRole:existing.role})};const uid=id('usr');const u=await Users.create({id:uid,role,name,email,phone,passwordHash:await hashPassword(password),emailVerified:!config.mailEnabled,acceptedTermsAt:now(),termsVersion:config.legal.termsVersion});if(role==='professional')await Professionals.createForUser(uid);if(config.mailEnabled){const t=await createToken(uid,'verify_email',24*3600000);mail.verifyEmail(email,name,`${config.appUrl}/?verify_email=${encodeURIComponent(t)}`).catch(()=>{})}await issueSession(u,req,res);await audit(uid,'auth.register',{role});res.json({token:'cookie',user:publicUser(u),professional:role==='professional'?await Professionals.byUser(uid):null})})
-app.post('/api/auth/login',limits.login,limits.loginAccount,async(req,res)=>{const email=str(req.body.email,200).toLowerCase(),password=String(req.body.password||'');const u=await Users.byEmail(email);if(!u||!await verifyPassword(password,u.password_hash)){if(email===config.admin.email||u?.role==='admin')await audit(u?.id||null,'security.admin_login_failed',{ipHash:sha256(req.ip||''),uaHash:sha256(req.headers['user-agent']||'')});return res.status(401).json({error:'Λάθος email ή κωδικός.'});}if(u.account_status==='suspended'&&u.role!=='admin')return res.status(403).json({error:'Ο λογαριασμός έχει ανασταλεί.'});if(u.role==='admin'&&config.admin.totpSecret){const step=matchTotpStep(config.admin.totpSecret,req.body.totp);if(step==null){await audit(u.id,'security.admin_2fa_failed',{ipHash:sha256(req.ip||'')});return res.status(401).json({error:'Απαιτείται έγκυρος κωδικός 2FA.',requires2fa:true})}if(u.last_totp_step!=null&&Number(u.last_totp_step)>=step){await audit(u.id,'security.admin_2fa_replay',{ipHash:sha256(req.ip||'')});return res.status(401).json({error:'Ο κωδικός 2FA έχει ήδη χρησιμοποιηθεί.'})};await Users.update(u.id,{last_totp_step:step})}await Users.update(u.id,{last_login_at:now()});await issueSession(u,req,res);await audit(u.id,'auth.login',{});res.json({token:'cookie',user:publicUser(u),professional:u.role==='professional'?await Professionals.byUser(u.id):null})})
-app.post('/api/auth/logout',auth,async(req,res)=>{await Sessions.revoke(req.sessionRaw);clearSessionCookie(res);res.json({ok:true})})
-app.post('/api/auth/social-demo',async(req,res)=>{if(!config.demoAuth)return res.status(404).json({error:'Unavailable'});const role=req.body.role==='professional'?'professional':'patient';const email=role==='professional'?'maria@meleo.gr':'patient@meleo.gr';const u=await Users.byEmail(email);await issueSession(u,req,res);res.json({token:'cookie',user:publicUser(u),professional:role==='professional'?await Professionals.byUser(u.id):null})})
-app.post('/api/auth/forgot-password',limits.password,async(req,res)=>{const u=await Users.byEmail(str(req.body.email,200).toLowerCase());if(u&&config.mailEnabled){const t=await createToken(u.id,'password_reset',3600000);mail.resetPassword(u.email,u.name,`${config.appUrl}/?reset=${encodeURIComponent(t)}`).catch(()=>{})}res.json({ok:true})})
-app.post('/api/auth/reset-password',limits.password,async(req,res)=>{const password=String(req.body.password||'');if(!passwordPolicy(password).valid)return res.status(400).json(passwordPolicyError);const rec=await consumeToken(str(req.body.token,300),'password_reset');if(!rec)return res.status(400).json({error:'Ο σύνδεσμος έχει λήξει ή χρησιμοποιηθεί.'});await Users.update(rec.user_id,{password_hash:await hashPassword(password)});await Sessions.revokeUser(rec.user_id);res.json({ok:true})})
-app.post('/api/auth/verify-email',async(req,res)=>{const rec=await consumeToken(str(req.body.token,300),'verify_email');if(!rec)return res.status(400).json({error:'Ο σύνδεσμος δεν είναι έγκυρος.'});await Users.update(rec.user_id,{email_verified:true});res.json({ok:true})})
-app.post('/api/auth/verify-email/resend',auth,limits.password,async(req,res)=>{if(!config.mailEnabled)return res.json({ok:true});const u=await Users.byId(req.user.id);const t=await createToken(u.id,'verify_email',24*3600000);mail.verifyEmail(u.email,u.name,`${config.appUrl}/?verify_email=${encodeURIComponent(t)}`).catch(()=>{});res.json({ok:true})})
 
-app.get('/api/me',auth,async(req,res)=>{const u=await Users.byId(req.user.id);res.json({user:publicUser(u),professional:await Professionals.byUser(u.id)})})
-app.post('/api/me/enable-professional',auth,requireVerifiedEmail,limits.write,async(req,res)=>{const u=await Users.byId(req.user.id);if(u.role==='admin')return res.status(403).json({error:'Ο λογαριασμός διαχειριστή δεν μπορεί να ενεργοποιηθεί ως επαγγελματικός.'});let p=await Professionals.byUser(u.id);if(!p)p=await Professionals.createForUser(u.id);if(u.role!=='professional')await Users.update(u.id,{role:'professional'});await Professionals.update(p.id,{onboardingStage:p.onboardingStage||'plan',onboardingCompleted:false});await audit(u.id,'professional.enable',{source:'existing_consumer_account'});const updated=await Users.byId(u.id);res.json({ok:true,user:publicUser(updated),professional:await Professionals.byUser(u.id),next:'professional_onboarding'})})
-app.get('/api/me/sessions',auth,async(req,res)=>{res.json({items:await Sessions.listForUser(req.user.id,req.sessionRaw)})})
-app.delete('/api/me/sessions/others',auth,limits.password,async(req,res)=>{await Sessions.revokeOthers(req.user.id,req.sessionRaw);await audit(req.user.id,'security.sessions_revoke_others',{});res.json({ok:true})})
-app.put('/api/me',auth,limits.write,async(req,res)=>{const u=await Users.update(req.user.id,{name:str(req.body.name,120)||req.user.name,phone:str(req.body.phone,40)});res.json({user:publicUser(u)})})
-const PROFILE_AVATARS=[
-  'care-01',
-  'care-02',
-  'care-03',
-  'care-04',
-  'care-05',
-  'care-06',
-  'care-07',
-  'care-08',
-  'care-09',
-  'care-10',
-  'care-11',
-  'care-12'
-]
-
-app.put('/api/me/avatar',auth,limits.write,async(req,res)=>{
-  const avatarKey=str(req.body.avatarKey,40)
-
-  if(
-    avatarKey &&
-    !PROFILE_AVATARS.includes(avatarKey)
-  ){
-    return res.status(400).json({
-      error:'Μη έγκυρο avatar.'
-    })
+registerAccountProfileRoutes(
+  app,
+  {
+    limits,
+    auth,
+    str,
+    Users,
+    audit,
+    publicUser,
+    profilePhotoObjectKey,
+    putVerificationObject,
+    getVerificationObject,
+    deleteVerificationObject
   }
+)
 
-  const updated=await Users.update(
-    req.user.id,
-    {
-      avatar_key:avatarKey||null
-    }
-  )
-
-  await audit(
-    req.user.id,
-    'profile.avatar.update',
-    {
-      avatarKey:avatarKey||null
-    }
-  )
-
-  res.json({
-    user:publicUser(updated)
-  })
-})
-app.post('/api/me/profile-photo',auth,limits.write,async(req,res)=>{
-  const data=String(req.body.data||'')
-
-  if(!data){
-    return res.status(400).json({
-      error:'Δεν στάλθηκε εικόνα.'
-    })
+registerAccountPrivacyRoutes(
+  app,
+  {
+    auth,
+    limits,
+    Users,
+    Sessions,
+    Professionals,
+    Bookings,
+    Notifications,
+    many,
+    sql,
+    tx,
+    audit,
+    publicUser,
+    hashPassword,
+    verifyPassword,
+    passwordPolicy,
+    passwordPolicyError,
+    clearSessionCookie
   }
+)
 
-  if(data.length>4_000_000){
-    return res.status(400).json({
-      error:'Η εικόνα είναι πολύ μεγάλη.'
-    })
-  }
-
-  const buf=Buffer.from(data,'base64')
-
-  let mime=''
-
-  if(
-    buf.slice(0,3).toString('hex')==='ffd8ff'
-  ){
-    mime='image/jpeg'
-  }
-  else if(
-    buf.slice(0,8).toString('hex')==='89504e470d0a1a0a'
-  ){
-    mime='image/png'
-  }
-  else if(
-    buf.slice(0,4).toString()==='RIFF' &&
-    buf.slice(8,12).toString()==='WEBP'
-  ){
-    mime='image/webp'
-  }
-
-  if(!mime){
-    return res.status(400).json({
-      error:'Επιτρέπονται μόνο JPG, PNG ή WEBP.'
-    })
-  }
-
-  const current=await Users.byId(req.user.id)
-
-  const nextVersion=
-    Number(current.profile_photo_version||0)+1
-
-  const newKey=
-    profilePhotoObjectKey(
-      req.user.id,
-      nextVersion
-    )
-
-  await putVerificationObject(
-    newKey,
-    buf
-  )
-
-  const oldKey=
-    current.profile_photo_key||null
-
-  const updated=await Users.update(
-    req.user.id,
-    {
-      profile_photo_key:newKey,
-      profile_photo_mime:mime,
-      profile_photo_version:nextVersion
-    }
-  )
-
-  if(oldKey && oldKey!==newKey){
-    deleteVerificationObject(oldKey)
-      .catch(()=>{})
-  }
-
-  await audit(
-    req.user.id,
-    'profile.photo.update',
-    {
-      mime,
-      version:nextVersion,
-      size:buf.length
-    }
-  )
-
-  res.json({
-    user:publicUser(updated)
-  })
-})
-
-
-app.delete('/api/me/profile-photo',auth,limits.write,async(req,res)=>{
-  const current=await Users.byId(req.user.id)
-
-  const oldKey=
-    current.profile_photo_key||null
-
-  const nextVersion=
-    Number(current.profile_photo_version||0)+1
-
-  const updated=await Users.update(
-    req.user.id,
-    {
-      profile_photo_key:null,
-      profile_photo_mime:null,
-      profile_photo_version:nextVersion
-    }
-  )
-
-  if(oldKey){
-    deleteVerificationObject(oldKey)
-      .catch(()=>{})
-  }
-
-  await audit(
-    req.user.id,
-    'profile.photo.delete',
-    {
-      version:nextVersion
-    }
-  )
-
-  res.json({
-    user:publicUser(updated)
-  })
-})
-
-
-app.get('/api/profile-photo/:userId',async(req,res)=>{
-  const userId=
-    str(req.params.userId,120)
-
-  const u=
-    await Users.byId(userId)
-
-  if(
-    !u ||
-    !u.profile_photo_key
-  ){
-    return res.status(404).end()
-  }
-
-  try{
-    const buf=
-      await getVerificationObject(
-        u.profile_photo_key
-      )
-
-    res.setHeader(
-      'Content-Type',
-      u.profile_photo_mime||'image/jpeg'
-    )
-
-    res.setHeader(
-      'Cache-Control',
-      'public, max-age=31536000, immutable'
-    )
-
-    res.setHeader(
-      'X-Content-Type-Options',
-      'nosniff'
-    )
-
-    res.end(buf)
-  }
-  catch(e){
-    if(
-      e?.code==='ENOENT' ||
-      e?.status===404
-    ){
-      return res.status(404).end()
-    }
-
-    throw e
-  }
-})
-
-app.post('/api/me/change-password',auth,limits.password,async(req,res)=>{const u=await Users.byId(req.user.id);if(!await verifyPassword(String(req.body.currentPassword||''),u.password_hash))return res.status(400).json({error:'Ο τρέχων κωδικός δεν είναι σωστός.'});const np=String(req.body.newPassword||'');if(!passwordPolicy(np).valid)return res.status(400).json(passwordPolicyError);await Users.update(u.id,{password_hash:await hashPassword(np)});await Sessions.revokeUser(u.id);clearSessionCookie(res);res.json({ok:true})})
-app.get('/api/me/export',auth,async(req,res)=>{const u=await Users.byId(req.user.id),p=u.role==='professional'?await Professionals.byUser(u.id):null,b=await Bookings.listForUser(publicUser(u),{limit:100});res.json({exportedAt:now(),user:publicUser(u),professional:p,bookings:b.items})})
-
-app.delete('/api/me',auth,limits.password,async(req,res)=>{const u=await Users.byId(req.user.id);if(req.body.password&&!await verifyPassword(String(req.body.password),u.password_hash))return res.status(400).json({error:'Λάθος κωδικός.'});const p=u.role==='professional'?await Professionals.byUser(u.id):null;if(p?.stripeSubscriptionId&&getStripe()){try{await getStripe().subscriptions.cancel(p.stripeSubscriptionId)}catch(err){await Users.update(u.id,{deletion_pending:true,deletion_requested_at:now()});return res.status(202).json({ok:true,pending:true,message:'Η διαγραφή θα ολοκληρωθεί μόλις ακυρωθεί η συνδρομή.'})}}await Users.update(u.id,{deleted_at:now(),name:'Deleted User',phone:'',account_status:'suspended'});await Sessions.revokeUser(u.id);clearSessionCookie(res);res.json({ok:true})})
 
 // Geocoding with persistent cache. Nominatim only in dev unless explicitly selected.
 async function geocode(pathname){const key=sha256(pathname);if(config.redis.url){try{const hit=await redisGetJson(config.redis.keyPrefix+'geo:'+key);if(hit)return hit}catch(err){console.warn('[MELEO v5.1] Redis geocode cache fallback:',err.message)}}const cached=await one('SELECT payload FROM geocode_cache WHERE cache_key=$1 AND expires_at>now()',[key]);if(cached){if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,cached.payload,86400).catch(()=>{});return cached.payload;}const provider=(process.env.GEOCODING_PROVIDER||'nominatim').toLowerCase();
@@ -940,150 +748,166 @@ async function smartMatchDiagnosticsForProfessional(professionalId,trust=null){
   }
 }
 
-app.get('/api/professionals',async(req,res)=>{const result=await Professionals.search(req.query);res.json(result)})
-app.get('/api/professionals/:id',limits.profile,async(req,res)=>{const p=await Professionals.byId(req.params.id);if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))return res.status(404).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος.'});const trust=await meleoTrustForProfessional(p.id);res.json({professional:{...p,trust}})})
+
+registerProfessionalCoreRoutes(
+  app,
+  {
+    Professionals,
+    limits,
+    allowsVisibility,
+    meleoTrustForProfessional,
+    pagination,
+    many,
+    one,
+    sanitizeProfilePatch,
+    auth,
+    requireRole
+  }
+)
+
 app.get('/api/seo/resolve',async(req,res)=>{const specialtySlug=str(req.query.specialty,120),citySlug=str(req.query.city,120);const rows=await many(`SELECT DISTINCT specialty,city FROM professionals WHERE verified=true AND admin_suspended=false AND subscription_status='active' AND specialty<>'' AND city<>'' LIMIT 3000`);const match=rows.find(x=>slugify(x.specialty)===specialtySlug&&slugify(x.city)===citySlug);if(!match)return res.status(404).json({error:'Not found'});res.json(match)})
 
-app.get('/api/professionals/:id/reviews',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:10,maxLimit:50});const items=await many(`SELECT r.id,r.rating,r.comment,r.created_at "createdAt",u.name "patientName" FROM reviews r JOIN users u ON u.id=r.patient_id WHERE r.professional_id=$1 ORDER BY r.created_at DESC LIMIT $2 OFFSET $3`,[req.params.id,limit,offset]);const c=await one('SELECT count(*)::int total FROM reviews WHERE professional_id=$1',[req.params.id]);res.json({items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)})})
 
-app.put('/api/professional/profile',auth,requireRole('professional'),limits.write,async(req,res)=>{const p=await Professionals.byUser(req.user.id);const patch=sanitizeProfilePatch(req.body);if(Object.keys(patch).length)await Professionals.update(p.id,patch);const updated=await Professionals.byId(p.id);if(updated.specialty&&updated.title&&updated.city&&!['pending_verification','approved'].includes(updated.onboardingStage))await Professionals.update(p.id,{onboardingStage:'verification'});res.json({professional:await Professionals.byId(p.id)})})
 
-app.post('/api/professional/verification-document',auth,requireRole('professional'),requireVerifiedEmail,limits.write,async(req,res)=>{const p=await Professionals.byUser(req.user.id);const name=str(req.body.name,180),data=String(req.body.data||'');if(!data||data.length>12_000_000)return res.status(400).json({error:'Το αρχείο είναι κενό ή πολύ μεγάλο.'});const buf=Buffer.from(data,'base64');let detected='';if(buf.slice(0,4).toString('hex')==='25504446')detected='application/pdf';else if(buf.slice(0,3).toString('hex')==='ffd8ff')detected='image/jpeg';else if(buf.slice(0,8).toString('hex')==='89504e470d0a1a0a')detected='image/png';else if(buf.slice(0,4).toString()==='RIFF'&&buf.slice(8,12).toString()==='WEBP')detected='image/webp';if(!detected)return res.status(400).json({error:'Επιτρέπονται μόνο PDF/JPG/PNG/WEBP.'});const did=id('doc'),storageKey=verificationObjectKey(did);await putVerificationObject(storageKey,encryptFileBuffer(buf));try{await sql(`INSERT INTO verification_documents(id,professional_id,storage_key,original_name,mime_type,size_bytes) VALUES($1,$2,$3,$4,$5,$6)`,[did,p.id,storageKey,name,detected,buf.length])}catch(e){await deleteVerificationObject(storageKey).catch(()=>{});throw e}res.json({ok:true,id:did,name,mime:detected,size:buf.length,storage:config.storage.driver})})
-app.get('/api/professional/verification-documents',auth,requireRole('professional'),async(req,res)=>{const p=await Professionals.byUser(req.user.id);const items=await many(`SELECT id,original_name name,mime_type mime,size_bytes size,created_at "createdAt" FROM verification_documents WHERE professional_id=$1 ORDER BY created_at DESC`,[p.id]);res.json(items)})
-app.post('/api/professional/verification',auth,requireRole('professional'),requireVerifiedEmail,limits.write,async(req,res)=>{const p=await Professionals.byUser(req.user.id);if(!p.subscriptionPlan||!['active','past_due'].includes(p.subscriptionStatus))return res.status(400).json({error:'Απαιτείται πρώτα ενεργή συνδρομή.'});if(!p.specialty||!p.title||!p.city)return res.status(400).json({error:'Ολοκλήρωσε πρώτα το επαγγελματικό προφίλ.'});const rid=id('ver');await sql(`INSERT INTO verification_requests(id,professional_id,license_number,notes,status) VALUES($1,$2,$3,$4,'pending')`,[rid,p.id,str(req.body.licenseNumber,120),str(req.body.notes,1000)]);await Professionals.update(p.id,{onboardingStage:'pending_verification'});await audit(req.user.id,'verification.submit',{professionalId:p.id});res.json({ok:true,request:{id:rid,status:'pending'}})})
-
-async function ensureStripeCustomer(u){if(u.stripe_customer_id)return u.stripe_customer_id;const s=getStripe();const c=await s.customers.create({email:u.email,name:u.name,phone:u.phone||undefined,metadata:{meleoUserId:u.id}});await Users.update(u.id,{stripe_customer_id:c.id});return c.id}
-async function applyStripeSubscription(sub,notifyUser=false){const uid=sub.metadata?.meleoUserId;let p=uid?await Professionals.byUser(uid):null;if(!p&&sub.id){const r=await one('SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',[sub.id]);if(r)p=await Professionals.byUser(r.user_id)}if(!p)return null;let plan=isPlan(sub.metadata?.plan)?sub.metadata.plan:'basic';const amount=sub.items?.data?.[0]?.price?.unit_amount;if(amount===1499)plan='premium';const status=mapStripeStatus(sub.status),period=sub.items?.data?.[0]?.current_period_end??sub.current_period_end;const patch={subscriptionPlan:plan,subscriptionPrice:PLANS[plan].price,subscriptionStatus:status,billingMode:'stripe',stripeSubscriptionId:sub.id,currentPeriodEnd:period?new Date(period*1000).toISOString():null,cancelAtPeriodEnd:!!sub.cancel_at_period_end,featured:plan==='premium'&&status==='active'};if(status==='past_due'&&!p.pastDueSince)patch.pastDueSince=now();if(status==='active'){patch.pastDueSince=null;if(!p.subscriptionSince)patch.subscriptionSince=now();if(!p.onboardingStage||p.onboardingStage==='plan')patch.onboardingStage='profile'}p=await Professionals.update(p.id,patch);await sql(`INSERT INTO subscriptions(id,professional_id,stripe_subscription_id,plan,price,status,stripe_status,billing_mode,started_at,current_period_end,cancel_at_period_end) VALUES($1,$2,$3,$4,$5,$6,$7,'stripe',now(),$8,$9) ON CONFLICT(stripe_subscription_id) DO UPDATE SET plan=$4,price=$5,status=$6,stripe_status=$7,current_period_end=$8,cancel_at_period_end=$9,updated_at=now()`,[id('sub'),p.id,sub.id,plan,PLANS[plan].price,status,sub.status,p.currentPeriodEnd,p.cancelAtPeriodEnd]);if(notifyUser&&status==='active'){await Notifications.create(p.userId,'subscription',`Η συνδρομή ${plan.toUpperCase()} είναι ενεργή`,`${PLANS[plan].price.toFixed(2)}€/μήνα`);const u=await Users.byId(p.userId);mail.subscriptionActive(u.email,u.name,plan.toUpperCase(),PLANS[plan].price.toFixed(2)).catch(()=>{})}return p}
-async function recordInvoice(inv,status){let p=null;const sid=inv.subscription||inv.parent?.subscription_details?.subscription;if(sid){const r=await one('SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',[String(sid)]);if(r)p=await Professionals.byUser(r.user_id)}await sql(`INSERT INTO payments(id,professional_id,invoice_id,amount,currency,status,hosted_invoice_url) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(invoice_id,status) DO NOTHING`,[id('pay'),p?.id||null,inv.id,(inv.amount_paid??inv.amount_due??0)/100,(inv.currency||'eur').toUpperCase(),status,inv.hosted_invoice_url||null]);if(status==='failed'&&p)await Notifications.create(p.userId,'billing','Αποτυχία πληρωμής συνδρομής','Ενημέρωσε τον τρόπο πληρωμής για να παραμείνει ενεργό το προφίλ σου.')}
-app.get('/api/professional/subscription',auth,requireRole('professional'),async(req,res)=>{
- const p=await Professionals.byUser(req.user.id);if(!p)return res.status(404).json({error:'Δεν βρέθηκε επαγγελματικό προφίλ'});
- const invoices=await many(`SELECT id,invoice_id "invoiceId",amount,currency,status,provider,hosted_invoice_url "hostedInvoiceUrl",created_at "createdAt" FROM payments WHERE professional_id=$1 ORDER BY created_at DESC LIMIT 24`,[p.id]);
- res.json({plan:p.subscriptionPlan,price:p.subscriptionPrice,status:p.subscriptionStatus,stripeStatus:p.stripeStatus||null,billingMode:p.billingMode,currentPeriodEnd:p.currentPeriodEnd,cancelAtPeriodEnd:Boolean(p.cancelAtPeriodEnd),portalAvailable:Boolean(getStripe()&&config.stripe.portalEnabled&&p.stripeSubscriptionId),invoices:invoices.map(x=>({...x,amount:Number(x.amount||0)}))})
-})
-app.post('/api/professional/subscription/checkout',auth,requireRole('professional'),limits.checkout,async(req,res)=>{const plan=str(req.body.plan,20);if(!isPlan(plan))return res.status(400).json({error:'Μη έγκυρο πακέτο.'});const p=await Professionals.byUser(req.user.id);if(config.demoCheckout){await Professionals.update(p.id,{subscriptionPlan:plan,subscriptionPrice:PLANS[plan].price,subscriptionStatus:'active',billingMode:'demo',subscriptionSince:p.subscriptionSince||now(),featured:plan==='premium',onboardingStage:'profile'});return res.json({mode:'demo',demo:true,professional:await Professionals.byId(p.id)})}const s=getStripe();if(!s)return res.status(503).json({error:'Οι πληρωμές δεν έχουν ρυθμιστεί.'});if(p.stripeSubscriptionId&&allowsVisibility(p)){const sub=await s.subscriptions.retrieve(p.stripeSubscriptionId);const item=sub.items.data[0];const configured=priceIdFor(plan);const updated=await s.subscriptions.update(sub.id,{items:[{id:item.id,...(configured?{price:configured}:{price_data:lineItemFor(plan).price_data})}],proration_behavior:'create_prorations',cancel_at_period_end:false,metadata:{...sub.metadata,plan}});await applyStripeSubscription(updated);return res.json({changed:true,professional:await Professionals.byId(p.id)})}const u=await Users.byEmail(req.user.email),customer=await ensureStripeCustomer(u);const session=await s.checkout.sessions.create({mode:'subscription',customer,line_items:[lineItemFor(plan)],payment_method_types:['card'],locale:'el',allow_promotion_codes:true,billing_address_collection:'required',tax_id_collection:config.stripe.collectTaxId?{enabled:true}:undefined,automatic_tax:config.stripe.automaticTax?{enabled:true}:undefined,client_reference_id:u.id,subscription_data:{metadata:{plan,meleoUserId:u.id,meleoProfessionalId:p.id}},metadata:{plan,meleoUserId:u.id,meleoProfessionalId:p.id},success_url:`${config.appUrl}/?checkout=success&session_id={CHECKOUT_SESSION_ID}`,cancel_url:`${config.appUrl}/?checkout=cancel`});res.json({mode:'stripe',url:session.url,sessionId:session.id})})
-app.post('/api/professional/subscription/sync',auth,requireRole('professional'),async(req,res)=>{const s=getStripe();if(!s)return res.status(503).json({error:'Stripe unavailable'});if(req.body.sessionId){const session=await s.checkout.sessions.retrieve(str(req.body.sessionId,300));if(session.client_reference_id&&session.client_reference_id!==req.user.id)return res.status(403).json({error:'Invalid checkout session'});if(session.subscription){const sub=await s.subscriptions.retrieve(String(session.subscription));await applyStripeSubscription(sub,true)}}res.json({professional:await Professionals.byUser(req.user.id)})})
-app.post('/api/professional/subscription/portal',auth,requireRole('professional'),async(req,res)=>{const s=getStripe();if(!s)return res.status(503).json({error:'Stripe unavailable'});const u=await Users.byEmail(req.user.email),customer=await ensureStripeCustomer(u);const session=await s.billingPortal.sessions.create({customer,return_url:`${config.appUrl}/?billing=return`,locale:'el'});res.json({url:session.url})})
-app.post('/api/professional/subscription/cancel',auth,requireRole('professional'),async(req,res)=>{const p=await Professionals.byUser(req.user.id);if(config.demoCheckout){await Professionals.update(p.id,{subscriptionStatus:'cancelled',featured:false});return res.json({professional:await Professionals.byId(p.id)})}const sub=await getStripe().subscriptions.update(p.stripeSubscriptionId,{cancel_at_period_end:true});await applyStripeSubscription(sub);res.json({professional:await Professionals.byId(p.id)})})
-app.post('/api/professional/subscription/resume',auth,requireRole('professional'),async(req,res)=>{const p=await Professionals.byUser(req.user.id);if(config.demoCheckout){await Professionals.update(p.id,{subscriptionStatus:'active',featured:p.subscriptionPlan==='premium'});return res.json({professional:await Professionals.byId(p.id)})}const sub=await getStripe().subscriptions.update(p.stripeSubscriptionId,{cancel_at_period_end:false});await applyStripeSubscription(sub);res.json({professional:await Professionals.byId(p.id)})})
-
-app.post('/api/bookings',auth,requireConsumer,requireVerifiedEmail,limits.write,async(req,res)=>{const pid=str(req.body.professionalId,80),service=str(req.body.service,160),date=str(req.body.date,20),time=str(req.body.time,10);if(!pid||!service||!isDate(date)||!isTime(time))return res.status(400).json({error:'Συμπλήρωσε υπηρεσία, ημερομηνία και ώρα.'});const p=await Professionals.byId(pid);if(!p||!p.verified||!allowsVisibility(p))return res.status(404).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος.'});if(p.userId===req.user.id)return res.status(400).json({error:'Δεν μπορείς να δημιουργήσεις αίτημα προς το δικό σου επαγγελματικό προφίλ.'});const bid=id('bkg');const b=await Bookings.create({id:bid,patientId:req.user.id,professionalId:pid,service,date,time,address:str(req.body.address,300),notes:str(req.body.notes,3000),repeat:str(req.body.repeat,120)||'Μία φορά',price:p.price});await Notifications.create(p.userId,'booking','Νέο αίτημα επίσκεψης',`${req.user.name} · ${service}`);await audit(req.user.id,'booking.create',{bookingId:bid,professionalId:pid});res.json({booking:b})})
-app.get('/api/bookings',auth,async(req,res)=>res.json(await Bookings.listForUser(req.user,req.query)))
-app.patch('/api/bookings/:id/status',auth,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b)return res.status(404).json({error:'Not found'});const p=await Professionals.byId(b.professionalId);if(!canEditBooking(req.user,b,p))return res.status(403).json({error:'Δεν επιτρέπεται.'});const status=str(req.body.status,30);if(!['pending','clarification','quoted','accepted','completed','cancelled'].includes(status))return res.status(400).json({error:'Invalid status'});const isRequester=b.patientId===req.user.id;const isProvider=req.user.role==='professional'&&p?.userId===req.user.id;if(isRequester&&status!=='cancelled')return res.status(403).json({error:'Ως αιτών μπορείς να ακυρώσεις το αίτημα, όχι να αλλάξεις την επαγγελματική κατάστασή του.'});if(isProvider&&!['accepted','completed','cancelled'].includes(status))return res.status(403).json({error:'Μη επιτρεπτή αλλαγή κατάστασης.'});const updated=await Bookings.update(b.id,{status});await Notifications.create(
-  isProvider
-    ? b.patientId
-    : p.userId,
-  'booking',
-  `Ενημέρωση κράτησης: ${status}`,
-  b.service,
+registerProfessionalVerificationRoutes(
+  app,
   {
-    priority:
-      status==='cancelled'
-        ? 'high'
-        : 'normal',
-
-    actionType:'booking',
-    actionId:b.id,
-
-    actionUrl:
-      isProvider
-        ? '/dashboard'
-        : '/professional'
-  }
-);res.json({booking:updated})})
-app.post('/api/bookings/:id/clarification',auth,requireRole('professional'),limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id),p=await Professionals.byId(b?.professionalId);if(!b||p.userId!==req.user.id)return res.status(404).json({error:'Not found'});const text=str(req.body.text||req.body.question,1500);await Bookings.update(b.id,{status:'clarification'});const updated=await Bookings.addMessage(b,req.user,text,'clarification');await Notifications.create(b.patientId,'message','Ο επαγγελματίας ζητά διευκρινίσεις',text.slice(0,180));res.json({booking:updated})})
-app.post(
-  '/api/bookings/:id/message',
-  auth,
-  limits.write,
-  async(req,res)=>{
-
-    const b=
-      await Bookings.byId(
-        req.params.id
-      )
-
-    if(!b){
-      return res.status(404).json({
-        error:'Not found'
-      })
-    }
-
-    const p=
-      await Professionals.byId(
-        b.professionalId
-      )
-
-    if(
-      !canViewBooking(
-        req.user,
-        b,
-        p
-      )
-    ){
-      return res.status(403).json({
-        error:'Δεν επιτρέπεται.'
-      })
-    }
-
-const text =
-  str(
-    req.body?.text,
-    1500
-  )
-
-if(!text){
-  return res.status(400).json({
-    error:'Γράψε ένα μήνυμα'
-  })
-}
-
-const updated =
-  await Bookings.addMessage(
-    b,
-    req.user,
-    text
-  )
-
-await Notifications.create(
-  req.user.id===b.patientId
-    ? p.userId
-    : b.patientId,
-  'message',
-  'Νέο μήνυμα MELEO',
-  text.slice(0,180),
-  {
-    priority:'normal',
-    actionType:'booking',
-    actionId:b.id,
-    actionUrl:
-      req.user.id===b.patientId
-        ? '/professional'
-        : '/dashboard'
+    auth,
+    requireRole,
+    requireVerifiedEmail,
+    limits,
+    Professionals,
+    str,
+    id,
+    verificationObjectKey,
+    putVerificationObject,
+    deleteVerificationObject,
+    encryptFileBuffer,
+    sql,
+    audit,
+    config
   }
 )
 
-res.json({
-  booking:updated
-})
+
+
+
+registerProfessionalBillingRoutes(
+  app,
+  {
+    auth,
+    requireRole,
+    limits,
+    Professionals,
+    many,
+    getStripe,
+    config,
+    PLANS,
+    str,
+    isPlan,
+    allowsVisibility,
+    priceIdFor,
+    lineItemFor,
+    Users,
+    ensureStripeCustomer,
+    applyStripeSubscription
   }
 )
-app.get('/api/bookings/:id/recovery-candidates',auth,requireConsumer,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||b.patientId!==req.user.id)return res.status(404).json({error:'Not found'});if(b.status!=='cancelled')return res.status(400).json({error:'Οι εναλλακτικές προτάσεις εμφανίζονται μετά την ακύρωση του αιτήματος.'});const pick=[];const seen=new Set([b.professionalId]);const add=result=>{for(const p of result.items||[]){if(seen.has(p.id))continue;seen.add(p.id);pick.push(p);if(pick.length>=3)break}};if(b.city) add(await Professionals.search({specialty:b.specialty,service:b.service,location:b.city,page:1,limit:20}));if(pick.length<3)add(await Professionals.search({specialty:b.specialty,service:b.service,page:1,limit:20}));res.json({items:pick.slice(0,3)})})
-app.post('/api/bookings/:id/recover',auth,requireConsumer,requireVerifiedEmail,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||b.patientId!==req.user.id)return res.status(404).json({error:'Not found'});if(b.status!=='cancelled')return res.status(400).json({error:'Το αρχικό αίτημα πρέπει να είναι ακυρωμένο.'});const professionalId=str(req.body.professionalId,80);const p=await Professionals.byId(professionalId);if(!p||p.id===b.professionalId||!p.verified||!allowsVisibility(p)||p.specialty!==b.specialty||!(p.services||[]).includes(b.service))return res.status(400).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος για το ίδιο αίτημα.'});const bid=id('bkg');const created=await Bookings.create({id:bid,patientId:req.user.id,professionalId:p.id,service:b.service,date:b.date,time:b.time,address:b.address,notes:b.notes,repeat:b.repeat,price:p.price,recoveryParentId:b.id});await Notifications.create(
-  p.userId,
-  'booking',
-  'Νέο αίτημα επίσκεψης',
-  `${req.user.name} · ${service}`,
-  {
-    priority:'high',
-    actionType:'booking',
-    actionId:bid,
-    actionUrl:'/professional'
-  }
-);await audit(req.user.id,'booking.recovery',{bookingId:bid,recoveryParentId:b.id,professionalId:p.id});res.json({booking:created})})
-app.post('/api/bookings/:id/review',auth,requireConsumer,limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b||!canReviewBooking(req.user,b))return res.status(400).json({error:'Αξιολόγηση επιτρέπεται μόνο μετά από ολοκληρωμένη επίσκεψη.'});const rating=Math.max(1,Math.min(5,Math.round(Number(req.body.rating)||0))),comment=str(req.body.comment,1000);try{await tx(async c=>{await c.query(`INSERT INTO reviews(id,booking_id,patient_id,professional_id,rating,comment) VALUES($1,$2,$3,$4,$5,$6)`,[id('rev'),b.id,req.user.id,b.professionalId,rating,comment]);await c.query(`UPDATE professionals SET reviews_count=(SELECT count(*) FROM reviews WHERE professional_id=$1),rating=(SELECT coalesce(avg(rating),0) FROM reviews WHERE professional_id=$1),updated_at=now() WHERE id=$1`,[b.professionalId])})}catch(err){if(err.code==='23505')return res.status(409).json({error:'Η επίσκεψη έχει ήδη αξιολογηθεί.'});throw err}const p=await Professionals.byId(b.professionalId);await Notifications.create(p.userId,'review','Νέα αξιολόγηση',`${rating}/5 ⭐`);res.json({ok:true})})
 
-app.get('/api/notifications',auth,async(req,res)=>res.json(await Notifications.list(req.user.id,req.query)))
-app.patch('/api/notifications/:id/read',auth,async(req,res)=>{await Notifications.read(req.params.id,req.user.id);res.json({ok:true})})
+registerBookingCoreRoutes(
+  app,
+  {
+    auth,
+    requireConsumer,
+    requireVerifiedEmail,
+    limits,
+    str,
+    isDate,
+    isTime,
+    Professionals,
+    allowsVisibility,
+    id,
+    Bookings,
+    Notifications,
+    audit
+  }
+)
+
+registerBookingStateRoutes(
+  app,
+  {
+    auth,
+    limits,
+    str,
+    Bookings,
+    Professionals,
+    canEditBooking,
+    Notifications
+  }
+)
+
+registerBookingCommunicationRoutes(
+  app,
+  {
+    auth,
+    requireRole,
+    limits,
+    str,
+    Bookings,
+    Professionals,
+    canViewBooking,
+    Notifications
+  }
+)
+
+
+
+registerBookingRecoveryRoutes(
+  app,
+  {
+    auth,
+    requireConsumer,
+    requireVerifiedEmail,
+    limits,
+    str,
+    id,
+    Bookings,
+    Professionals,
+    allowsVisibility,
+    Notifications,
+    audit
+  }
+)
+
+
+registerBookingReviewRoutes(
+  app,
+  {
+    auth,
+    requireConsumer,
+    limits,
+    Bookings,
+    canReviewBooking,
+    str,
+    tx,
+    id,
+    Professionals,
+    Notifications
+  }
+)
+
+
+
+registerNotificationRoutes(
+  app,
+  {
+    auth,
+    Notifications
+  }
+)
+
+
+
 app.get(
   '/api/communication/unread',
   auth,
@@ -1108,100 +932,40 @@ app.get(
 )
 
 
-app.patch(
-  '/api/notifications/read-all',
-  auth,
-  async(req,res)=>{
 
-    res.json(
-      await Notifications.readAll(
-        req.user.id
-      )
-    )
+
+
+
+registerFavoritesRoutes(
+  app,
+  {
+    auth,
+    requireConsumer,
+    limits,
+    one,
+    sql,
+    id,
+    many
   }
 )
 
 
-app.get(
-  '/api/bookings/unread',
-  auth,
-  async(req,res)=>{
 
-    const items=
-      await Bookings.conversationUnreadCounts(
-        req.user.id
-      )
 
-    res.json({
-      items,
-      total:
-        items.reduce(
-          (sum,x)=>
-            sum+Number(x.unread||0),
-          0
-        )
-    })
+
+registerCareTeamRoutes(
+  app,
+  {
+    auth,
+    many,
+    one,
+    Professionals,
+    allowsVisibility,
+    meleoTrustForProfessional
   }
 )
 
 
-app.patch(
-  '/api/bookings/:id/messages/read',
-  auth,
-  async(req,res)=>{
-
-    const b=
-      await Bookings.byId(
-        req.params.id
-      )
-
-    if(!b){
-      return res.status(404).json({
-        error:'Not found'
-      })
-    }
-
-    const p=
-      await Professionals.byId(
-        b.professionalId
-      )
-
-    if(
-      !canViewBooking(
-        req.user,
-        b,
-        p
-      )
-    ){
-      return res.status(403).json({
-        error:'Δεν επιτρέπεται.'
-      })
-    }
-
-    res.json(
-      await Bookings.markMessagesRead(
-        b.id,
-        req.user.id
-      )
-    )
-  }
-)
-app.post('/api/favorites/:professionalId',auth,requireConsumer,limits.write,async(req,res)=>{const pid=req.params.professionalId;const existing=await one('SELECT id FROM favorites WHERE user_id=$1 AND professional_id=$2',[req.user.id,pid]);if(existing){await sql('DELETE FROM favorites WHERE id=$1',[existing.id]);return res.json({favorite:false})}await sql('INSERT INTO favorites(id,user_id,professional_id) VALUES($1,$2,$3)',[id('fav'),req.user.id,pid]);res.json({favorite:true})})
-app.get('/api/favorites',auth,async(req,res)=>{const rows=await many('SELECT professional_id FROM favorites WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);res.json(rows.map(x=>x.professional_id))})
-
-app.get('/api/care-team',auth,async(req,res)=>{
-  if(!['patient','professional'].includes(req.user.role))return res.status(403).json({error:'Δεν επιτρέπεται.'})
-  const favs=await many('SELECT professional_id "professionalId" FROM favorites WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id])
-  const items=[]
-  for(const f of favs){
-    const p=await Professionals.byId(f.professionalId)
-    if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))continue
-    const last=await one(`SELECT id,service,date,time,address,status,agreed_price "agreedPrice" FROM bookings WHERE patient_id=$1 AND professional_id=$2 AND status='completed' ORDER BY date DESC,time DESC,created_at DESC LIMIT 1`,[req.user.id,p.id])
-    const trust=await meleoTrustForProfessional(p.id)
-    items.push({...p,trust,lastCompleted:last||null})
-  }
-  res.json({items})
-})
 
 app.post('/api/reports',auth,limits.write,async(req,res)=>{const rid=id('rpt');await sql(`INSERT INTO reports(id,reporter_user_id,target_type,target_id,reason,details) VALUES($1,$2,$3,$4,$5,$6)`,[rid,req.user.id,str(req.body.targetType,40),str(req.body.targetId,80),str(req.body.reason,200),str(req.body.details,1500)]);res.json({ok:true,id:rid})})
 
@@ -1209,7 +973,19 @@ app.post('/api/reports',auth,limits.write,async(req,res)=>{const rid=id('rpt');a
 const liveClients=new Map();const listener=await getPool().connect();await listener.query('LISTEN meleo_live');listener.on('notification',msg=>{let meta;try{meta=JSON.parse(msg.payload||'{}')}catch{return}const uid=meta.userId,clients=liveClients.get(uid);if(!clients?.size)return;one('SELECT payload FROM live_events WHERE id=$1 AND user_id=$2',[meta.eventId,uid]).then(e=>{if(!e)return;for(const r of [...clients])try{r.write(`event: meleo\ndata: ${JSON.stringify(e.payload)}\n\n`)}catch{clients.delete(r)}}).catch(()=>{})})
 app.get('/api/live',auth,async(req,res)=>{res.setHeader('Content-Type','text/event-stream');res.setHeader('Cache-Control','no-cache');res.setHeader('Connection','keep-alive');res.flushHeaders?.();const set=liveClients.get(req.user.id)||new Set();set.add(res);liveClients.set(req.user.id,set);res.write(`event: ready\ndata: {}\n\n`);const ping=setInterval(()=>{try{res.write(': ping\n\n')}catch{}},25000);req.on('close',()=>{clearInterval(ping);set.delete(res);if(!set.size)liveClients.delete(req.user.id)})})
 
-app.get('/api/bookings/:id/calendar.ics',auth,async(req,res)=>{const b=await Bookings.byId(req.params.id);if(!b)return res.status(404).end();const p=await Professionals.byId(b.professionalId);if(!canViewBooking(req.user,b,p))return res.status(403).end();const start=`${b.date.replaceAll('-','')}T${b.time.replace(':','')}00`;const ics=`BEGIN:VCALENDAR\r\nVERSION:2.0\r\nPRODID:-//MELEO//Booking//EL\r\nBEGIN:VEVENT\r\nUID:${b.id}@meleo.gr\r\nDTSTART:${start}\r\nSUMMARY:MELEO · ${b.service}\r\nLOCATION:${String(b.address||'').replace(/\n/g,' ')}\r\nEND:VEVENT\r\nEND:VCALENDAR\r\n`;res.setHeader('Content-Type','text/calendar; charset=utf-8');res.setHeader('Content-Disposition',`attachment; filename="meleo-${b.id}.ics"`);res.send(ics)})
+
+registerBookingCalendarRoutes(
+  app,
+  {
+    auth,
+    Bookings,
+    Professionals,
+    canViewBooking,
+    canViewPatientContact,
+    str
+  }
+)
+
 
 app.get('/api/support/tickets',auth,async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:20,maxLimit:100});const where=req.user.role==='admin'?'true':'t.user_id=$1',params=req.user.role==='admin'?[]:[req.user.id];const ids=await many(`SELECT t.id FROM support_tickets t WHERE ${where} ORDER BY updated_at DESC LIMIT $${params.length+1} OFFSET $${params.length+2}`,[...params,limit,offset]);const items=[];for(const x of ids){const t=await one(`SELECT t.*,u.name user_name,u.email user_email FROM support_tickets t JOIN users u ON u.id=t.user_id WHERE t.id=$1`,[x.id]);t.messages=await many(`SELECT m.id,m.sender_role "fromRole",u.name "fromName",m.body text,m.created_at "createdAt" FROM support_messages m JOIN users u ON u.id=m.sender_user_id WHERE ticket_id=$1 ORDER BY m.created_at`,[x.id]);items.push({id:t.id,userId:t.user_id,userName:t.user_name,userEmail:t.user_email,subject:t.subject,category:t.category,status:t.status,createdAt:t.created_at,updatedAt:t.updated_at,messages:t.messages})}res.json({items,page,limit})})
 app.post('/api/support/tickets',auth,limits.write,async(req,res)=>{const tid=id('tic'),subject=str(req.body.subject,160),text=str(req.body.text,2000);if(!subject||!text)return res.status(400).json({error:'Συμπλήρωσε θέμα και μήνυμα.'});await tx(async c=>{await c.query(`INSERT INTO support_tickets(id,user_id,subject,category) VALUES($1,$2,$3,$4)`,[tid,req.user.id,subject,str(req.body.category,40)||'general']);await c.query(`INSERT INTO support_messages(id,ticket_id,sender_user_id,sender_role,body) VALUES($1,$2,$3,$4,$5)`,[id('tmsg'),tid,req.user.id,req.user.role,text])});res.json({ok:true,id:tid})})
