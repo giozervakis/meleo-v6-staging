@@ -34,7 +34,8 @@ const routeFiles = [
   'server/routes/booking-calendar.routes.js',
   'server/routes/notifications.routes.js',
   'server/routes/favorites.routes.js',
-  'server/routes/care-team.routes.js'
+  'server/routes/care-team.routes.js',
+  'server/routes/support.routes.js'
 ]
 
 
