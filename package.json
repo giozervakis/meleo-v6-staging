@@ -1,7 +1,7 @@
 {
   "name": "meleo-production-architecture",
   "private": true,
-  "version": "6.2.0",
+  "version": "6.2.1",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n API,WEB -c auto \"npm:dev:api\" \"npm:dev:web\"",
@@ -35,7 +35,7 @@
     "security:audit": "npm audit --audit-level=high",
     "security:check": "npm run security:secrets && npm run security-selftest && npm run security:audit",
     "v56-check": "node scripts/v56-check.mjs",
-    "ci:gate": "npm run typecheck && npm run build && npm run frontend-architecture-check && npm run architecture-check && npm run v55-check && npm run v56-check && npm run security:secrets && npm run security-selftest",
+    "ci:gate": "npm run typecheck && npm run build && npm run frontend-architecture-check && npm run frontend-version-check && npm run architecture-check && npm run v55-check && npm run v56-check && npm run security:secrets && npm run security-selftest",
     "release:preflight": "node scripts/release-preflight.mjs",
     "release:tls": "node scripts/tls-readiness.mjs",
     "release:stripe": "node scripts/stripe-readiness.mjs",
@@ -59,7 +59,8 @@
     "dr:verify": "npm run dr:policy && npm run dr:evidence && npm run dr:evidence:sign",
     "release:go-no-go:core": "node scripts/release-go-no-go.mjs",
     "release:dr-gate": "node scripts/v620-release-dr-gate.mjs",
-    "release:production": "npm run ci:production && npm run release:dr-gate && npm run release:go-no-go:core"
+    "release:production": "npm run ci:production && npm run release:dr-gate && npm run release:go-no-go:core",
+    "frontend-version-check": "node scripts/frontend-version-check.mjs"
   },
   "dependencies": {
     "express": "5.2.1",

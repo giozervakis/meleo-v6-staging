@@ -3,6 +3,7 @@ import { api } from '../../lib/api'
 import { serviceMap, specialtyOptions } from '../../domain/catalog'
 import type { Booking, Plan } from '../../domain/types'
 import { NotificationsPage, HelpCenter } from '../support/SupportPages'
+import { APP_VERSION } from '../../version'
 
 function initials(name:string){ return name.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase() }
 function statusLabel(s:string){ return ({pending:'Σε αναμονή',clarification:'Χρειάζονται διευκρινίσεις',quoted:'Πρόταση κόστους',accepted:'Επιβεβαιωμένη',completed:'Ολοκληρώθηκε',cancelled:'Ακυρώθηκε'} as any)[s]||s }
@@ -403,7 +404,7 @@ const activeConversation=
 
   </button>
 )}
-</nav><button className="pro-personal-care-link" onClick={()=>setView('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button><small className="side-version">MELEO Professional v5.0</small></div><div className="pro-content"><VerifyEmailBanner user={user} token={token} cfg={cfg} setToast={setToast}/>{professional?.subscriptionStatus==='past_due'&&<div className="alert-banner">Η τελευταία χρέωση της συνδρομής απέτυχε. Ενημέρωσε τον τρόπο πληρωμής από τη «Συνδρομή», ώστε το προφίλ σου να μη απενεργοποιηθεί.</div>}{professional?.cancelAtPeriodEnd&&<div className="alert-banner soft">Η συνδρομή έχει προγραμματιστεί για ακύρωση{professional?.currentPeriodEnd?` στις ${new Date(professional.currentPeriodEnd).toLocaleDateString('el-GR')}`:''}.</div>}<div className="pro-top"><div><small>PROFESSIONAL SPACE</small><h2>{
+</nav><button className="pro-personal-care-link" onClick={()=>setView('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button><small className="side-version">MELEO Professional v{APP_VERSION}</small></div><div className="pro-content"><VerifyEmailBanner user={user} token={token} cfg={cfg} setToast={setToast}/>{professional?.subscriptionStatus==='past_due'&&<div className="alert-banner">Η τελευταία χρέωση της συνδρομής απέτυχε. Ενημέρωσε τον τρόπο πληρωμής από τη «Συνδρομή», ώστε το προφίλ σου να μη απενεργοποιηθεί.</div>}{professional?.cancelAtPeriodEnd&&<div className="alert-banner soft">Η συνδρομή έχει προγραμματιστεί για ακύρωση{professional?.currentPeriodEnd?` στις ${new Date(professional.currentPeriodEnd).toLocaleDateString('el-GR')}`:''}.</div>}<div className="pro-top"><div><small>PROFESSIONAL SPACE</small><h2>{
   tab==='overview'
     ? 'Επισκόπηση'
     : tab==='requests'

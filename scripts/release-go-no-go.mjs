@@ -9,5 +9,5 @@ for(const [name,file] of items){
  catch{results.push({name,file,pass:false,fresh:false,missing:true})}
 }
 const blockers=results.filter(x=>!x.pass||!x.fresh)
-const report={version:'6.2.0',generatedAt:new Date().toISOString(),decision:blockers.length?'NO-GO':'GO',results,blockers}
+const report={version:'6.2.1',generatedAt:new Date().toISOString(),decision:blockers.length?'NO-GO':'GO',results,blockers}
 fs.mkdirSync('reports',{recursive:true});fs.writeFileSync('reports/release-go-no-go.json',JSON.stringify(report,null,2)); console.table(results); console.log(`\nMELEO v6.0 RELEASE DECISION: ${report.decision}`); process.exitCode=blockers.length?1:0

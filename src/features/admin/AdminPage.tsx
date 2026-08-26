@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react'
 import { api } from '../../lib/api'
+import { APP_VERSION } from '../../version'
 
 function money(v: number) {
   return `${Number(v || 0).toFixed(2).replace('.', ',')}€`
@@ -208,7 +209,7 @@ const totalAttention=
 
 const platformOperational=
   criticalAlerts===0
- return <section className="admin-page admin-control"><div className="container"><DashboardHead eyebrow="MELEO v4 · FOUNDER & OPERATIONS" title="Admin Control Center" subtitle="Ενιαία εικόνα ανάπτυξης, μελών, επαγγελματιών, κρατήσεων, συνδρομών, verification, ποιότητας και λειτουργιών."/>
+ return <section className="admin-page admin-control"><div className="container"><DashboardHead eyebrow={`MELEO v${APP_VERSION} · FOUNDER & OPERATIONS`} title="Admin Control Center" subtitle="Ενιαία εικόνα ανάπτυξης, μελών, επαγγελματιών, κρατήσεων, συνδρομών, verification, ποιότητας και λειτουργιών."/>
  <div className="admin-commandbar"><div><span className="live-dot"></span><b>Operations live</b><small>Τελευταία ανανέωση {new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'})}</small></div><button className="btn ghost small" onClick={refresh}>↻ Ανανέωση δεδομένων</button></div>
  <div className="admin-kpi-strip"><div><span>ΣΥΝΟΛΙΚΑ ΜΕΛΗ</span><strong>{stats.accounts.total}</strong><small>+{stats.accounts.new30} / 30 ημέρες · {mp.active30||0} ενεργά</small></div><div><span>ΕΠΑΓΓΕΛΜΑΤΙΕΣ</span><strong>{stats.professionals.total}</strong><small>{stats.professionals.verified} verified · {stats.professionals.pendingVerification} pending</small></div><div><span>PREMIUM SHARE</span><strong>{mp.premiumShare||0}%</strong><small>{stats.professionals.premium} Premium · {stats.professionals.basic} Basic</small></div><div className="revenue-kpi"><span>MRR ΣΥΝΔΡΟΜΩΝ</span><strong><Euro value={stats.revenue.subscriptionMrr}/></strong><small>Collected this month <Euro value={stats.revenue.collectedRevenue}/></small></div></div>
  <div className="admin-tabs"><button className={tab==='overview'?'active':''} onClick={()=>setTab('overview')}>Επισκόπηση</button><button className={tab==='insights'?'active':''} onClick={()=>setTab('insights')}>Insights</button><button className={tab==='members'?'active':''} onClick={()=>setTab('members')}>Μέλη <b>{members.length}</b></button><button className={tab==='bookings'?'active':''} onClick={()=>setTab('bookings')}>Κρατήσεις <b>{bookings.length}</b></button><button className={tab==='revenue'?'active':''} onClick={()=>setTab('revenue')}>Έσοδα</button><button className={tab==='subs'?'active':''} onClick={()=>setTab('subs')}>Συνδρομές</button><button className={tab==='verification'?'active':''} onClick={()=>setTab('verification')}>Verification <b>{stats.professionals.pendingVerification}</b></button><button className={tab==='support'?'active':''} onClick={()=>setTab('support')}>Support</button><button className={tab==='smart'?'active':''} onClick={()=>setTab('smart')}>🧠 Smart Requests</button><button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Log</button></div>
