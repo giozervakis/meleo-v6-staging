@@ -43,6 +43,7 @@ const routeFiles = [
   'server/routes/professional-analytics.routes.js',
   'server/routes/smart-request.routes.js',
   'server/routes/admin-reports.routes.js',
+  'server/routes/admin-verification.routes.js',
   'server/routes/seo.routes.js'
 ]
 
@@ -565,6 +566,40 @@ assertSoleOwner(
   'PATCH',
   '/api/admin/smart-requests/:id',
   'server/routes/smart-request.routes.js'
+)
+
+
+/*
+ * admin-verification.routes.js ownership
+ */
+assertSoleOwner(
+  'GET',
+  '/api/admin/verifications',
+  'server/routes/admin-verification.routes.js'
+)
+
+assertSoleOwner(
+  'GET',
+  '/api/admin/verification-documents/:id',
+  'server/routes/admin-verification.routes.js'
+)
+
+assertSoleOwner(
+  'POST',
+  '/api/admin/verification-documents/:id/access',
+  'server/routes/admin-verification.routes.js'
+)
+
+assertSoleOwner(
+  'GET',
+  '/api/admin/verification-documents/:id/signed',
+  'server/routes/admin-verification.routes.js'
+)
+
+assertSoleOwner(
+  'PATCH',
+  '/api/admin/verifications/:id',
+  'server/routes/admin-verification.routes.js'
 )
 
 
