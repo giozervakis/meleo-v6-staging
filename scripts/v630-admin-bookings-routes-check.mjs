@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs'
+import fs from 'node:fs'
 
 const appFile =
   'server/relational/app.js'
@@ -110,10 +110,26 @@ assert(
   'Admin path-scoped write limiter changed'
 )
 
+const adminSubscriptions =
+  fs.readFileSync(
+    'server/routes/admin-subscriptions.routes.js',
+    'utf8'
+  )
+
 for (
   const token of [
     '/api/admin/subscriptions',
-    '/api/admin/professionals/:id/sync-subscription',
+    '/api/admin/professionals/:id/sync-subscription'
+  ]
+) {
+  assert(
+    adminSubscriptions.includes(token),
+    `Protected Admin Subscription boundary changed: ${token}`
+  )
+}
+
+for (
+  const token of [
     '/api/webhooks/stripe',
     '/api/live'
   ]
@@ -153,7 +169,7 @@ console.log(
 )
 
 console.log(
-  '[PASS] subscription/payment routes remain application-owned'
+  '[PASS] admin subscription routes remain independently modular'
 )
 
 console.log(
