@@ -39,7 +39,8 @@ const routeFiles = [
   'server/routes/reports.routes.js',
   'server/routes/communication-summary.routes.js',
   'server/routes/location.routes.js',
-  'server/routes/analytics.routes.js'
+  'server/routes/analytics.routes.js',
+  'server/routes/seo.routes.js'
 ]
 
 
@@ -513,6 +514,16 @@ assertSoleOwner(
   'POST',
   '/api/analytics/professional-event',
   'server/routes/analytics.routes.js'
+)
+
+
+/*
+ * SEO API ownership - Part 4A-8F4
+ */
+assertSoleOwner(
+  'GET',
+  '/api/seo/resolve',
+  'server/routes/seo.routes.js'
 )
 
 
