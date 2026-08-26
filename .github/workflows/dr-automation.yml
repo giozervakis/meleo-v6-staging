@@ -1,0 +1,278 @@
+name: MELEO Disaster Recovery
+
+on:
+  schedule:
+    # Daily verified production backup.
+    - cron: '17 2 * * *'
+
+    # Weekly backup + full restore drill.
+    - cron: '43 3 * * 0'
+
+  workflow_dispatch:
+    inputs:
+      operation:
+        description: DR operation
+        required: true
+        default: full
+        type: choice
+        options:
+          - backup
+          - restore
+          - full
+
+permissions:
+  contents: read
+
+concurrency:
+  group: meleo-disaster-recovery
+  cancel-in-progress: false
+
+
+jobs:
+
+  # ============================================================
+  # Daily production backup
+  # ============================================================
+
+  backup:
+    name: Verified Production Backup
+
+    if: >
+      github.event_name == 'workflow_dispatch' ||
+      vars.DR_AUTOMATION_ENABLED == 'true'
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 30
+
+    env:
+      NODE_ENV: production
+
+      DATABASE_URL: ${{ secrets.DR_DATABASE_URL }}
+
+      DR_OFFSITE_REQUIRED: 'true'
+      DR_OFFSITE_PROVIDER: ${{ secrets.DR_OFFSITE_PROVIDER }}
+      DR_OFFSITE_ENDPOINT: ${{ secrets.DR_OFFSITE_ENDPOINT }}
+      DR_OFFSITE_REGION: ${{ secrets.DR_OFFSITE_REGION }}
+      DR_OFFSITE_BUCKET: ${{ secrets.DR_OFFSITE_BUCKET }}
+
+      DR_OFFSITE_ACCESS_KEY_ID: ${{ secrets.DR_OFFSITE_ACCESS_KEY_ID }}
+      DR_OFFSITE_SECRET_ACCESS_KEY: ${{ secrets.DR_OFFSITE_SECRET_ACCESS_KEY }}
+
+      DR_OFFSITE_PREFIX: database-backups
+      DR_OFFSITE_FORCE_PATH_STYLE: 'true'
+      DR_OFFSITE_TIMEOUT_MS: '30000'
+
+      DR_EVIDENCE_SIGNING_KEY: ${{ secrets.DR_EVIDENCE_SIGNING_KEY }}
+
+      DR_BACKUP_MAX_AGE_HOURS: '24'
+      DR_RESTORE_MAX_AGE_HOURS: '168'
+      DR_MAX_RTO_SECONDS: '900'
+
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+
+      - name: Install dependencies
+        run: npm ci
+
+
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+
+      - name: Validate DR secrets
+        shell: bash
+        run: |
+          test -n "$DATABASE_URL" || {
+            echo "::error::DR_DATABASE_URL secret is missing"
+            exit 1
+          }
+
+          test -n "$DR_OFFSITE_PROVIDER" || {
+            echo "::error::DR_OFFSITE_PROVIDER secret is missing"
+            exit 1
+          }
+
+          test -n "$DR_OFFSITE_ENDPOINT" || {
+            echo "::error::DR_OFFSITE_ENDPOINT secret is missing"
+            exit 1
+          }
+
+          test -n "$DR_OFFSITE_BUCKET" || {
+            echo "::error::DR_OFFSITE_BUCKET secret is missing"
+            exit 1
+          }
+
+          test -n "$DR_OFFSITE_ACCESS_KEY_ID" || {
+            echo "::error::DR_OFFSITE_ACCESS_KEY_ID secret is missing"
+            exit 1
+          }
+
+          test -n "$DR_OFFSITE_SECRET_ACCESS_KEY" || {
+            echo "::error::DR_OFFSITE_SECRET_ACCESS_KEY secret is missing"
+            exit 1
+          }
+
+          test ${#DR_EVIDENCE_SIGNING_KEY} -ge 32 || {
+            echo "::error::DR_EVIDENCE_SIGNING_KEY must be at least 32 characters"
+            exit 1
+          }
+
+
+      - name: Production database backup
+        if: >
+          github.event_name == 'schedule' ||
+          github.event.inputs.operation == 'backup' ||
+          github.event.inputs.operation == 'full'
+        run: npm run backup:db
+
+
+      - name: Sign backup evidence
+        if: >
+          github.event_name == 'schedule' ||
+          github.event.inputs.operation == 'backup' ||
+          github.event.inputs.operation == 'full'
+        run: npm run dr:evidence:sign
+
+
+      - name: Upload evidence only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meleo-dr-backup-evidence-${{ github.run_number }}
+          path: |
+            reports/backup-latest.json
+            reports/dr-evidence-manifest.json
+          if-no-files-found: warn
+          retention-days: 30
+
+
+
+  # ============================================================
+  # Weekly full restore drill
+  #
+  # Only Sunday schedule executes it automatically.
+  # Manual "restore/full" also executes it.
+  # ============================================================
+
+  restore-drill:
+    name: Full Restore Drill
+
+    if: >
+      (
+        vars.DR_AUTOMATION_ENABLED == 'true' &&
+        github.event_name == 'schedule' &&
+        github.event.schedule == '43 3 * * 0'
+      ) ||
+      (
+        github.event_name == 'workflow_dispatch' &&
+        (
+          github.event.inputs.operation == 'restore' ||
+          github.event.inputs.operation == 'full'
+        )
+      )
+
+    runs-on: ubuntu-latest
+
+    timeout-minutes: 45
+
+    env:
+      NODE_ENV: production
+
+      DATABASE_URL: ${{ secrets.DR_DATABASE_URL }}
+
+      DR_OFFSITE_REQUIRED: 'true'
+      DR_OFFSITE_PROVIDER: ${{ secrets.DR_OFFSITE_PROVIDER }}
+      DR_OFFSITE_ENDPOINT: ${{ secrets.DR_OFFSITE_ENDPOINT }}
+      DR_OFFSITE_REGION: ${{ secrets.DR_OFFSITE_REGION }}
+      DR_OFFSITE_BUCKET: ${{ secrets.DR_OFFSITE_BUCKET }}
+
+      DR_OFFSITE_ACCESS_KEY_ID: ${{ secrets.DR_OFFSITE_ACCESS_KEY_ID }}
+      DR_OFFSITE_SECRET_ACCESS_KEY: ${{ secrets.DR_OFFSITE_SECRET_ACCESS_KEY }}
+
+      DR_OFFSITE_PREFIX: database-backups
+      DR_OFFSITE_FORCE_PATH_STYLE: 'true'
+      DR_OFFSITE_TIMEOUT_MS: '30000'
+
+      DR_EVIDENCE_SIGNING_KEY: ${{ secrets.DR_EVIDENCE_SIGNING_KEY }}
+
+      DR_BACKUP_MAX_AGE_HOURS: '24'
+      DR_RESTORE_MAX_AGE_HOURS: '168'
+      DR_MAX_RTO_SECONDS: '900'
+
+
+    steps:
+
+      - name: Checkout
+        uses: actions/checkout@v4
+
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+
+      - name: Install dependencies
+        run: npm ci
+
+
+      - name: Install PostgreSQL client
+        shell: bash
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y postgresql-client
+
+
+      - name: Validate database secret
+        shell: bash
+        run: |
+          test -n "$DATABASE_URL" || {
+            echo "::error::DR_DATABASE_URL secret is missing"
+            exit 1
+          }
+
+
+      - name: Create fresh verified backup
+        run: npm run backup:db
+
+
+      - name: Restore drill
+        run: npm run restore:drill
+
+
+      - name: Full DR evidence verification
+        run: npm run dr:verify
+
+
+      - name: Production release DR gate
+        run: npm run release:dr-gate
+
+
+      - name: Upload DR evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: meleo-dr-restore-evidence-${{ github.run_number }}
+          path: |
+            reports/backup-latest.json
+            reports/restore-drill-latest.json
+            reports/dr-evidence-gate-latest.json
+            reports/dr-evidence-manifest.json
+          if-no-files-found: warn
+          retention-days: 90

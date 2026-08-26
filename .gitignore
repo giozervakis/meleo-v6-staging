@@ -22,3 +22,5 @@ staging-failures.txt
 *.failed-*
 *.smart-connect-*
 *.smart-learning-*
+backups/
+reports/*.txt

@@ -3,12 +3,23 @@ import { migrate, tx, sql, closePool } from './relational/pool.js'
 import { deliverEmail } from './mail.js'
 import { log } from './logger.js'
 import { observeJob } from './metrics.js'
+import {
+  reconcileStripeSubscriptions,
+  scheduleStripeReconciliation
+} from './stripe-reconciliation.js'
 
 assertProductionReady()
 await migrate()
 const workerId=process.env.WORKER_ID||process.env.HOSTNAME||`worker-${process.pid}`
 const concurrency=Math.max(1,Math.min(20,Number(process.env.WORKER_CONCURRENCY||5)))
 const pollMs=Math.max(250,Number(process.env.WORKER_POLL_MS||1000))
+const stripeReconcileIntervalSeconds=Math.max(
+  300,
+  Number(
+    process.env.STRIPE_RECONCILE_INTERVAL_SECONDS||
+    3600
+  )
+)
 let stopping=false, active=0
 
 async function claim(){
@@ -20,8 +31,68 @@ async function claim(){
   })
 }
 async function execute(job){
-  if(job.job_type==='email'){const out=await deliverEmail(job.payload);if(!out.delivered&&out.reason!=='mail_not_configured')throw new Error(out.reason||'email delivery failed');return}
-  throw new Error(`Unknown job type: ${job.job_type}`)
+  if(job.job_type==='email'){
+    const out=
+      await deliverEmail(
+        job.payload
+      )
+
+    if(
+      !out.delivered&&
+      out.reason!=='mail_not_configured'
+    ){
+      throw new Error(
+        out.reason||
+        'email delivery failed'
+      )
+    }
+
+    return
+  }
+
+  if(
+    job.job_type===
+    'stripe_reconcile'
+  ){
+    const summary=
+      await reconcileStripeSubscriptions({
+        limit:
+          Number(
+            job.payload?.limit||
+            process.env.STRIPE_RECONCILE_LIMIT||
+            500
+          )
+      })
+
+    log.info(
+      'job.stripe_reconcile.completed',
+      {
+        jobId:job.id,
+        ...summary
+      }
+    )
+
+    /*
+     * Self-schedule the next run.
+     *
+     * scheduleStripeReconciliation()
+     * prevents duplicate pending/processing
+     * reconciliation jobs.
+     */
+    await scheduleStripeReconciliation({
+      delaySeconds:
+        stripeReconcileIntervalSeconds,
+
+      reason:
+        'periodic'
+    })
+
+    return
+  }
+
+  throw new Error(
+    `Unknown job type: ${job.job_type}`
+  )
 }
 async function run(job){
   active++
@@ -41,7 +112,32 @@ async function recoverStale(){
   if(r.rowCount)log.warn('job.stale_recovered',{count:r.rowCount})
 }
 process.on('SIGTERM',()=>{stopping=true});process.on('SIGINT',()=>{stopping=true})
-await recoverStale();log.info('worker.started',{workerId,concurrency,pollMs})
+await recoverStale()
+
+await scheduleStripeReconciliation({
+  delaySeconds:5,
+  reason:'worker_start'
+}).catch(
+  err=>
+    log.error(
+      'stripe.reconcile.bootstrap_failed',
+      {
+        message:
+          err?.message||
+          String(err)
+      }
+    )
+)
+
+log.info(
+  'worker.started',
+  {
+    workerId,
+    concurrency,
+    pollMs,
+    stripeReconcileIntervalSeconds
+  }
+)
 while(!stopping){
   while(!stopping&&active<concurrency){const job=await claim();if(!job)break;run(job)}
   await new Promise(r=>setTimeout(r,pollMs))

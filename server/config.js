@@ -76,7 +76,24 @@ export const config = {
     pricePremium: process.env.STRIPE_PRICE_PREMIUM || '',
     automaticTax: bool(process.env.STRIPE_AUTOMATIC_TAX, false),
     collectTaxId: bool(process.env.STRIPE_COLLECT_TAX_ID, true),
-    portalEnabled: bool(process.env.STRIPE_PORTAL_ENABLED, true)
+    portalEnabled: bool(process.env.STRIPE_PORTAL_ENABLED, true),
+    reconcileIntervalSeconds: Math.max(
+      300,
+      Number(
+        process.env.STRIPE_RECONCILE_INTERVAL_SECONDS ||
+        3600
+      )
+    ),
+    reconcileLimit: Math.max(
+      1,
+      Math.min(
+        5000,
+        Number(
+          process.env.STRIPE_RECONCILE_LIMIT ||
+          500
+        )
+      )
+    )
   },
 
   // ----- Email -----

@@ -1,7 +1,7 @@
 {
   "name": "meleo-production-architecture",
   "private": true,
-  "version": "6.1.2",
+  "version": "6.2.0",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n API,WEB -c auto \"npm:dev:api\" \"npm:dev:web\"",
@@ -41,7 +41,7 @@
     "release:stripe": "node scripts/stripe-readiness.mjs",
     "backup:db": "node scripts/backup-db.mjs",
     "restore:drill": "node scripts/restore-drill.mjs",
-    "release:go-no-go": "node scripts/release-go-no-go.mjs",
+    "release:go-no-go": "npm run release:dr-gate && npm run release:go-no-go:core",
     "v57-check": "node scripts/v57-check.mjs",
     "release:manifest": "node scripts/release-manifest.mjs",
     "release:launch-guard": "node scripts/launch-guard.mjs",
@@ -50,7 +50,16 @@
     "render:check": "node scripts/render-staging-check.mjs",
     "validate:production": "node scripts/validate-production-config.mjs",
     "validate:production:selftest": "node scripts/validate-production-config-selftest.mjs",
-    "ci:production": "npm run ci:gate && npm run validate:production:selftest"
+    "ci:production": "npm run ci:gate && npm run validate:production:selftest",
+    "start:production": "node scripts/start-production.mjs",
+    "dr:evidence": "node scripts/v620-dr-evidence-gate.mjs",
+    "dr:evidence:sign": "node scripts/v620-dr-evidence-sign.mjs",
+    "dr:policy": "node scripts/v620-dr-policy-check.mjs",
+    "dr:policy:selftest": "node scripts/v620-dr-policy-selftest.mjs",
+    "dr:verify": "npm run dr:policy && npm run dr:evidence && npm run dr:evidence:sign",
+    "release:go-no-go:core": "node scripts/release-go-no-go.mjs",
+    "release:dr-gate": "node scripts/v620-release-dr-gate.mjs",
+    "release:production": "npm run ci:production && npm run release:dr-gate && npm run release:go-no-go:core"
   },
   "dependencies": {
     "express": "5.2.1",
