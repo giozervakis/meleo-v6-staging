@@ -81,6 +81,9 @@ export function registerSystemRoutes(
         demoAuth:
           config.demoAuth,
 
+        googleOAuthEnabled:
+          Boolean(config.googleOAuthEnabled),
+
         demoCheckout:
           config.demoCheckout,
 

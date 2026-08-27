@@ -211,5 +211,5 @@ export function registerPublicWebRoutes(
       )
   })
 
-  app.get('/',(_req,res)=>res.json({service:'MELEO API',status:'online',version:APP_VERSION,releaseChannel:RELEASE_CHANNEL,architecture:'PostgreSQL relational + Redis multi-instance + background worker + observability + secure S3 object storage'}))
+  app.get('/api',(_req,res)=>res.json({service:'MELEO API',status:'online',version:APP_VERSION,releaseChannel:RELEASE_CHANNEL,architecture:'PostgreSQL relational + Redis multi-instance + background worker + observability + secure S3 object storage'}))
 }

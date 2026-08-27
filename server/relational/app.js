@@ -1,4 +1,9 @@
 import express from 'express'
+
+import {
+  createRemoteJWKSet,
+  jwtVerify
+} from 'jose'
 import crypto from 'node:crypto'
 import path from 'node:path'
 import fs from 'node:fs'
@@ -51,6 +56,1415 @@ import { registerPublicWebRoutes } from '../routes/public-web.routes.js'
 
 assertProductionReady()
 await migrate()
+
+/**
+ * MELEO Google OAuth / OpenID Connect
+ * Phase 2A foundation.
+ *
+ * Secrets are supplied only through environment variables.
+ */
+const GOOGLE_OAUTH_CONFIG = Object.freeze({
+  enabled: ['1', 'true'].includes(
+    String(process.env.GOOGLE_OAUTH_ENABLED || '')
+      .trim()
+      .toLowerCase()
+  ),
+
+  clientId:
+    String(process.env.GOOGLE_CLIENT_ID || '').trim(),
+
+  clientSecret:
+    String(process.env.GOOGLE_CLIENT_SECRET || '').trim(),
+
+  redirectUri:
+    String(process.env.GOOGLE_REDIRECT_URI || '').trim(),
+
+  authorizationEndpoint:
+    'https://accounts.google.com/o/oauth2/v2/auth',
+
+  tokenEndpoint:
+    'https://oauth2.googleapis.com/token',
+
+  issuer:
+    'https://accounts.google.com',
+
+  scope:
+    'openid email profile'
+})
+
+function assertGoogleOAuthConfiguration() {
+  if (!GOOGLE_OAUTH_CONFIG.enabled) return
+
+  const missing = []
+
+  if (!GOOGLE_OAUTH_CONFIG.clientId) {
+    missing.push('GOOGLE_CLIENT_ID')
+  }
+
+  if (!GOOGLE_OAUTH_CONFIG.clientSecret) {
+    missing.push('GOOGLE_CLIENT_SECRET')
+  }
+
+  if (!GOOGLE_OAUTH_CONFIG.redirectUri) {
+    missing.push('GOOGLE_REDIRECT_URI')
+  }
+
+  if (missing.length) {
+    throw new Error(
+      `Google OAuth enabled but missing environment variables: ${missing.join(', ')}`
+    )
+  }
+
+  let redirect
+
+  try {
+    redirect = new URL(GOOGLE_OAUTH_CONFIG.redirectUri)
+  } catch {
+    throw new Error(
+      'GOOGLE_REDIRECT_URI must be a valid absolute URL'
+    )
+  }
+
+  const production =
+    String(process.env.NODE_ENV || '').toLowerCase() ===
+    'production'
+
+  if (
+    production &&
+    redirect.protocol !== 'https:'
+  ) {
+    throw new Error(
+      'Production Google OAuth requires HTTPS GOOGLE_REDIRECT_URI'
+    )
+  }
+
+  if (
+    !production &&
+    redirect.protocol !== 'https:' &&
+    redirect.hostname !== 'localhost' &&
+    redirect.hostname !== '127.0.0.1'
+  ) {
+    throw new Error(
+      'Non-HTTPS Google OAuth redirect is allowed only on localhost'
+    )
+  }
+}
+
+assertGoogleOAuthConfiguration()
+
+
+/**
+ * MELEO Google OAuth transaction security.
+ *
+ * state:
+ *   Protects against OAuth login CSRF.
+ *
+ * nonce:
+ *   Binds the OpenID Connect ID token to this transaction.
+ *
+ * PKCE S256:
+ *   Binds the authorization code to the browser that initiated login.
+ *
+ * Transaction metadata is integrity-protected with HMAC and stored only
+ * in a short-lived HttpOnly cookie.
+ */
+const GOOGLE_OAUTH_TRANSACTION_COOKIE =
+  'meleo_google_oauth'
+
+const GOOGLE_OAUTH_TRANSACTION_TTL_MS =
+  10 * 60 * 1000
+
+function oauthBase64Url(value) {
+  return Buffer
+    .from(value)
+    .toString('base64')
+    .replace(/\+/g, '-')
+    .replace(/\//g, '_')
+    .replace(/=+$/g, '')
+}
+
+function oauthRandomToken(bytes = 32) {
+  return oauthBase64Url(
+    crypto.randomBytes(bytes)
+  )
+}
+
+function oauthPkceChallenge(codeVerifier) {
+  return oauthBase64Url(
+    crypto
+      .createHash('sha256')
+      .update(codeVerifier, 'ascii')
+      .digest()
+  )
+}
+
+function oauthTransactionSecret() {
+  const secret =
+    String(
+      process.env.GOOGLE_OAUTH_TRANSACTION_SECRET ||
+      process.env.SESSION_SECRET ||
+      ''
+    )
+
+  if (secret.length < 32) {
+    throw new Error(
+      'Google OAuth transactions require GOOGLE_OAUTH_TRANSACTION_SECRET or SESSION_SECRET with at least 32 characters'
+    )
+  }
+
+  return secret
+}
+
+function oauthSign(payload) {
+  return oauthBase64Url(
+    crypto
+      .createHmac(
+        'sha256',
+        oauthTransactionSecret()
+      )
+      .update(payload, 'utf8')
+      .digest()
+  )
+}
+
+function oauthTimingSafeEqual(left, right) {
+  const a =
+    Buffer.from(
+      String(left || ''),
+      'utf8'
+    )
+
+  const b =
+    Buffer.from(
+      String(right || ''),
+      'utf8'
+    )
+
+  if (
+    a.length === 0 ||
+    b.length === 0 ||
+    a.length !== b.length
+  ) {
+    return false
+  }
+
+  return crypto.timingSafeEqual(a, b)
+}
+
+function oauthEncodeTransaction(transaction) {
+  const payload =
+    oauthBase64Url(
+      Buffer.from(
+        JSON.stringify(transaction),
+        'utf8'
+      )
+    )
+
+  const signature =
+    oauthSign(payload)
+
+  return `${payload}.${signature}`
+}
+
+function oauthDecodeBase64Url(value) {
+  const normalized =
+    String(value)
+      .replace(/-/g, '+')
+      .replace(/_/g, '/')
+
+  const padding =
+    normalized.length % 4
+      ? '='.repeat(
+          4 - normalized.length % 4
+        )
+      : ''
+
+  return Buffer.from(
+    normalized + padding,
+    'base64'
+  )
+}
+
+function oauthDecodeTransaction(rawValue) {
+  const value =
+    String(rawValue || '').trim()
+
+  if (!value) {
+    return null
+  }
+
+  const separator =
+    value.lastIndexOf('.')
+
+  if (separator <= 0) {
+    return null
+  }
+
+  const payload =
+    value.slice(
+      0,
+      separator
+    )
+
+  const signature =
+    value.slice(
+      separator + 1
+    )
+
+  const expectedSignature =
+    oauthSign(payload)
+
+  if (
+    !oauthTimingSafeEqual(
+      signature,
+      expectedSignature
+    )
+  ) {
+    return null
+  }
+
+  try {
+    const transaction =
+      JSON.parse(
+        oauthDecodeBase64Url(
+          payload
+        ).toString('utf8')
+      )
+
+    if (
+      !transaction ||
+      typeof transaction !== 'object' ||
+      Array.isArray(transaction)
+    ) {
+      return null
+    }
+
+    return transaction
+  } catch {
+    return null
+  }
+}
+
+function createGoogleOAuthTransaction() {
+  const state =
+    oauthRandomToken(32)
+
+  const nonce =
+    oauthRandomToken(32)
+
+  const codeVerifier =
+    oauthRandomToken(64)
+
+  const codeChallenge =
+    oauthPkceChallenge(
+      codeVerifier
+    )
+
+  const createdAt =
+    Date.now()
+
+  const expiresAt =
+    createdAt +
+    GOOGLE_OAUTH_TRANSACTION_TTL_MS
+
+  return {
+    state,
+    nonce,
+    codeVerifier,
+    codeChallenge,
+
+    transaction: {
+      version: 1,
+      state,
+      nonce,
+      codeVerifier,
+      createdAt,
+      expiresAt
+    }
+  }
+}
+
+function validateGoogleOAuthTransaction(
+  rawCookie,
+  returnedState
+) {
+  let transaction
+
+  try {
+    transaction =
+      oauthDecodeTransaction(
+        rawCookie
+      )
+  } catch {
+    return {
+      ok: false,
+      reason: 'invalid_transaction'
+    }
+  }
+
+  if (!transaction) {
+    return {
+      ok: false,
+      reason: 'invalid_transaction'
+    }
+  }
+
+  if (transaction.version !== 1) {
+    return {
+      ok: false,
+      reason: 'unsupported_transaction'
+    }
+  }
+
+  const currentTime =
+    Date.now()
+
+  const createdAt =
+    Number(
+      transaction.createdAt
+    )
+
+  const expiresAt =
+    Number(
+      transaction.expiresAt
+    )
+
+  if (
+    !Number.isFinite(createdAt) ||
+    !Number.isFinite(expiresAt) ||
+    createdAt <= 0 ||
+    expiresAt <= createdAt ||
+    expiresAt - createdAt >
+      GOOGLE_OAUTH_TRANSACTION_TTL_MS ||
+    currentTime > expiresAt
+  ) {
+    return {
+      ok: false,
+      reason: 'expired_transaction'
+    }
+  }
+
+  if (
+    !oauthTimingSafeEqual(
+      transaction.state,
+      returnedState
+    )
+  ) {
+    return {
+      ok: false,
+      reason: 'state_mismatch'
+    }
+  }
+
+  if (
+    typeof transaction.nonce !== 'string' ||
+    transaction.nonce.length < 32
+  ) {
+    return {
+      ok: false,
+      reason: 'invalid_nonce'
+    }
+  }
+
+  if (
+    typeof transaction.codeVerifier !== 'string' ||
+    transaction.codeVerifier.length < 43 ||
+    transaction.codeVerifier.length > 128
+  ) {
+    return {
+      ok: false,
+      reason: 'invalid_pkce'
+    }
+  }
+
+  return {
+    ok: true,
+    transaction
+  }
+}
+
+function googleOAuthCookieOptions() {
+  return {
+    httpOnly: true,
+
+    secure:
+      String(
+        process.env.NODE_ENV || ''
+      ).toLowerCase() ===
+      'production',
+
+    sameSite: 'lax',
+
+    path: '/',
+
+    maxAge:
+      GOOGLE_OAUTH_TRANSACTION_TTL_MS
+  }
+}
+
+function setGoogleOAuthTransactionCookie(
+  res,
+  transaction
+) {
+  res.cookie(
+    GOOGLE_OAUTH_TRANSACTION_COOKIE,
+    oauthEncodeTransaction(transaction),
+    googleOAuthCookieOptions()
+  )
+}
+
+function clearGoogleOAuthTransactionCookie(
+  res
+) {
+  const options =
+    googleOAuthCookieOptions()
+
+  delete options.maxAge
+
+  res.clearCookie(
+    GOOGLE_OAUTH_TRANSACTION_COOKIE,
+    options
+  )
+}
+
+
+/*
+ * ============================================================
+ * GOOGLE OIDC VERIFICATION FOUNDATION
+ * ============================================================
+ *
+ * The authorization code is exchanged only by the MELEO
+ * backend. ID tokens are cryptographically verified against
+ * Google's published JWKS.
+ *
+ * Never trust claims from an unverified JWT.
+ */
+
+const GOOGLE_OAUTH_AUTHORIZATION_ENDPOINT =
+  'https://accounts.google.com/o/oauth2/v2/auth'
+
+const GOOGLE_OAUTH_TOKEN_ENDPOINT =
+  'https://oauth2.googleapis.com/token'
+
+const GOOGLE_OAUTH_JWKS_URI =
+  new URL(
+    'https://www.googleapis.com/oauth2/v3/certs'
+  )
+
+const GOOGLE_OAUTH_JWKS =
+  createRemoteJWKSet(
+    GOOGLE_OAUTH_JWKS_URI
+  )
+
+function googleAuthorizationUrl({
+  state,
+  nonce,
+  codeChallenge
+}) {
+  const url =
+    new URL(
+      GOOGLE_OAUTH_AUTHORIZATION_ENDPOINT
+    )
+
+  url.searchParams.set(
+    'client_id',
+    GOOGLE_OAUTH_CONFIG.clientId
+  )
+
+  url.searchParams.set(
+    'redirect_uri',
+    GOOGLE_OAUTH_CONFIG.redirectUri
+  )
+
+  url.searchParams.set(
+    'response_type',
+    'code'
+  )
+
+  url.searchParams.set(
+    'scope',
+    GOOGLE_OAUTH_CONFIG.scope
+  )
+
+  url.searchParams.set(
+    'state',
+    state
+  )
+
+  url.searchParams.set(
+    'nonce',
+    nonce
+  )
+
+  url.searchParams.set(
+    'code_challenge',
+    codeChallenge
+  )
+
+  url.searchParams.set(
+    'code_challenge_method',
+    'S256'
+  )
+
+  return url.toString()
+}
+
+async function exchangeGoogleAuthorizationCode({
+  code,
+  codeVerifier
+}) {
+  if (
+    !GOOGLE_OAUTH_CONFIG.enabled
+  ) {
+    throw new Error(
+      'Google OAuth is disabled'
+    )
+  }
+
+  if (
+    typeof code !== 'string' ||
+    !code ||
+    code.length > 4096
+  ) {
+    throw new Error(
+      'Invalid Google authorization code'
+    )
+  }
+
+  if (
+    typeof codeVerifier !== 'string' ||
+    codeVerifier.length < 43 ||
+    codeVerifier.length > 128
+  ) {
+    throw new Error(
+      'Invalid Google PKCE verifier'
+    )
+  }
+
+  const body =
+    new URLSearchParams({
+      client_id:
+        GOOGLE_OAUTH_CONFIG.clientId,
+
+      client_secret:
+        GOOGLE_OAUTH_CONFIG.clientSecret,
+
+      redirect_uri:
+        GOOGLE_OAUTH_CONFIG.redirectUri,
+
+      grant_type:
+        'authorization_code',
+
+      code,
+
+      code_verifier:
+        codeVerifier
+    })
+
+  const controller =
+    new AbortController()
+
+  const timeout =
+    setTimeout(
+      () => controller.abort(),
+      10000
+    )
+
+  let response
+
+  try {
+    response =
+      await fetch(
+        GOOGLE_OAUTH_TOKEN_ENDPOINT,
+        {
+          method: 'POST',
+
+          headers: {
+            'content-type':
+              'application/x-www-form-urlencoded',
+
+            accept:
+              'application/json'
+          },
+
+          body:
+            body.toString(),
+
+          signal:
+            controller.signal
+        }
+      )
+  }
+  finally {
+    clearTimeout(timeout)
+  }
+
+  let payload
+
+  try {
+    payload =
+      await response.json()
+  }
+  catch {
+    throw new Error(
+      'Google OAuth token endpoint returned invalid JSON'
+    )
+  }
+
+  if (!response.ok) {
+    /*
+     * Deliberately do not include Google's response body.
+     * It may contain sensitive OAuth information.
+     */
+    throw new Error(
+      `Google OAuth token exchange failed with status ${response.status}`
+    )
+  }
+
+  if (
+    !payload ||
+    typeof payload.id_token !== 'string' ||
+    !payload.id_token
+  ) {
+    throw new Error(
+      'Google OAuth response did not contain an ID token'
+    )
+  }
+
+  return {
+    idToken:
+      payload.id_token
+  }
+}
+
+async function verifyGoogleIdToken({
+  idToken,
+  expectedNonce
+}) {
+  if (
+    typeof idToken !== 'string' ||
+    !idToken
+  ) {
+    throw new Error(
+      'Missing Google ID token'
+    )
+  }
+
+  if (
+    typeof expectedNonce !== 'string' ||
+    expectedNonce.length < 32
+  ) {
+    throw new Error(
+      'Missing expected Google OIDC nonce'
+    )
+  }
+
+  const {
+    payload,
+    protectedHeader
+  } =
+    await jwtVerify(
+      idToken,
+      GOOGLE_OAUTH_JWKS,
+      {
+        issuer: [
+          'https://accounts.google.com',
+          'accounts.google.com'
+        ],
+
+        audience:
+          GOOGLE_OAUTH_CONFIG.clientId,
+
+        algorithms: [
+          'RS256'
+        ],
+
+        clockTolerance:
+          5
+      }
+    )
+
+  if (
+    !oauthSafeEqual(
+      payload.nonce,
+      expectedNonce
+    )
+  ) {
+    throw new Error(
+      'Google OIDC nonce mismatch'
+    )
+  }
+
+  if (
+    payload.email_verified !== true
+  ) {
+    throw new Error(
+      'Google account email is not verified'
+    )
+  }
+
+  if (
+    typeof payload.sub !== 'string' ||
+    !payload.sub ||
+    payload.sub.length > 255
+  ) {
+    throw new Error(
+      'Google OIDC subject is invalid'
+    )
+  }
+
+  if (
+    typeof payload.email !== 'string' ||
+    !payload.email ||
+    payload.email.length > 320
+  ) {
+    throw new Error(
+      'Google OIDC email is invalid'
+    )
+  }
+
+  if (
+    protectedHeader.alg !== 'RS256'
+  ) {
+    throw new Error(
+      'Unexpected Google ID token algorithm'
+    )
+  }
+
+  return Object.freeze({
+    provider:
+      'google',
+
+    subject:
+      payload.sub,
+
+    email:
+      payload.email
+        .trim()
+        .toLowerCase(),
+
+    emailVerified:
+      true,
+
+    name:
+      typeof payload.name === 'string'
+        ? payload.name.trim().slice(0, 120)
+        : '',
+
+    picture:
+      typeof payload.picture === 'string'
+        ? payload.picture.slice(0, 2048)
+        : ''
+  })
+}
+
+/* ============================================================
+ * MELEO Social Identity Persistence
+ *
+ * Provider identities are authoritative by:
+ *
+ *   provider + provider_subject
+ *
+ * Email is used only as a secondary account-linking signal
+ * after the OAuth provider has cryptographically verified it.
+ *
+ * This deliberately keeps provider identities outside users,
+ * allowing Google / Apple / Facebook to share one MELEO user.
+ * ============================================================ */
+
+const SOCIAL_IDENTITY_PROVIDER_GOOGLE =
+  'google'
+
+
+function normalizeSocialEmail(
+  value
+) {
+  return String(
+    value || ''
+  )
+    .trim()
+    .toLowerCase()
+}
+
+
+async function socialIdentityBySubject(
+  provider,
+  providerSubject
+) {
+  const normalizedProvider =
+    String(
+      provider || ''
+    )
+      .trim()
+      .toLowerCase()
+
+  const normalizedSubject =
+    String(
+      providerSubject || ''
+    )
+      .trim()
+
+  if (
+    !normalizedProvider ||
+    !normalizedSubject
+  ) {
+    return null
+  }
+
+  return one(
+    `
+      SELECT
+        ui.*,
+        u.role,
+        u.name,
+        u.email,
+        u.phone,
+        u.password_hash,
+        u.email_verified,
+        u.account_status,
+        u.stripe_customer_id,
+        u.deleted_at
+      FROM user_identities ui
+      JOIN users u
+        ON u.id = ui.user_id
+      WHERE ui.provider = $1
+        AND ui.provider_subject = $2
+      LIMIT 1
+    `,
+    [
+      normalizedProvider,
+      normalizedSubject
+    ]
+  )
+}
+
+
+async function socialIdentityForUserProvider(
+  userId,
+  provider
+) {
+  return one(
+    `
+      SELECT *
+      FROM user_identities
+      WHERE user_id = $1
+        AND provider = $2
+      LIMIT 1
+    `,
+    [
+      userId,
+      String(provider || '')
+        .trim()
+        .toLowerCase()
+    ]
+  )
+}
+
+
+async function insertSocialIdentity({
+  userId,
+  provider,
+  providerSubject,
+  providerEmail = null
+}) {
+  const normalizedProvider =
+    String(
+      provider || ''
+    )
+      .trim()
+      .toLowerCase()
+
+  const normalizedSubject =
+    String(
+      providerSubject || ''
+    )
+      .trim()
+
+  const normalizedEmail =
+    normalizeSocialEmail(
+      providerEmail
+    ) || null
+
+  if (
+    !userId ||
+    !normalizedProvider ||
+    !normalizedSubject
+  ) {
+    throw new Error(
+      'Invalid social identity'
+    )
+  }
+
+  return one(
+    `
+      INSERT INTO user_identities(
+        id,
+        user_id,
+        provider,
+        provider_subject,
+        provider_email,
+        created_at,
+        updated_at,
+        last_login_at
+      )
+      VALUES(
+        $1,
+        $2,
+        $3,
+        $4,
+        $5,
+        now(),
+        now(),
+        now()
+      )
+      RETURNING *
+    `,
+    [
+      id('uid'),
+      userId,
+      normalizedProvider,
+      normalizedSubject,
+      normalizedEmail
+    ]
+  )
+}
+
+
+async function touchSocialIdentity(
+  identityId,
+  providerEmail = null
+) {
+  const normalizedEmail =
+    normalizeSocialEmail(
+      providerEmail
+    ) || null
+
+  return one(
+    `
+      UPDATE user_identities
+      SET
+        provider_email =
+          COALESCE(
+            $2,
+            provider_email
+          ),
+        last_login_at = now(),
+        updated_at = now()
+      WHERE id = $1
+      RETURNING *
+    `,
+    [
+      identityId,
+      normalizedEmail
+    ]
+  )
+}
+
+
+async function linkSocialIdentity({
+  userId,
+  provider,
+  providerSubject,
+  providerEmail = null
+}) {
+  const existingSubject =
+    await socialIdentityBySubject(
+      provider,
+      providerSubject
+    )
+
+  /*
+   * A provider subject can belong to only one MELEO user.
+   * Never silently move it between accounts.
+   */
+  if (
+    existingSubject &&
+    existingSubject.user_id !== userId
+  ) {
+    const error =
+      new Error(
+        'Social identity is already linked to another account'
+      )
+
+    error.code =
+      'SOCIAL_IDENTITY_CONFLICT'
+
+    throw error
+  }
+
+
+  const existingProvider =
+    await socialIdentityForUserProvider(
+      userId,
+      provider
+    )
+
+  /*
+   * One provider identity per MELEO user.
+   * Prevent replacing Google identity A with Google identity B.
+   */
+  if (
+    existingProvider &&
+    existingProvider.provider_subject !==
+      String(providerSubject)
+  ) {
+    const error =
+      new Error(
+        'Another identity from this provider is already linked'
+      )
+
+    error.code =
+      'SOCIAL_PROVIDER_ALREADY_LINKED'
+
+    throw error
+  }
+
+
+  if (existingSubject) {
+
+    await touchSocialIdentity(
+      existingSubject.id,
+      providerEmail
+    )
+
+    return existingSubject
+  }
+
+
+  if (existingProvider) {
+
+    await touchSocialIdentity(
+      existingProvider.id,
+      providerEmail
+    )
+
+    return existingProvider
+  }
+
+
+  return insertSocialIdentity({
+    userId,
+    provider,
+    providerSubject,
+    providerEmail
+  })
+}
+
+
+async function resolveGoogleAccount(
+  googleProfile
+) {
+  const provider =
+    SOCIAL_IDENTITY_PROVIDER_GOOGLE
+
+  const subject =
+    String(
+      googleProfile?.sub || ''
+    ).trim()
+
+  const email =
+    normalizeSocialEmail(
+      googleProfile?.email
+    )
+
+  const emailVerified =
+    googleProfile?.email_verified === true
+
+
+  if (!subject) {
+    const error =
+      new Error(
+        'Google identity does not contain a subject'
+      )
+
+    error.code =
+      'GOOGLE_SUBJECT_MISSING'
+
+    throw error
+  }
+
+
+  /*
+   * 1. Strongest lookup:
+   *    Google issuer + immutable Google subject.
+   */
+  const linked =
+    await socialIdentityBySubject(
+      provider,
+      subject
+    )
+
+
+  if (linked) {
+
+    if (
+      linked.deleted_at
+    ) {
+      const error =
+        new Error(
+          'Linked MELEO account is unavailable'
+        )
+
+      error.code =
+        'ACCOUNT_UNAVAILABLE'
+
+      throw error
+    }
+
+
+    if (
+      linked.account_status ===
+      'suspended'
+    ) {
+      const error =
+        new Error(
+          'Linked MELEO account is suspended'
+        )
+
+      error.code =
+        'ACCOUNT_SUSPENDED'
+
+      throw error
+    }
+
+
+    await touchSocialIdentity(
+      linked.id,
+      email || null
+    )
+
+
+    const user =
+      await Users.byId(
+        linked.user_id
+      )
+
+
+    return {
+      user,
+      identity:
+        await socialIdentityBySubject(
+          provider,
+          subject
+        ),
+      created: false,
+      linkedByEmail: false
+    }
+  }
+
+
+  /*
+   * 2. No existing Google subject.
+   *
+   * Linking by email is allowed only when Google itself
+   * cryptographically asserted email_verified=true.
+   */
+  if (
+    email &&
+    emailVerified
+  ) {
+
+    const existingUser =
+      await Users.byEmail(
+        email
+      )
+
+
+    if (existingUser) {
+
+      if (
+        existingUser.deleted_at
+      ) {
+        const error =
+          new Error(
+            'Existing MELEO account is unavailable'
+          )
+
+        error.code =
+          'ACCOUNT_UNAVAILABLE'
+
+        throw error
+      }
+
+
+      if (
+        existingUser.account_status ===
+        'suspended'
+      ) {
+        const error =
+          new Error(
+            'Existing MELEO account is suspended'
+          )
+
+        error.code =
+          'ACCOUNT_SUSPENDED'
+
+        throw error
+      }
+
+
+      const identity =
+        await linkSocialIdentity({
+          userId:
+            existingUser.id,
+
+          provider,
+
+          providerSubject:
+            subject,
+
+          providerEmail:
+            email
+        })
+
+
+      /*
+       * A verified Google email is sufficient to mark the
+       * matching MELEO email as verified.
+       */
+      if (
+        !existingUser.email_verified
+      ) {
+        await Users.update(
+          existingUser.id,
+          {
+            email_verified:
+              true
+          }
+        )
+      }
+
+
+      const refreshed =
+        await Users.byId(
+          existingUser.id
+        )
+
+
+      return {
+        user:
+          refreshed,
+
+        identity,
+
+        created:
+          false,
+
+        linkedByEmail:
+          true
+      }
+    }
+  }
+
+
+  /*
+   * 3. Creating a new MELEO account requires a verified email.
+   *
+   * Do not create an email-less or unverified-email account
+   * from Google OAuth.
+   */
+  if (
+    !email ||
+    !emailVerified
+  ) {
+    const error =
+      new Error(
+        'A verified Google email is required'
+      )
+
+    error.code =
+      'GOOGLE_VERIFIED_EMAIL_REQUIRED'
+
+    throw error
+  }
+
+
+  const name =
+    String(
+      googleProfile?.name ||
+      email.split('@')[0] ||
+      'MELEO User'
+    )
+      .trim()
+      .slice(
+        0,
+        120
+      )
+
+
+  /*
+   * Social-only accounts intentionally have no usable
+   * local password.
+   */
+  const userId =
+    id(
+      'usr'
+    )
+
+
+  const user =
+    await Users.create({
+      id:
+        userId,
+
+      role:
+        'patient',
+
+      name,
+
+      email,
+
+      phone:
+        '',
+
+      passwordHash:
+        null,
+
+      emailVerified:
+        true,
+
+      acceptedTermsAt:
+        now(),
+
+      termsVersion:
+        config.legal.termsVersion
+    })
+
+
+  const identity =
+    await linkSocialIdentity({
+      userId:
+        user.id,
+
+      provider,
+
+      providerSubject:
+        subject,
+
+      providerEmail:
+        email
+    })
+
+
+  await audit(
+    user.id,
+    'auth.social_account_created',
+    {
+      provider
+    }
+  )
+
+
+  return {
+    user,
+    identity,
+    created:
+      true,
+
+    linkedByEmail:
+      false
+  }
+}
 
 const app=express(); if(config.trustProxy)app.set('trust proxy',1); app.disable('x-powered-by')
 app.use((req,res,next)=>{const rid=requestId(req.headers['x-request-id']);req.requestId=rid;res.setHeader('X-Request-ID',rid);const t=process.hrtime.bigint();res.on('finish',()=>{const ms=Number(process.hrtime.bigint()-t)/1e6;observeRequest(req.method,res.statusCode,ms);const meta={requestId:rid,method:req.method,path:req.path,status:res.statusCode,durationMs:Number(ms.toFixed(2))};if(res.statusCode>=500)log.error('http.request',meta);else if(ms>=config.observability.slowRequestMs)log.warn('http.slow_request',meta)});next()})
@@ -344,7 +1758,27 @@ registerAuthAccountRoutes(
 
     id,
     now,
-    sha256
+    sha256,
+
+    googleOAuthEnabled:
+      GOOGLE_OAUTH_CONFIG.enabled,
+
+    createGoogleOAuthTransaction,
+    validateGoogleOAuthTransaction,
+    googleAuthorizationUrl,
+    exchangeGoogleAuthorizationCode,
+    verifyGoogleIdToken,
+    resolveGoogleAccount,
+
+    getGoogleOAuthTransactionCookie:
+      req =>
+        cookieNamed(
+          req,
+          GOOGLE_OAUTH_TRANSACTION_COOKIE
+        ),
+
+    setGoogleOAuthTransactionCookie,
+    clearGoogleOAuthTransactionCookie
   }
 )
 
