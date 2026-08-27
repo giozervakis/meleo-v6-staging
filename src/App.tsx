@@ -472,7 +472,7 @@ function trackProfessionalEvent(professionalId:string,type:'impression'|'profile
   api('/analytics/professional-event',{method:'POST',body:JSON.stringify({professionalId,type,sessionId:sid})}).catch(()=>{})
 }
 
-const FALLBACK_CONFIG:AppConfig={env:'production',demoAuth:false,demoCheckout:false,paymentsEnabled:false,mailEnabled:false,portalEnabled:false,termsVersion:'—',emergencyNumber:'112',legal:{company:'',vatNumber:'',address:'',supportEmail:'support@meleo.gr',dpoEmail:'privacy@meleo.gr'},plans:[
+const FALLBACK_CONFIG:AppConfig={env:'production',demoAuth:false,googleOAuthEnabled:false,demoCheckout:false,paymentsEnabled:false,mailEnabled:false,portalEnabled:false,termsVersion:'—',emergencyNumber:'112',legal:{company:'',vatNumber:'',address:'',supportEmail:'support@meleo.gr',dpoEmail:'privacy@meleo.gr'},plans:[
   {id:'basic',name:'BASIC',price:9.99,currency:'EUR',interval:'month',recommended:false,features:['Δημόσιο επαγγελματικό προφίλ','Αιτήματα και διαχείριση κρατήσεων','Περιοχή & ακτίνα εξυπηρέτησης','Βασικά στατιστικά']},
   {id:'premium',name:'PREMIUM',price:14.99,currency:'EUR',interval:'month',recommended:true,features:['Όλα τα BASIC','Σήμανση «Προτεινόμενος»','Προτεραιότητα στην κατάταξη αποτελεσμάτων','Advanced profile analytics']}
 ]}
@@ -2765,10 +2765,10 @@ function getPasswordChecks(password: string) {
 
   return {
     length: value.length >= 8,
-    uppercase: /[A-ZΑ-ΩΆΈΉΊΌΎΏΪΫ]/u.test(value),
+    uppercase: /\p{Lu}/u.test(value),
     lowercase: /[a-zα-ωάέήίόύώϊϋΐΰ]/u.test(value),
     number: /\d/.test(value),
-    special: /[^A-Za-zΑ-Ωα-ωΆΈΉΊΌΎΏΪΫάέήίόύώϊϋΐΰ0-9\s]/u.test(value)
+    special: /[^\p{L}\p{N}\s]/u.test(value)
   }
 }
 
