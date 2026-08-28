@@ -13,6 +13,15 @@ function normalized(value) {
 }
 
 if (normalized(process.env.NODE_ENV) === 'production') {
+  const adminTotpSecret =
+    String(process.env.ADMIN_TOTP_SECRET || '').trim()
+
+  if (adminTotpSecret.length < 16) {
+    failures.push(
+      'ADMIN_TOTP_SECRET is required in production and must be at least 16 characters'
+    )
+  }
+
   for (const [key, forbidden] of Object.entries(productionForbidden)) {
     const value = normalized(process.env[key])
 

@@ -477,15 +477,6 @@ export function registerAuthAccountRoutes(
         }
 
 
-        await Users.update(
-          resolved.user.id,
-          {
-            last_login_at:
-              now()
-          }
-        )
-
-
         const user =
           await Users.byId(
             resolved.user.id
@@ -504,6 +495,53 @@ export function registerAuthAccountRoutes(
 
           throw missingUser
         }
+
+
+        /*
+         * RC2-A1 SECURITY:
+         * Admin accounts must never authenticate through Google OAuth.
+         * Admin authentication remains password + mandatory TOTP only.
+         *
+         * This intentionally happens before last_login_at is updated and
+         * before issueSession(), so a blocked OAuth attempt cannot produce
+         * an authenticated admin session or look like a successful login.
+         */
+        if (user.role === 'admin') {
+
+          await audit(
+            user.id,
+            'security.admin_google_oauth_blocked',
+            {
+              provider:
+                'google',
+
+              ipHash:
+                sha256(
+                  req.ip || ''
+                )
+            }
+          ).catch(
+            () => {}
+          )
+
+
+          return res.redirect(
+            302,
+            frontendRedirect(
+              'failed',
+              'admin_google_oauth_disabled'
+            )
+          )
+        }
+
+
+        await Users.update(
+          user.id,
+          {
+            last_login_at:
+              now()
+          }
+        )
 
 
         await issueSession(
