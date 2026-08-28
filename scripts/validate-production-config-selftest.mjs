@@ -23,6 +23,10 @@ function cleanEnv() {
 
   env.NODE_ENV = 'production'
 
+  // Test-only value. This is not a real production secret.
+  env.ADMIN_TOTP_SECRET =
+    'MELEO_CI_TEST_ONLY_TOTP_SECRET_2026'
+
   return env
 }
 
@@ -104,6 +108,40 @@ if (missing.length) {
 }
 
 console.log('[PASS] Dangerous production configuration correctly rejected.')
+
+
+// ----------------------------------------------------------
+// TEST 3
+// Missing admin TOTP secret MUST fail in production.
+// ----------------------------------------------------------
+
+const missingTotpEnv = cleanEnv()
+delete missingTotpEnv.ADMIN_TOTP_SECRET
+
+const missingTotp = runValidator(missingTotpEnv)
+
+if (missingTotp.status === 0) {
+  console.error(
+    '[FAIL] Production configuration without ADMIN_TOTP_SECRET was accepted.'
+  )
+  process.exit(1)
+}
+
+const missingTotpOutput =
+  `${missingTotp.stdout || ''}\n${missingTotp.stderr || ''}`
+
+if (!missingTotpOutput.includes('ADMIN_TOTP_SECRET')) {
+  console.error(
+    '[FAIL] Missing ADMIN_TOTP_SECRET was rejected without the expected diagnostic.'
+  )
+  console.error(missingTotpOutput)
+  process.exit(1)
+}
+
+console.log(
+  '[PASS] Missing ADMIN_TOTP_SECRET correctly rejected.'
+)
+
 console.log('')
 console.log('MELEO production configuration self-test: ALL TESTS PASSED')
 console.log('')
