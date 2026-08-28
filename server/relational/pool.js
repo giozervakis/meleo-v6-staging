@@ -56,12 +56,113 @@ export async function verifyPassword(password, stored){
   }catch{return false}
 }
 
+const MIGRATION_LOCK_KEY = 1886349651
+
+function migrationChecksum(contents){
+  return crypto.createHash('sha256').update(contents,'utf8').digest('hex')
+}
+
+async function ensureMigrationLedger(client){
+  await client.query(`
+    CREATE TABLE IF NOT EXISTS schema_migrations (
+      name text PRIMARY KEY,
+      checksum char(64) NOT NULL,
+      applied_at timestamptz NOT NULL DEFAULT now()
+    )
+  `)
+}
+
+async function readAppliedMigrations(client){
+  const {rows}=await client.query(
+    'SELECT name, checksum FROM schema_migrations ORDER BY name'
+  )
+  return new Map(rows.map(row=>[row.name,row.checksum]))
+}
+
+async function bootstrapMigrationLedger(client, files, dir){
+  const applied=await readAppliedMigrations(client)
+  if(applied.size>0)return applied
+
+  const {rows}=await client.query(`
+    SELECT
+      to_regclass('public.users') AS users_table,
+      to_regclass('public.professionals') AS professionals_table
+  `)
+
+  const hasLegacySchema=Boolean(
+    rows[0]?.users_table ||
+    rows[0]?.professionals_table
+  )
+
+  if(!hasLegacySchema)return applied
+
+  for(const name of files){
+    const ddl=fs.readFileSync(path.join(dir,name),'utf8')
+    await client.query(
+      `
+        INSERT INTO schema_migrations(name, checksum)
+        VALUES ($1,$2)
+        ON CONFLICT (name) DO NOTHING
+      `,
+      [name,migrationChecksum(ddl)]
+    )
+  }
+
+  return readAppliedMigrations(client)
+}
+
 export async function migrate(){
   const dir=path.join(root,'migrations')
   const files=fs.readdirSync(dir).filter(x=>/^\d+.*\.sql$/.test(x)).sort()
-  for(const name of files){
-    const ddl=fs.readFileSync(path.join(dir,name),'utf8')
-    await sql(ddl)
+  const client=await getPool().connect()
+  let locked=false
+
+  try{
+    await client.query('SELECT pg_advisory_lock($1)',[MIGRATION_LOCK_KEY])
+    locked=true
+
+    await ensureMigrationLedger(client)
+    const applied=await bootstrapMigrationLedger(client,files,dir)
+
+    for(const name of files){
+      const ddl=fs.readFileSync(path.join(dir,name),'utf8')
+      const checksum=migrationChecksum(ddl)
+      const recorded=applied.get(name)
+
+      if(recorded){
+        if(recorded!==checksum){
+          throw new Error(`Migration checksum mismatch for ${name}`)
+        }
+        continue
+      }
+
+      await client.query('BEGIN')
+      try{
+        await client.query(ddl)
+        await client.query(
+          `
+            INSERT INTO schema_migrations(name, checksum)
+            VALUES ($1,$2)
+          `,
+          [name,checksum]
+        )
+        await client.query('COMMIT')
+        applied.set(name,checksum)
+      }catch(err){
+        try{await client.query('ROLLBACK')}catch{}
+        throw err
+      }
+    }
+  }finally{
+    if(locked){
+      try{
+        await client.query(
+          'SELECT pg_advisory_unlock($1)',
+          [MIGRATION_LOCK_KEY]
+        )
+      }catch{}
+    }
+    client.release()
   }
 }
 
