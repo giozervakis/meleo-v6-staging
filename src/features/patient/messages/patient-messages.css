@@ -1,0 +1,4272 @@
+/* ==========================================================
+   MELEO V7 — PATIENT MESSENGER
+   Phase 5F.1
+
+   Desktop:
+   conversation list + selected dialog
+
+   Mobile:
+   conversation list -> full screen dialog
+   ========================================================== */
+
+
+/* ==========================================================
+   DASHBOARD WORKSPACE MODE
+   ========================================================== */
+
+.patient-care-main.messages-mode {
+  min-width:0;
+}
+
+.patient-care-main.messages-mode
+> :not(.patient-section-shell) {
+  display:none !important;
+}
+
+.patient-section-shell.messages-workspace-shell {
+  width:100% !important;
+
+  padding:0 !important;
+  margin:0 !important;
+
+  border:0 !important;
+  border-radius:0 !important;
+
+  background:transparent !important;
+
+  box-shadow:none !important;
+
+  overflow:visible !important;
+}
+
+.messages-workspace-shell
+.patient-section-tabs {
+  margin:0 0 18px !important;
+}
+
+
+/* ==========================================================
+   ROOT
+   ========================================================== */
+
+.meleo-messenger {
+  --messenger-navy:#163d49;
+  --messenger-green:#175447;
+  --messenger-green-2:#246c59;
+  --messenger-text:#234752;
+  --messenger-muted:#84959a;
+  --messenger-line:rgba(19,58,67,.09);
+  --messenger-soft:#f5f8f5;
+  --messenger-ivory:#fbfcf9;
+  --messenger-gold:#ae8848;
+
+  width:100%;
+  height:700px;
+  min-height:620px;
+
+  display:grid;
+  grid-template-columns:
+    minmax(300px,330px)
+    minmax(0,1fr);
+
+  overflow:hidden;
+
+  border:1px solid var(--messenger-line);
+  border-radius:26px;
+
+  background:#fff;
+
+  box-shadow:
+    0 24px 70px rgba(15,45,54,.08);
+}
+
+
+/* ==========================================================
+   LEFT — CONVERSATIONS
+   ========================================================== */
+
+.meleo-messenger-sidebar {
+  min-width:0;
+  min-height:0;
+
+  display:flex;
+  flex-direction:column;
+
+  border-right:1px solid var(--messenger-line);
+
+  background:
+    linear-gradient(
+      180deg,
+      #fbfcfa 0%,
+      #f6f8f5 100%
+    );
+}
+
+
+/* Header */
+
+.meleo-messenger-sidebar-head {
+  min-height:84px;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:16px;
+
+  padding:
+    18px
+    19px
+    12px;
+}
+
+.meleo-messenger-sidebar-head small {
+  display:block;
+
+  margin-bottom:3px;
+
+  color:var(--messenger-gold);
+
+  font-size:8px;
+  font-weight:900;
+
+  letter-spacing:.16em;
+}
+
+.meleo-messenger-sidebar-head h2 {
+  margin:0;
+
+  color:var(--messenger-navy);
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size:27px;
+  font-weight:400;
+
+  letter-spacing:-.035em;
+}
+
+.meleo-messenger-total-unread {
+  min-width:29px;
+  height:29px;
+
+  display:grid;
+  place-items:center;
+
+  padding:0 7px;
+
+  border-radius:999px;
+
+  background:var(--messenger-green);
+
+  color:#fff;
+
+  font-size:10px;
+  font-weight:900;
+}
+
+
+/* Search */
+
+.meleo-messenger-search {
+  height:43px;
+
+  display:flex;
+  align-items:center;
+  gap:8px;
+
+  margin:
+    0
+    13px
+    10px;
+
+  padding:0 12px;
+
+  border:1px solid rgba(20,65,74,.055);
+  border-radius:13px;
+
+  background:#edf2ee;
+}
+
+.meleo-messenger-search span {
+  flex:0 0 auto;
+
+  color:#7d9194;
+
+  font-size:18px;
+}
+
+.meleo-messenger-search input {
+  width:100%;
+  min-width:0;
+
+  padding:0;
+
+  border:0;
+  outline:0;
+
+  background:transparent;
+
+  color:#31545d;
+
+  font-family:inherit;
+  font-size:11px;
+}
+
+.meleo-messenger-search input::placeholder {
+  color:#92a0a3;
+}
+
+
+/* Filter */
+
+.meleo-messenger-filters {
+  display:flex;
+  gap:6px;
+
+  padding:
+    0
+    13px
+    11px;
+}
+
+.meleo-messenger-filters button {
+  min-height:31px;
+
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+
+  padding:0 11px;
+
+  border:0;
+  border-radius:9px;
+
+  background:transparent;
+
+  color:#7c8f93;
+
+  font-family:inherit;
+  font-size:9px;
+  font-weight:800;
+
+  cursor:pointer;
+}
+
+.meleo-messenger-filters button.active {
+  background:#e3ece6;
+  color:#245c4b;
+}
+
+.meleo-messenger-filters b {
+  min-width:17px;
+  height:17px;
+
+  display:grid;
+  place-items:center;
+
+  padding:0 4px;
+
+  border-radius:999px;
+
+  background:#34785f;
+
+  color:#fff;
+
+  font-size:7px;
+}
+
+
+/* Conversation list */
+
+.meleo-conversation-list {
+  flex:1;
+  min-height:0;
+
+  overflow-y:auto;
+
+  padding:
+    2px
+    7px
+    10px;
+
+  scrollbar-width:thin;
+  scrollbar-color:
+    rgba(31,79,69,.18)
+    transparent;
+}
+
+.meleo-conversation-row {
+  position:relative;
+
+  width:100%;
+  min-height:82px;
+
+  display:grid;
+  grid-template-columns:
+    46px
+    minmax(0,1fr);
+
+  gap:11px;
+
+  align-items:center;
+
+  margin:0 0 3px;
+
+  padding:
+    10px
+    10px;
+
+  border:1px solid transparent;
+  border-radius:15px;
+
+  background:transparent;
+
+  text-align:left;
+
+  cursor:pointer;
+
+  transition:
+    background .16s ease,
+    border-color .16s ease;
+}
+
+.meleo-conversation-row:hover {
+  background:rgba(255,255,255,.78);
+}
+
+.meleo-conversation-row.active {
+  border-color:rgba(40,102,81,.08);
+
+  background:#e6eee8;
+}
+
+.meleo-conversation-row.active::before {
+  content:"";
+
+  position:absolute;
+
+  left:0;
+  top:16px;
+  bottom:16px;
+
+  width:3px;
+
+  border-radius:
+    0
+    4px
+    4px
+    0;
+
+  background:#2d735b;
+}
+
+
+/* Avatar */
+
+.meleo-conversation-avatar {
+  position:relative;
+
+  width:46px;
+  height:46px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #164b40,
+      #2d705c
+    );
+
+  color:#fff;
+
+  font-size:10px;
+  font-weight:900;
+
+  box-shadow:
+    0 5px 15px
+    rgba(20,75,61,.10);
+}
+
+.meleo-unread-dot {
+  position:absolute;
+
+  right:-1px;
+  bottom:1px;
+
+  width:12px;
+  height:12px;
+
+  border:
+    3px solid
+    #f6f8f5;
+
+  border-radius:50%;
+
+  background:#2c8063;
+}
+
+
+/* Conversation text */
+
+.meleo-conversation-content {
+  min-width:0;
+}
+
+.meleo-conversation-title {
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+
+  gap:8px;
+}
+
+.meleo-conversation-title strong {
+  min-width:0;
+
+  overflow:hidden;
+
+  color:#395862;
+
+  font-size:11px;
+  font-weight:650;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.meleo-conversation-row.unread
+.meleo-conversation-title strong {
+  color:#143f49;
+
+  font-weight:950;
+}
+
+.meleo-conversation-title time {
+  flex:0 0 auto;
+
+  color:#9ba7a9;
+
+  font-size:7px;
+  font-weight:600;
+}
+
+.meleo-conversation-row.unread
+.meleo-conversation-title time {
+  color:#37705e;
+
+  font-weight:900;
+}
+
+.meleo-conversation-service {
+  display:block;
+
+  max-width:100%;
+
+  margin-top:2px;
+
+  overflow:hidden;
+
+  color:#809095;
+
+  font-size:8px;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.meleo-conversation-preview {
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+
+  gap:6px;
+
+  margin-top:4px;
+}
+
+.meleo-conversation-preview p {
+  min-width:0;
+  flex:1;
+
+  margin:0;
+
+  overflow:hidden;
+
+  color:#98a3a6;
+
+  font-size:9px;
+  line-height:1.3;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.meleo-conversation-row.unread
+.meleo-conversation-preview p {
+  color:#49656d;
+
+  font-weight:850;
+}
+
+.meleo-unread-count {
+  min-width:19px;
+  height:19px;
+
+  display:grid;
+  place-items:center;
+
+  flex:0 0 auto;
+
+  padding:0 5px;
+
+  border-radius:999px;
+
+  background:#2d785e;
+
+  color:#fff;
+
+  font-size:7px;
+  font-weight:950;
+}
+
+
+/* ==========================================================
+   RIGHT — THREAD
+   ========================================================== */
+
+.meleo-thread {
+  min-width:0;
+  min-height:0;
+
+  display:grid;
+
+  grid-template-rows:
+    72px
+    46px
+    minmax(0,1fr)
+    auto;
+
+  background:#fff;
+}
+
+
+/* Thread header */
+
+.meleo-thread-head {
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+
+  gap:11px;
+
+  padding:
+    10px
+    18px;
+
+  border-bottom:
+    1px solid
+    var(--messenger-line);
+
+  background:#fff;
+}
+
+.meleo-thread-back {
+  display:none;
+}
+
+.meleo-thread-avatar {
+  width:46px;
+  height:46px;
+
+  display:grid;
+  place-items:center;
+
+  flex:0 0 46px;
+
+  border-radius:50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #164b40,
+      #2e715d
+    );
+
+  color:#fff;
+
+  font-size:10px;
+  font-weight:900;
+}
+
+.meleo-thread-person {
+  min-width:0;
+  flex:1;
+
+  display:grid;
+
+  gap:2px;
+}
+
+.meleo-thread-person strong {
+  min-width:0;
+
+  overflow:hidden;
+
+  color:#153f4a;
+
+  font-size:13px;
+  font-weight:850;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.meleo-thread-person span {
+  min-width:0;
+
+  overflow:hidden;
+
+  color:#819297;
+
+  font-size:9px;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+
+/* Booking context — one compact line, NOT four boxes */
+
+.meleo-thread-context {
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+
+  gap:9px;
+
+  overflow-x:auto;
+
+  padding:
+    7px
+    18px;
+
+  border-bottom:
+    1px solid
+    rgba(17,55,64,.055);
+
+  background:#f6f8f5;
+
+  color:#74878c;
+
+  font-size:9px;
+
+  white-space:nowrap;
+
+  scrollbar-width:none;
+}
+
+.meleo-thread-context::-webkit-scrollbar {
+  display:none;
+}
+
+.meleo-thread-context > span:first-child {
+  min-width:0;
+
+  display:flex;
+  align-items:center;
+
+  gap:5px;
+}
+
+.meleo-thread-context small {
+  color:#aa8952;
+
+  font-size:7px;
+  font-weight:900;
+}
+
+.meleo-thread-context b {
+  max-width:300px;
+
+  overflow:hidden;
+
+  color:#395a63;
+
+  text-overflow:ellipsis;
+}
+
+.meleo-thread-context i {
+  width:3px;
+  height:3px;
+
+  flex:0 0 3px;
+
+  border-radius:50%;
+
+  background:#aab4b4;
+}
+
+.meleo-thread-context strong {
+  color:#235544;
+
+  font-weight:850;
+}
+
+
+/* ==========================================================
+   CHAT CANVAS
+   ========================================================== */
+
+.meleo-thread-messages {
+  min-height:0;
+
+  display:flex;
+  flex-direction:column;
+
+  overflow-y:auto;
+
+  padding:
+    20px
+    clamp(18px,3vw,38px);
+
+  background:
+    radial-gradient(
+      circle at 100% 0%,
+      rgba(42,103,83,.04),
+      transparent 280px
+    ),
+    linear-gradient(
+      180deg,
+      #fafbf9,
+      #f6f9f6
+    );
+
+  scrollbar-width:thin;
+  scrollbar-color:
+    rgba(31,79,69,.15)
+    transparent;
+}
+
+
+/*
+ Few messages should sit near the bottom of the
+ conversation like Messenger/Viber, instead of floating
+ at the very top of a huge empty canvas.
+*/
+
+.meleo-thread-messages
+> .meleo-message:first-child {
+  margin-top:auto;
+}
+
+
+/* Messages */
+
+.meleo-message {
+  width:100%;
+
+  display:flex;
+
+  margin:
+    3px
+    0;
+}
+
+.meleo-message.mine {
+  justify-content:flex-end;
+}
+
+.meleo-message.theirs {
+  justify-content:flex-start;
+}
+
+.meleo-message-bubble {
+  max-width:
+    min(
+      70%,
+      590px
+    );
+
+  padding:
+    10px
+    13px;
+
+  border:
+    1px solid
+    rgba(21,61,70,.065);
+
+  border-radius:
+    16px
+    16px
+    16px
+    5px;
+
+  background:#fff;
+
+  color:#31535c;
+
+  box-shadow:
+    0 4px 15px
+    rgba(12,41,48,.035);
+}
+
+.meleo-message.mine
+.meleo-message-bubble {
+  border:0;
+
+  border-radius:
+    16px
+    16px
+    5px
+    16px;
+
+  background:
+    linear-gradient(
+      135deg,
+      #164d41,
+      #24624f
+    );
+
+  color:#fff;
+
+  box-shadow:
+    0 6px 18px
+    rgba(15,68,55,.10);
+}
+
+.meleo-message-bubble b {
+  display:block;
+
+  margin-bottom:3px;
+
+  color:#51707a;
+
+  font-size:9px;
+  font-weight:800;
+}
+
+.meleo-message-bubble p {
+  margin:0;
+
+  color:inherit;
+
+  font-size:12px;
+  line-height:1.47;
+
+  white-space:pre-wrap;
+  overflow-wrap:anywhere;
+}
+
+.meleo-message-bubble time {
+  display:block;
+
+  margin-top:4px;
+
+  color:#99a5a7;
+
+  font-size:7px;
+
+  text-align:right;
+}
+
+.meleo-message.mine
+.meleo-message-bubble time {
+  color:rgba(255,255,255,.57);
+}
+
+
+/* ==========================================================
+   COMPOSER
+   ========================================================== */
+
+.meleo-thread-composer {
+  padding:
+    10px
+    13px
+    11px;
+
+  border-top:
+    1px solid
+    var(--messenger-line);
+
+  background:#fff;
+}
+
+.meleo-thread-input {
+  display:grid;
+
+  grid-template-columns:
+    minmax(0,1fr)
+    42px;
+
+  align-items:end;
+
+  gap:7px;
+
+  padding:6px;
+
+  border:
+    1px solid
+    rgba(19,59,68,.095);
+
+  border-radius:16px;
+
+  background:#f4f7f4;
+}
+
+.meleo-thread-input textarea {
+  width:100%;
+
+  min-height:40px;
+  max-height:105px;
+
+  resize:none;
+
+  padding:
+    10px
+    9px;
+
+  border:0;
+  outline:0;
+
+  background:transparent;
+
+  color:#2e5059;
+
+  font-family:inherit;
+  font-size:11px;
+  line-height:1.4;
+}
+
+.meleo-thread-input textarea::placeholder {
+  color:#98a4a6;
+}
+
+.meleo-thread-input button {
+  width:42px;
+  height:42px;
+
+  display:grid;
+  place-items:center;
+
+  border:0;
+  border-radius:50%;
+
+  background:
+    linear-gradient(
+      145deg,
+      #174e42,
+      #276651
+    );
+
+  color:#fff;
+
+  font-size:14px;
+
+  cursor:pointer;
+
+  box-shadow:
+    0 6px 16px
+    rgba(15,67,55,.12);
+}
+
+.meleo-thread-input button:disabled {
+  opacity:.32;
+
+  cursor:not-allowed;
+
+  box-shadow:none;
+}
+
+.meleo-thread-composer > small {
+  display:block;
+
+  margin:
+    5px
+    4px
+    0;
+
+  color:#9ba5a7;
+
+  font-size:7px;
+}
+
+
+/* ==========================================================
+   EMPTY STATES
+   ========================================================== */
+
+.meleo-conversation-empty,
+.meleo-thread-empty,
+.meleo-thread-no-selection {
+  display:flex;
+  flex-direction:column;
+
+  align-items:center;
+  justify-content:center;
+
+  text-align:center;
+}
+
+.meleo-conversation-empty {
+  min-height:230px;
+
+  padding:24px;
+}
+
+.meleo-conversation-empty span,
+.meleo-thread-empty span,
+.meleo-thread-no-selection span {
+  width:44px;
+  height:44px;
+
+  display:grid;
+  place-items:center;
+
+  border-radius:50%;
+
+  background:#e8efea;
+
+  color:#527269;
+
+  font-size:17px;
+}
+
+.meleo-conversation-empty b {
+  margin-top:9px;
+
+  color:#3a5962;
+
+  font-size:10px;
+}
+
+.meleo-conversation-empty p {
+  max-width:220px;
+
+  margin:
+    5px
+    0
+    0;
+
+  color:#98a4a6;
+
+  font-size:8px;
+  line-height:1.5;
+}
+
+.meleo-thread-empty {
+  min-height:100%;
+}
+
+.meleo-thread-empty h3,
+.meleo-thread-no-selection h3 {
+  margin:
+    10px
+    0
+    0;
+
+  color:#34545e;
+
+  font-family:
+    Georgia,
+    "Times New Roman",
+    serif;
+
+  font-size:20px;
+  font-weight:400;
+}
+
+.meleo-thread-empty p,
+.meleo-thread-no-selection p {
+  max-width:340px;
+
+  margin:
+    5px
+    0
+    0;
+
+  color:#95a1a4;
+
+  font-size:9px;
+  line-height:1.5;
+}
+
+.meleo-thread-no-selection {
+  grid-row:1 / -1;
+
+  padding:25px;
+
+  background:#fafbf9;
+}
+
+
+/* ==========================================================
+   LARGE DESKTOP
+   ========================================================== */
+
+@media (min-width:1450px) {
+
+  .meleo-messenger {
+    grid-template-columns:
+      320px
+      minmax(0,1fr);
+
+    height:720px;
+  }
+
+}
+
+
+/* ==========================================================
+   TABLET
+   ========================================================== */
+
+@media (
+  min-width:701px
+)
+and (
+  max-width:1050px
+) {
+
+  .meleo-messenger {
+    grid-template-columns:
+      285px
+      minmax(0,1fr);
+  }
+
+}
+
+
+/* ==========================================================
+   MOBILE — TRUE VIBER / MESSENGER FLOW
+   ========================================================== */
+
+@media (max-width:700px) {
+
+  .messages-workspace-shell {
+    margin:
+      0
+      -4px !important;
+  }
+
+  .messages-workspace-shell
+  .patient-section-tabs {
+    margin-bottom:10px !important;
+  }
+
+
+  .meleo-messenger {
+    position:relative;
+
+    width:100%;
+
+    height:
+      calc(
+        100dvh -
+        145px -
+        env(safe-area-inset-top)
+      );
+
+    min-height:530px;
+
+    display:block;
+
+    overflow:hidden;
+
+    border-radius:18px;
+
+    box-shadow:
+      0 15px 45px
+      rgba(15,45,54,.075);
+  }
+
+
+  /* List occupies whole screen */
+
+  .meleo-messenger-sidebar {
+    width:100%;
+    height:100%;
+
+    border-right:0;
+  }
+
+
+  .meleo-messenger-sidebar-head {
+    min-height:68px;
+
+    padding:
+      13px
+      14px
+      8px;
+  }
+
+  .meleo-messenger-sidebar-head h2 {
+    font-size:25px;
+  }
+
+  .meleo-messenger-search {
+    margin:
+      0
+      10px
+      8px;
+  }
+
+  .meleo-messenger-filters {
+    padding:
+      0
+      10px
+      8px;
+  }
+
+  .meleo-conversation-list {
+    padding:
+      0
+      4px
+      calc(
+        8px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .meleo-conversation-row {
+    min-height:77px;
+
+    grid-template-columns:
+      44px
+      minmax(0,1fr);
+
+    gap:10px;
+
+    padding:
+      9px
+      10px;
+
+    border-radius:13px;
+  }
+
+  .meleo-conversation-avatar {
+    width:44px;
+    height:44px;
+  }
+
+  .meleo-conversation-title strong {
+    font-size:11px;
+  }
+
+  .meleo-conversation-preview p {
+    font-size:9px;
+  }
+
+
+  /*
+   Thread exists above list but is outside viewport.
+   Clicking a conversation slides it in.
+  */
+
+  .meleo-thread {
+    position:absolute;
+
+    inset:0;
+
+    z-index:20;
+
+    width:100%;
+    height:100%;
+
+    display:grid;
+
+    grid-template-rows:
+      63px
+      40px
+      minmax(0,1fr)
+      auto;
+
+    background:#fff;
+
+    transform:translateX(100%);
+
+    visibility:hidden;
+
+    pointer-events:none;
+
+    transition:
+      transform .2s ease,
+      visibility .2s;
+  }
+
+
+  .meleo-messenger.mobile-thread-open
+  .meleo-thread {
+    transform:translateX(0);
+
+    visibility:visible;
+
+    pointer-events:auto;
+  }
+
+
+  /* Mobile chat header */
+
+  .meleo-thread-head {
+    gap:8px;
+
+    padding:
+      7px
+      9px;
+  }
+
+  .meleo-thread-back {
+    width:36px;
+    height:36px;
+
+    display:grid;
+    place-items:center;
+
+    flex:0 0 36px;
+
+    padding:0;
+
+    border:0;
+    border-radius:50%;
+
+    background:#edf3ef;
+
+    color:#214f42;
+
+    font-size:19px;
+    font-weight:700;
+
+    cursor:pointer;
+  }
+
+  .meleo-thread-avatar {
+    width:40px;
+    height:40px;
+
+    flex-basis:40px;
+  }
+
+  .meleo-thread-person strong {
+    font-size:12px;
+  }
+
+  .meleo-thread-person span {
+    font-size:8px;
+  }
+
+  .meleo-thread-head > .status {
+    max-width:90px;
+
+    overflow:hidden;
+
+    text-overflow:ellipsis;
+    white-space:nowrap;
+  }
+
+
+  /* Context */
+
+  .meleo-thread-context {
+    padding:
+      6px
+      11px;
+
+    font-size:8px;
+  }
+
+  .meleo-thread-context b {
+    max-width:165px;
+  }
+
+
+  /* Messages */
+
+  .meleo-thread-messages {
+    padding:
+      14px
+      10px;
+  }
+
+  .meleo-message-bubble {
+    max-width:86%;
+
+    padding:
+      9px
+      11px;
+  }
+
+  .meleo-message-bubble p {
+    font-size:12px;
+  }
+
+
+  /* Composer always sits at bottom */
+
+  .meleo-thread-composer {
+    padding:
+      8px
+      8px
+      calc(
+        8px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .meleo-thread-input {
+    grid-template-columns:
+      minmax(0,1fr)
+      40px;
+
+    padding:5px;
+  }
+
+  .meleo-thread-input textarea {
+    min-height:39px;
+
+    font-size:11px;
+  }
+
+  .meleo-thread-input button {
+    width:40px;
+    height:40px;
+  }
+
+  .meleo-thread-composer > small {
+    display:none;
+  }
+
+}
+
+
+/* Extra small phones */
+
+@media (max-width:380px) {
+
+  .meleo-thread-head > .status {
+    display:none;
+  }
+
+  .meleo-message-bubble {
+    max-width:91%;
+  }
+
+}
+
+
+/* Reduced motion */
+
+@media (prefers-reduced-motion:reduce) {
+
+  .meleo-thread,
+  .meleo-conversation-row {
+    transition:none;
+  }
+
+}
+
+
+/* MELEO V7 PHASE 5F.2 TRUE MESSENGER */
+
+
+/* ==========================================================
+   WORKSPACE
+   ========================================================== */
+
+.meleo-messenger {
+  height:
+    min(
+      720px,
+      calc(100vh - 175px)
+    );
+
+  min-height:610px;
+
+  grid-template-columns:
+    318px
+    minmax(0,1fr);
+
+  border-radius:24px;
+}
+
+
+/* ==========================================================
+   CONVERSATION LIST
+   ========================================================== */
+
+.meleo-messenger-sidebar {
+  background:#fbfcfa;
+}
+
+.meleo-messenger-sidebar-head {
+  min-height:78px;
+
+  padding:
+    17px
+    17px
+    10px;
+}
+
+.meleo-messenger-sidebar-head h2 {
+  font-size:26px;
+}
+
+.meleo-messenger-search {
+  height:41px;
+
+  margin:
+    0
+    11px
+    8px;
+
+  border-radius:12px;
+}
+
+.meleo-messenger-filters {
+  padding:
+    0
+    11px
+    8px;
+}
+
+
+/*
+ Viber / Messenger list density.
+ More conversations visible at once.
+*/
+
+.meleo-conversation-list {
+  padding:
+    3px
+    5px
+    8px;
+}
+
+.meleo-conversation-row {
+  min-height:76px;
+
+  grid-template-columns:
+    44px
+    minmax(0,1fr);
+
+  gap:10px;
+
+  padding:
+    8px
+    9px;
+
+  margin-bottom:1px;
+
+  border-radius:13px;
+}
+
+.meleo-conversation-avatar {
+  width:44px;
+  height:44px;
+}
+
+.meleo-conversation-title strong {
+  font-size:11px;
+}
+
+.meleo-conversation-service {
+  margin-top:1px;
+
+  font-size:8px;
+}
+
+.meleo-conversation-preview {
+  margin-top:3px;
+}
+
+.meleo-conversation-preview p {
+  font-size:9px;
+}
+
+
+/*
+ Unread is deliberately obvious:
+ name + preview + time.
+*/
+
+.meleo-conversation-row.unread
+.meleo-conversation-title strong {
+  color:#113d48 !important;
+
+  font-weight:950 !important;
+}
+
+.meleo-conversation-row.unread
+.meleo-conversation-preview p {
+  color:#294f59 !important;
+
+  font-weight:900 !important;
+}
+
+.meleo-conversation-row.unread
+.meleo-conversation-title time {
+  color:#23644f !important;
+
+  font-weight:950 !important;
+}
+
+
+/* ==========================================================
+   THREAD
+   ========================================================== */
+
+.meleo-thread {
+  grid-template-rows:
+    68px
+    auto
+    minmax(0,1fr)
+    auto;
+}
+
+
+/* Header = person first, booking second */
+
+.meleo-thread-head {
+  min-height:68px;
+
+  padding:
+    9px
+    16px;
+
+  gap:10px;
+}
+
+.meleo-thread-avatar {
+  width:43px;
+  height:43px;
+
+  flex-basis:43px;
+}
+
+.meleo-thread-person strong {
+  font-size:13px;
+}
+
+.meleo-thread-person span {
+  font-size:9px;
+}
+
+
+/* ==========================================================
+   BOOKING IS CONTEXT — NOT THE MAIN UI
+   ========================================================== */
+
+.meleo-thread-context {
+  min-height:0 !important;
+
+  display:block !important;
+
+  padding:
+    6px
+    14px !important;
+
+  overflow:visible !important;
+
+  border-bottom:
+    1px solid
+    rgba(17,55,64,.045) !important;
+
+  background:#fafbf9 !important;
+}
+
+.meleo-context-chip {
+  width:max-content;
+  max-width:100%;
+
+  display:flex;
+  align-items:center;
+
+  gap:8px;
+
+  padding:
+    6px
+    9px;
+
+  border:
+    1px solid
+    rgba(27,78,67,.07);
+
+  border-radius:10px;
+
+  background:#f0f4f0;
+
+  color:#6c8186;
+}
+
+.meleo-context-icon {
+  width:25px;
+  height:25px;
+
+  display:grid;
+  place-items:center;
+
+  flex:0 0 25px;
+
+  border-radius:8px;
+
+  background:#e1ebe4;
+
+  color:#34705b;
+
+  font-size:9px;
+}
+
+.meleo-context-main {
+  min-width:0;
+
+  display:grid;
+  gap:1px;
+}
+
+.meleo-context-main b {
+  max-width:310px;
+
+  overflow:hidden;
+
+  color:#395961;
+
+  font-size:8px;
+  font-weight:800;
+
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.meleo-context-main small {
+  color:#8c999c;
+
+  font-size:7px;
+}
+
+.meleo-context-chip > strong {
+  margin-left:4px;
+
+  color:#235744;
+
+  font-size:8px;
+  font-weight:900;
+
+  white-space:nowrap;
+}
+
+
+/* ==========================================================
+   CONVERSATION CANVAS
+   ========================================================== */
+
+.meleo-thread-messages {
+  padding:
+    18px
+    clamp(16px,2.8vw,34px);
+
+  background:
+    linear-gradient(
+      180deg,
+      #fafbf9 0%,
+      #f6f8f6 100%
+    );
+}
+
+
+/*
+ With only a few messages the conversation belongs
+ near the composer — exactly like messaging apps.
+*/
+
+.meleo-thread-messages
+> .meleo-message:first-child {
+  margin-top:auto !important;
+}
+
+
+/* Bubble spacing */
+
+.meleo-message {
+  margin:
+    2px
+    0 !important;
+}
+
+
+/* Professional */
+
+.meleo-message.theirs
+.meleo-message-bubble {
+  max-width:min(68%,540px);
+
+  padding:
+    9px
+    11px;
+
+  border:
+    1px solid
+    rgba(20,57,66,.07);
+
+  border-radius:
+    16px
+    16px
+    16px
+    5px;
+
+  background:#fff;
+
+  color:#31545e;
+
+  box-shadow:
+    0 3px 10px
+    rgba(12,41,48,.025);
+}
+
+
+/* Patient */
+
+.meleo-message.mine
+.meleo-message-bubble {
+  max-width:min(68%,540px);
+
+  padding:
+    9px
+    11px;
+
+  border-radius:
+    16px
+    16px
+    5px
+    16px;
+
+  background:#245d4d;
+
+  color:#fff;
+
+  box-shadow:none;
+}
+
+
+.meleo-message-bubble b {
+  margin-bottom:2px;
+
+  font-size:8px;
+}
+
+.meleo-message-bubble p {
+  font-size:12px;
+  line-height:1.42;
+}
+
+.meleo-message-bubble time {
+  display:flex;
+
+  align-items:center;
+  justify-content:flex-end;
+
+  gap:3px;
+
+  margin-top:3px;
+
+  font-size:7px;
+}
+
+.meleo-message-seen {
+  color:rgba(255,255,255,.68);
+
+  font-size:7px;
+}
+
+
+/* ==========================================================
+   COMPOSER — LIKE AN ACTUAL MESSAGING APP
+   ========================================================== */
+
+.meleo-thread-composer {
+  padding:
+    8px
+    11px
+    9px;
+
+  background:#fff;
+}
+
+.meleo-thread-input {
+  min-height:48px;
+
+  grid-template-columns:
+    minmax(0,1fr)
+    39px;
+
+  gap:6px;
+
+  align-items:center;
+
+  padding:
+    4px
+    5px
+    4px
+    10px;
+
+  border:
+    1px solid
+    rgba(20,60,68,.085);
+
+  border-radius:24px;
+
+  background:#f3f6f3;
+}
+
+.meleo-thread-input textarea {
+  min-height:38px;
+  max-height:92px;
+
+  padding:
+    10px
+    4px;
+
+  font-size:11px;
+  line-height:1.35;
+}
+
+.meleo-thread-input button {
+  width:39px;
+  height:39px;
+
+  flex:0 0 39px;
+
+  border-radius:50%;
+
+  font-size:13px;
+}
+
+.meleo-thread-composer > small {
+  display:none !important;
+}
+
+
+/* ==========================================================
+   MOBILE — MESSENGER / VIBER INTERACTION
+   ========================================================== */
+
+@media (max-width:700px) {
+
+  .meleo-messenger {
+    width:100%;
+
+    height:
+      calc(
+        100dvh -
+        118px -
+        env(safe-area-inset-top)
+      );
+
+    min-height:500px;
+
+    border-radius:16px;
+  }
+
+
+  /* Full conversation list first */
+
+  .meleo-messenger-sidebar-head {
+    min-height:64px;
+
+    padding:
+      12px
+      13px
+      7px;
+  }
+
+  .meleo-messenger-sidebar-head h2 {
+    font-size:24px;
+  }
+
+  .meleo-conversation-row {
+    min-height:70px;
+
+    grid-template-columns:
+      42px
+      minmax(0,1fr);
+
+    padding:
+      7px
+      9px;
+  }
+
+  .meleo-conversation-avatar {
+    width:42px;
+    height:42px;
+  }
+
+
+  /* Thread slides over list */
+
+  .meleo-thread {
+    grid-template-rows:
+      59px
+      auto
+      minmax(0,1fr)
+      auto;
+  }
+
+  .meleo-thread-head {
+    min-height:59px;
+
+    padding:
+      6px
+      8px;
+  }
+
+  .meleo-thread-back {
+    width:34px;
+    height:34px;
+
+    flex-basis:34px;
+
+    font-size:17px;
+  }
+
+  .meleo-thread-avatar {
+    width:38px;
+    height:38px;
+
+    flex-basis:38px;
+  }
+
+  .meleo-thread-person strong {
+    font-size:11px;
+  }
+
+  .meleo-thread-person span {
+    font-size:8px;
+  }
+
+
+  /*
+   One tiny booking context strip.
+   No 4 cards.
+  */
+
+  .meleo-thread-context {
+    padding:
+      5px
+      8px !important;
+  }
+
+  .meleo-context-chip {
+    max-width:100%;
+
+    padding:
+      5px
+      7px;
+
+    gap:6px;
+  }
+
+  .meleo-context-icon {
+    width:23px;
+    height:23px;
+
+    flex-basis:23px;
+  }
+
+  .meleo-context-main {
+    min-width:0;
+    flex:1;
+  }
+
+  .meleo-context-main b {
+    max-width:
+      min(
+        48vw,
+        190px
+      );
+  }
+
+  .meleo-context-chip > strong {
+    flex:0 0 auto;
+  }
+
+
+  /* Conversation */
+
+  .meleo-thread-messages {
+    padding:
+      10px
+      9px;
+  }
+
+  .meleo-message.theirs
+  .meleo-message-bubble,
+  .meleo-message.mine
+  .meleo-message-bubble {
+    max-width:83%;
+  }
+
+  .meleo-message-bubble p {
+    font-size:12px;
+  }
+
+
+  /* Input hugs bottom safe-area */
+
+  .meleo-thread-composer {
+    padding:
+      6px
+      7px
+      calc(
+        6px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .meleo-thread-input {
+    min-height:47px;
+
+    grid-template-columns:
+      minmax(0,1fr)
+      38px;
+
+    border-radius:24px;
+  }
+
+  .meleo-thread-input textarea {
+    min-height:37px;
+
+    font-size:11px;
+  }
+
+  .meleo-thread-input button {
+    width:38px;
+    height:38px;
+  }
+
+}
+
+
+@media (max-width:380px) {
+
+  .meleo-context-main b {
+    max-width:145px;
+  }
+
+  .meleo-message.theirs
+  .meleo-message-bubble,
+  .meleo-message.mine
+  .meleo-message-bubble {
+    max-width:88%;
+  }
+
+}
+
+
+/* MELEO V7 PHASE 5F.4 WORKSPACE MOBILE POLISH */
+
+
+/* ==========================================================
+   PAGE / GRID MODE
+   ========================================================== */
+
+.patient-care-page.patient-messages-page-mode {
+  padding-bottom:18px !important;
+}
+
+.patient-care-grid.messages-grid-mode {
+  grid-template-columns:minmax(0,1fr) !important;
+  gap:0 !important;
+}
+
+.patient-care-grid.messages-grid-mode
+.patient-care-main.messages-mode {
+  width:100% !important;
+  max-width:none !important;
+  min-width:0 !important;
+}
+
+.patient-care-main.messages-mode
+.messages-workspace-shell {
+  width:100% !important;
+  max-width:none !important;
+
+  margin:0 !important;
+  padding:0 !important;
+
+  border:0 !important;
+  box-shadow:none !important;
+  background:transparent !important;
+}
+
+
+/* Hide all non-messenger dashboard blocks inside main */
+.patient-care-main.messages-mode
+> :not(.patient-section-shell) {
+  display:none !important;
+}
+
+
+/* Keep only a compact switch above workspace */
+.patient-care-main.messages-mode
+.patient-section-tabs {
+  width:max-content;
+
+  margin:
+    0
+    0
+    12px !important;
+}
+
+
+/* ==========================================================
+   DESKTOP APPLICATION SHELL
+   ========================================================== */
+
+.meleo-messenger {
+  width:100% !important;
+  max-width:none !important;
+
+  height:
+    clamp(
+      620px,
+      calc(100dvh - 185px),
+      820px
+    ) !important;
+
+  min-height:620px !important;
+
+  grid-template-columns:
+    clamp(310px,22vw,340px)
+    minmax(0,1fr) !important;
+
+  overflow:hidden;
+
+  border-radius:24px;
+}
+
+
+/* Sidebar should not dominate */
+.meleo-messenger-sidebar {
+  min-width:0;
+  overflow:hidden;
+}
+
+
+/* Thread takes all remaining width */
+.meleo-thread {
+  min-width:0;
+  width:100%;
+}
+
+
+/* ==========================================================
+   THREAD HEIGHT / CANVAS
+   ========================================================== */
+
+.meleo-thread {
+  display:grid;
+
+  grid-template-rows:
+    auto
+    auto
+    minmax(0,1fr)
+    auto !important;
+
+  height:100%;
+}
+
+.meleo-thread-messages {
+  min-height:0 !important;
+  height:auto !important;
+
+  overflow-y:auto !important;
+
+  overscroll-behavior:contain;
+}
+
+
+/* sparse conversations remain near bottom */
+.meleo-thread-messages
+> .meleo-message:first-child {
+  margin-top:auto !important;
+}
+
+
+/* ==========================================================
+   DESKTOP COMPOSER
+   ========================================================== */
+
+.meleo-thread-composer {
+  position:relative;
+
+  z-index:3;
+
+  flex:0 0 auto;
+
+  background:#fff;
+}
+
+
+/* ==========================================================
+   MOBILE = REAL MESSENGER NAVIGATION
+   ========================================================== */
+
+@media (max-width:700px) {
+
+  .patient-care-page.patient-messages-page-mode {
+    padding:
+      0
+      0
+      env(safe-area-inset-bottom) !important;
+  }
+
+  .patient-care-page.patient-messages-page-mode
+  .patient-care-grid {
+    display:block !important;
+  }
+
+  .patient-care-main.messages-mode {
+    width:100% !important;
+  }
+
+  .patient-care-main.messages-mode
+  .patient-section-tabs {
+    margin:
+      0
+      10px
+      8px !important;
+  }
+
+
+  /* App shell fills available phone viewport */
+  .meleo-messenger {
+    position:relative;
+
+    width:100% !important;
+
+    height:
+      calc(
+        100dvh -
+        112px -
+        env(safe-area-inset-top)
+      ) !important;
+
+    min-height:520px !important;
+
+    display:block !important;
+
+    overflow:hidden;
+
+    border-radius:0 !important;
+
+    box-shadow:none !important;
+  }
+
+
+  /* Conversation list is first screen */
+  .meleo-messenger-sidebar {
+    position:absolute;
+
+    inset:0;
+
+    width:100%;
+    height:100%;
+
+    z-index:1;
+
+    display:flex;
+    flex-direction:column;
+
+    background:#fbfcfa;
+
+    transform:translateX(0);
+
+    transition:
+      transform .24s ease;
+  }
+
+
+  /* Thread is second full-screen panel */
+  .meleo-thread {
+    position:absolute;
+
+    inset:0;
+
+    width:100%;
+    height:100%;
+
+    z-index:5;
+
+    background:#fff;
+
+    transform:translateX(100%);
+
+    transition:
+      transform .24s ease;
+
+    will-change:transform;
+  }
+
+
+  /* When a conversation is selected */
+  .meleo-messenger.mobile-thread-open
+  .meleo-thread {
+    transform:translateX(0);
+  }
+
+  .meleo-messenger.mobile-thread-open
+  .meleo-messenger-sidebar {
+    transform:translateX(-22%);
+    pointer-events:none;
+  }
+
+
+  /* Mobile thread header */
+  .meleo-thread-head {
+    position:relative;
+
+    z-index:4;
+
+    min-height:58px !important;
+
+    padding:
+      6px
+      9px !important;
+
+    border-bottom:
+      1px solid
+      rgba(17,55,64,.065);
+
+    background:#fff;
+  }
+
+
+  .meleo-thread-back {
+    width:44px !important;
+    height:44px !important;
+
+    min-width:44px !important;
+
+    display:grid !important;
+    place-items:center;
+
+    border:0;
+
+    border-radius:50%;
+
+    background:transparent;
+
+    font-size:21px;
+    line-height:1;
+
+    cursor:pointer;
+  }
+
+
+  /* Booking context stays tiny */
+  .meleo-thread-context {
+    flex:0 0 auto;
+
+    padding:
+      5px
+      8px !important;
+  }
+
+  .meleo-context-chip {
+    width:100%;
+    max-width:100%;
+
+    border-radius:10px;
+  }
+
+
+  /* Messages own the available remaining viewport */
+  .meleo-thread-messages {
+    min-height:0 !important;
+
+    padding:
+      10px
+      9px
+      12px !important;
+
+    overflow-y:auto !important;
+  }
+
+
+  /* Sticky bottom composer */
+  .meleo-thread-composer {
+    position:sticky;
+
+    bottom:0;
+
+    z-index:8;
+
+    padding:
+      6px
+      7px
+      calc(
+        6px +
+        env(safe-area-inset-bottom)
+      ) !important;
+
+    border-top:
+      1px solid
+      rgba(17,55,64,.06);
+
+    background:
+      rgba(255,255,255,.97);
+  }
+
+
+  .meleo-thread-input {
+    min-height:48px !important;
+
+    grid-template-columns:
+      minmax(0,1fr)
+      44px !important;
+
+    border-radius:24px !important;
+  }
+
+  .meleo-thread-input button {
+    width:44px !important;
+    height:44px !important;
+
+    min-width:44px !important;
+
+    border-radius:50% !important;
+  }
+
+
+  /* Bigger tap targets in filters */
+  .meleo-messenger-filters button {
+    min-height:40px;
+  }
+
+
+  /* Conversation rows = comfortably tappable */
+  .meleo-conversation-row {
+    min-height:72px;
+  }
+
+}
+
+
+/* ==========================================================
+   VERY SMALL MOBILE
+   ========================================================== */
+
+@media (max-width:390px) {
+
+  .meleo-messenger {
+    height:
+      calc(
+        100dvh -
+        104px -
+        env(safe-area-inset-top)
+      ) !important;
+  }
+
+  .meleo-thread-head {
+    padding-inline:6px !important;
+  }
+
+  .meleo-context-main b {
+    max-width:42vw;
+  }
+
+}
+
+
+/* ==========================================================
+   REDUCED MOTION
+   ========================================================== */
+
+@media (prefers-reduced-motion:reduce) {
+
+  .meleo-thread,
+  .meleo-messenger-sidebar {
+    transition:none !important;
+  }
+
+}
+
+
+/* MELEO V7 PHASE 5F.4.1 TRUE MOBILE NAVIGATION */
+
+
+/* ==========================================================
+   DESKTOP
+   Both panels remain visible.
+   ========================================================== */
+
+.meleo-messenger.desktop-layout {
+  display:grid !important;
+
+  grid-template-columns:
+    clamp(310px,22vw,340px)
+    minmax(0,1fr) !important;
+}
+
+.meleo-messenger.desktop-layout
+.meleo-messenger-sidebar {
+  display:flex !important;
+
+  position:relative !important;
+
+  width:auto !important;
+  height:100% !important;
+
+  transform:none !important;
+}
+
+.meleo-messenger.desktop-layout
+.meleo-thread {
+  display:grid !important;
+
+  position:relative !important;
+
+  width:100% !important;
+  height:100% !important;
+
+  transform:none !important;
+}
+
+.meleo-messenger.desktop-layout
+.meleo-thread-back {
+  display:none !important;
+}
+
+
+/* ==========================================================
+   MOBILE
+   One screen at a time.
+   No translated desktop columns.
+   ========================================================== */
+
+@media (max-width:700px) {
+
+  .meleo-messenger.mobile-layout {
+    position:relative !important;
+
+    display:block !important;
+
+    width:100% !important;
+    max-width:100% !important;
+
+    min-width:0 !important;
+
+    overflow:hidden !important;
+
+    grid-template-columns:none !important;
+  }
+
+
+  /*
+   * LIST SCREEN
+   */
+  .meleo-messenger.mobile-layout
+  .meleo-messenger-sidebar {
+
+    position:relative !important;
+
+    inset:auto !important;
+
+    display:flex;
+
+    flex-direction:column;
+
+    width:100% !important;
+    max-width:100% !important;
+
+    height:100% !important;
+
+    min-width:0 !important;
+
+    transform:none !important;
+
+    transition:none !important;
+
+    z-index:1 !important;
+
+    overflow:hidden !important;
+
+    background:#fbfcfa;
+  }
+
+
+  /*
+   * THREAD SCREEN
+   */
+  .meleo-messenger.mobile-layout
+  .meleo-thread {
+
+    position:relative !important;
+
+    inset:auto !important;
+
+    display:grid;
+
+    grid-template-rows:
+      auto
+      auto
+      minmax(0,1fr)
+      auto !important;
+
+    width:100% !important;
+    max-width:100% !important;
+
+    height:100% !important;
+
+    min-width:0 !important;
+
+    transform:none !important;
+
+    transition:none !important;
+
+    z-index:5 !important;
+
+    overflow:hidden !important;
+
+    background:#fff;
+  }
+
+
+  /*
+   * Kill previous slide/translation logic completely.
+   */
+  .meleo-messenger.mobile-layout.mobile-thread-open
+  .meleo-thread {
+
+    transform:none !important;
+  }
+
+  .meleo-messenger.mobile-layout.mobile-thread-open
+  .meleo-messenger-sidebar {
+
+    transform:none !important;
+
+    pointer-events:auto !important;
+  }
+
+
+  /* ========================================================
+     MOBILE LIST
+     ======================================================== */
+
+  .meleo-messenger-sidebar-head {
+
+    flex:0 0 auto;
+
+    padding:
+      14px
+      14px
+      9px !important;
+  }
+
+  .meleo-messenger-search {
+
+    flex:0 0 auto;
+
+    margin:
+      0
+      12px
+      8px !important;
+  }
+
+  .meleo-messenger-filters {
+
+    flex:0 0 auto;
+
+    padding:
+      0
+      12px
+      8px !important;
+  }
+
+  .meleo-conversation-list {
+
+    flex:1 1 auto;
+
+    min-height:0 !important;
+
+    overflow-y:auto !important;
+
+    overscroll-behavior:contain;
+
+    padding-bottom:
+      calc(
+        12px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .meleo-conversation-row {
+
+    width:100% !important;
+
+    min-height:76px !important;
+
+    padding:
+      10px
+      12px !important;
+  }
+
+
+  /* ========================================================
+     MOBILE THREAD HEADER
+     ======================================================== */
+
+  .meleo-thread-head {
+
+    flex:0 0 auto;
+
+    display:grid !important;
+
+    grid-template-columns:
+      44px
+      42px
+      minmax(0,1fr)
+      auto !important;
+
+    align-items:center;
+
+    gap:7px !important;
+
+    min-height:60px !important;
+
+    padding:
+      max(
+        6px,
+        env(safe-area-inset-top)
+      )
+      8px
+      6px !important;
+
+    background:#fff;
+
+    border-bottom:
+      1px solid
+      rgba(17,55,64,.07);
+
+    overflow:hidden;
+  }
+
+
+  .meleo-thread-back {
+
+    display:grid !important;
+
+    place-items:center;
+
+    width:44px !important;
+    height:44px !important;
+
+    min-width:44px !important;
+
+    margin:0 !important;
+    padding:0 !important;
+
+    border:0 !important;
+
+    border-radius:50% !important;
+
+    background:transparent !important;
+
+    font-size:24px !important;
+    line-height:1 !important;
+
+    cursor:pointer;
+  }
+
+
+  .meleo-thread-avatar {
+
+    width:40px !important;
+    height:40px !important;
+
+    min-width:40px !important;
+  }
+
+
+  .meleo-thread-person {
+
+    min-width:0 !important;
+
+    overflow:hidden;
+  }
+
+  .meleo-thread-person strong,
+  .meleo-thread-person span {
+
+    display:block;
+
+    overflow:hidden;
+
+    white-space:nowrap;
+
+    text-overflow:ellipsis;
+  }
+
+
+  .meleo-thread-head
+  > .status {
+
+    justify-self:end;
+
+    max-width:84px;
+
+    overflow:hidden;
+
+    white-space:nowrap;
+
+    text-overflow:ellipsis;
+  }
+
+
+  /* ========================================================
+     COMPACT BOOKING CONTEXT
+     ======================================================== */
+
+  .meleo-thread-context {
+
+    flex:0 0 auto;
+
+    padding:
+      6px
+      8px !important;
+
+    background:#fff;
+  }
+
+  .meleo-context-chip {
+
+    display:grid !important;
+
+    grid-template-columns:
+      28px
+      minmax(0,1fr)
+      auto !important;
+
+    align-items:center;
+
+    width:100% !important;
+    max-width:none !important;
+
+    min-height:48px !important;
+
+    padding:
+      5px
+      8px !important;
+
+    gap:7px !important;
+
+    border-radius:12px !important;
+  }
+
+  .meleo-context-main {
+
+    min-width:0;
+  }
+
+  .meleo-context-main b {
+
+    display:block;
+
+    overflow:hidden;
+
+    white-space:nowrap;
+
+    text-overflow:ellipsis;
+  }
+
+
+  /* ========================================================
+     MESSAGES
+     ======================================================== */
+
+  .meleo-thread-messages {
+
+    display:flex !important;
+
+    flex-direction:column;
+
+    min-height:0 !important;
+
+    height:auto !important;
+
+    overflow-y:auto !important;
+
+    overscroll-behavior:contain;
+
+    padding:
+      12px
+      9px
+      14px !important;
+
+    background:
+      linear-gradient(
+        180deg,
+        rgba(248,250,248,.72),
+        rgba(252,252,250,.96)
+      );
+  }
+
+
+  /*
+   * Few messages stay near composer,
+   * like Messenger / Viber.
+   */
+  .meleo-thread-messages
+  > .meleo-message:first-child {
+
+    margin-top:auto !important;
+  }
+
+
+  .meleo-message {
+
+    width:100%;
+  }
+
+
+  .meleo-message-bubble {
+
+    max-width:
+      min(
+        82%,
+        330px
+      ) !important;
+  }
+
+
+  /* ========================================================
+     COMPOSER
+     ======================================================== */
+
+  .meleo-thread-composer {
+
+    position:relative !important;
+
+    bottom:auto !important;
+
+    z-index:10;
+
+    flex:0 0 auto;
+
+    width:100% !important;
+
+    padding:
+      7px
+      7px
+      calc(
+        7px +
+        env(safe-area-inset-bottom)
+      ) !important;
+
+    background:
+      rgba(255,255,255,.98);
+
+    border-top:
+      1px solid
+      rgba(17,55,64,.065);
+  }
+
+
+  .meleo-thread-input {
+
+    display:grid !important;
+
+    grid-template-columns:
+      minmax(0,1fr)
+      44px !important;
+
+    align-items:end;
+
+    width:100% !important;
+
+    min-height:48px !important;
+
+    padding:
+      2px
+      2px
+      2px
+      12px !important;
+
+    border-radius:25px !important;
+  }
+
+
+  .meleo-thread-input textarea {
+
+    width:100% !important;
+
+    min-width:0 !important;
+
+    max-height:110px;
+
+    resize:none;
+  }
+
+
+  .meleo-thread-input button {
+
+    width:44px !important;
+    height:44px !important;
+
+    min-width:44px !important;
+
+    margin:0 !important;
+
+    border-radius:50% !important;
+  }
+
+}
+
+
+/* ==========================================================
+   SMALL PHONES
+   ========================================================== */
+
+@media (max-width:390px) {
+
+  .meleo-thread-head {
+
+    grid-template-columns:
+      42px
+      38px
+      minmax(0,1fr)
+      auto !important;
+
+    gap:5px !important;
+
+    padding-inline:5px !important;
+  }
+
+  .meleo-thread-back {
+
+    width:42px !important;
+    height:42px !important;
+
+    min-width:42px !important;
+  }
+
+  .meleo-thread-avatar {
+
+    width:36px !important;
+    height:36px !important;
+
+    min-width:36px !important;
+  }
+
+  .meleo-message-bubble {
+
+    max-width:86% !important;
+  }
+
+}
+
+
+/* ==========================================================
+   ACCESSIBILITY
+   ========================================================== */
+
+@media (prefers-reduced-motion:reduce) {
+
+  .meleo-messenger.mobile-layout *,
+  .meleo-messenger.mobile-layout *::before,
+  .meleo-messenger.mobile-layout *::after {
+
+    scroll-behavior:auto !important;
+  }
+
+}
+
+
+/* MELEO V7 PHASE 5F.5 FINAL MESSENGER MICRO-POLISH */
+
+
+/* ==========================================================
+   1. MESSENGER SURFACE
+   ========================================================== */
+
+.meleo-messenger {
+  border:
+    1px solid
+    rgba(17,55,64,.07);
+
+  background:#fff;
+
+  box-shadow:
+    0 18px 50px rgba(18,48,54,.07),
+    0 2px 8px rgba(18,48,54,.035);
+
+  isolation:isolate;
+}
+
+
+/* ==========================================================
+   2. SIDEBAR / CONVERSATION LIST
+   ========================================================== */
+
+.meleo-messenger-sidebar {
+  background:
+    linear-gradient(
+      180deg,
+      #fcfdfb 0%,
+      #f8faf7 100%
+    );
+
+  border-right:
+    1px solid
+    rgba(17,55,64,.065);
+}
+
+
+.meleo-messenger-sidebar-head {
+  padding:
+    18px
+    18px
+    12px;
+}
+
+
+.meleo-messenger-sidebar-head h2,
+.meleo-messenger-sidebar-head h3 {
+  margin:0;
+
+  color:#17383c;
+
+  font-size:
+    clamp(
+      1.04rem,
+      .98rem + .2vw,
+      1.18rem
+    );
+
+  font-weight:750;
+
+  letter-spacing:-.025em;
+}
+
+
+.meleo-messenger-total-unread {
+  min-width:25px;
+  height:25px;
+
+  display:inline-grid;
+  place-items:center;
+
+  padding:0 7px;
+
+  border-radius:999px;
+
+  background:#173f39;
+
+  color:#fff;
+
+  font-size:.72rem;
+  font-weight:800;
+
+  box-shadow:
+    0 4px 12px rgba(23,63,57,.14);
+}
+
+
+/* Search */
+
+.meleo-messenger-search {
+  position:relative;
+}
+
+.meleo-messenger-search input {
+  width:100%;
+
+  min-height:44px;
+
+  padding:
+    0
+    14px;
+
+  border:
+    1px solid
+    rgba(17,55,64,.08);
+
+  border-radius:14px;
+
+  outline:none;
+
+  background:
+    rgba(255,255,255,.86);
+
+  color:#17383c;
+
+  font:inherit;
+
+  transition:
+    border-color .18s ease,
+    box-shadow .18s ease,
+    background .18s ease;
+}
+
+.meleo-messenger-search input::placeholder {
+  color:
+    rgba(23,56,60,.48);
+}
+
+.meleo-messenger-search input:focus {
+  border-color:
+    rgba(32,105,91,.28);
+
+  background:#fff;
+
+  box-shadow:
+    0 0 0 4px rgba(32,105,91,.07);
+}
+
+
+/* Filters */
+
+.meleo-messenger-filters {
+  gap:7px;
+}
+
+.meleo-messenger-filters button {
+  min-height:36px;
+
+  padding:
+    0
+    12px;
+
+  border:
+    1px solid
+    rgba(17,55,64,.075);
+
+  border-radius:999px;
+
+  background:
+    rgba(255,255,255,.76);
+
+  color:
+    rgba(23,56,60,.7);
+
+  font-size:.78rem;
+  font-weight:700;
+
+  cursor:pointer;
+
+  transition:
+    background .16s ease,
+    color .16s ease,
+    border-color .16s ease,
+    transform .16s ease,
+    box-shadow .16s ease;
+}
+
+.meleo-messenger-filters button:hover {
+  background:#fff;
+
+  border-color:
+    rgba(32,105,91,.16);
+}
+
+.meleo-messenger-filters button:active {
+  transform:scale(.98);
+}
+
+.meleo-messenger-filters button.active,
+.meleo-messenger-filters button[aria-pressed="true"] {
+  background:#173f39;
+
+  color:#fff;
+
+  border-color:#173f39;
+
+  box-shadow:
+    0 5px 14px rgba(23,63,57,.12);
+}
+
+
+/* Conversation rows */
+
+.meleo-conversation-list {
+  scrollbar-width:thin;
+  scrollbar-color:
+    rgba(17,55,64,.14)
+    transparent;
+}
+
+.meleo-conversation-list::-webkit-scrollbar {
+  width:6px;
+}
+
+.meleo-conversation-list::-webkit-scrollbar-thumb {
+  border-radius:999px;
+
+  background:
+    rgba(17,55,64,.14);
+}
+
+
+.meleo-conversation-row {
+  position:relative;
+
+  border:
+    1px solid
+    transparent;
+
+  border-radius:15px;
+
+  background:transparent;
+
+  transition:
+    background .16s ease,
+    border-color .16s ease,
+    box-shadow .16s ease,
+    transform .16s ease;
+}
+
+.meleo-conversation-row:hover {
+  background:
+    rgba(255,255,255,.82);
+
+  border-color:
+    rgba(17,55,64,.055);
+}
+
+.meleo-conversation-row:active {
+  transform:scale(.995);
+}
+
+.meleo-conversation-row.active {
+  background:#fff;
+
+  border-color:
+    rgba(32,105,91,.12);
+
+  box-shadow:
+    0 7px 22px rgba(25,64,67,.055);
+}
+
+.meleo-conversation-row.unread {
+  background:
+    rgba(239,247,243,.74);
+}
+
+
+.meleo-conversation-avatar {
+  box-shadow:
+    inset 0 0 0 1px rgba(17,55,64,.05),
+    0 4px 10px rgba(18,48,54,.045);
+}
+
+
+.meleo-conversation-title strong {
+  color:#17383c;
+
+  font-size:.9rem;
+
+  font-weight:720;
+
+  letter-spacing:-.015em;
+}
+
+.meleo-conversation-row.unread
+.meleo-conversation-title strong {
+  font-weight:820;
+}
+
+
+.meleo-conversation-title time {
+  color:
+    rgba(23,56,60,.43);
+
+  font-size:.69rem;
+
+  font-variant-numeric:
+    tabular-nums;
+}
+
+
+.meleo-conversation-service {
+  color:
+    rgba(23,56,60,.56);
+
+  font-size:.73rem;
+  font-weight:600;
+}
+
+
+.meleo-conversation-preview p {
+  color:
+    rgba(23,56,60,.58);
+
+  font-size:.78rem;
+
+  line-height:1.38;
+}
+
+.meleo-conversation-row.unread
+.meleo-conversation-preview p {
+  color:
+    rgba(23,56,60,.83);
+
+  font-weight:720;
+}
+
+
+.meleo-unread-count {
+  min-width:21px;
+  height:21px;
+
+  display:grid;
+  place-items:center;
+
+  padding:0 5px;
+
+  border-radius:999px;
+
+  background:#1c6657;
+
+  color:#fff;
+
+  font-size:.66rem;
+  font-weight:850;
+
+  box-shadow:
+    0 3px 9px rgba(28,102,87,.16);
+}
+
+
+.meleo-unread-dot {
+  box-shadow:
+    0 0 0 3px rgba(255,255,255,.9);
+}
+
+
+/* ==========================================================
+   3. THREAD HEADER
+   ========================================================== */
+
+.meleo-thread-head {
+  background:
+    rgba(255,255,255,.97);
+
+  backdrop-filter:
+    saturate(1.05);
+
+  border-bottom:
+    1px solid
+    rgba(17,55,64,.06);
+}
+
+
+.meleo-thread-avatar {
+  box-shadow:
+    inset 0 0 0 1px rgba(17,55,64,.055),
+    0 5px 14px rgba(18,48,54,.055);
+}
+
+
+.meleo-thread-person strong {
+  color:#17383c;
+
+  font-size:.93rem;
+
+  font-weight:760;
+
+  letter-spacing:-.018em;
+}
+
+.meleo-thread-person span {
+  color:
+    rgba(23,56,60,.52);
+
+  font-size:.73rem;
+}
+
+
+/* Status pill */
+
+.meleo-thread-head .status {
+  min-height:27px;
+
+  display:inline-flex;
+  align-items:center;
+
+  padding:
+    0
+    9px;
+
+  border-radius:999px;
+
+  font-size:.66rem;
+  font-weight:780;
+
+  letter-spacing:.01em;
+}
+
+
+/* Back arrow */
+
+.meleo-thread-back {
+  color:#173f39;
+
+  transition:
+    background .16s ease,
+    transform .16s ease;
+}
+
+.meleo-thread-back:hover {
+  background:
+    rgba(23,63,57,.055) !important;
+}
+
+.meleo-thread-back:active {
+  transform:scale(.94);
+}
+
+
+/* ==========================================================
+   4. BOOKING CONTEXT
+   ========================================================== */
+
+.meleo-thread-context {
+  border-bottom:
+    1px solid
+    rgba(17,55,64,.045);
+}
+
+
+.meleo-context-chip {
+  border:
+    1px solid
+    rgba(170,140,83,.13);
+
+  background:
+    linear-gradient(
+      135deg,
+      rgba(250,248,241,.92),
+      rgba(247,250,247,.92)
+    );
+
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.7);
+}
+
+
+.meleo-context-icon {
+  color:#a78447;
+}
+
+
+.meleo-context-main b {
+  color:#233d3e;
+
+  font-size:.77rem;
+  font-weight:750;
+}
+
+
+.meleo-context-main small {
+  color:
+    rgba(35,61,62,.5);
+
+  font-size:.68rem;
+}
+
+
+.meleo-context-chip > strong {
+  color:#173f39;
+
+  font-size:.78rem;
+  font-weight:800;
+
+  white-space:nowrap;
+}
+
+
+/* ==========================================================
+   5. MESSAGE CANVAS
+   ========================================================== */
+
+.meleo-thread-messages {
+  position:relative;
+
+  scrollbar-width:thin;
+
+  scrollbar-color:
+    rgba(17,55,64,.12)
+    transparent;
+}
+
+
+.meleo-thread-messages::-webkit-scrollbar {
+  width:6px;
+}
+
+.meleo-thread-messages::-webkit-scrollbar-thumb {
+  border-radius:999px;
+
+  background:
+    rgba(17,55,64,.12);
+}
+
+
+.meleo-message {
+  margin-top:5px;
+}
+
+
+.meleo-message + .meleo-message {
+  margin-top:5px;
+}
+
+
+/* Bubble */
+
+.meleo-message-bubble {
+  padding:
+    9px
+    11px
+    6px;
+
+  border-radius:16px;
+
+  box-shadow:
+    0 2px 7px rgba(18,48,54,.035);
+}
+
+
+.meleo-message.theirs
+.meleo-message-bubble {
+  border:
+    1px solid
+    rgba(17,55,64,.065);
+
+  background:#fff;
+
+  border-bottom-left-radius:6px;
+}
+
+
+.meleo-message.mine
+.meleo-message-bubble {
+  border:
+    1px solid
+    rgba(20,91,75,.05);
+
+  background:
+    linear-gradient(
+      145deg,
+      #1d6658,
+      #18584d
+    );
+
+  color:#fff;
+
+  border-bottom-right-radius:6px;
+
+  box-shadow:
+    0 4px 12px rgba(28,102,87,.11);
+}
+
+
+.meleo-message-bubble b {
+  display:block;
+
+  margin-bottom:3px;
+
+  color:#285a52;
+
+  font-size:.68rem;
+  font-weight:780;
+}
+
+
+.meleo-message-bubble p {
+  margin:0;
+
+  font-size:.84rem;
+
+  line-height:1.43;
+
+  overflow-wrap:anywhere;
+}
+
+
+.meleo-message.mine
+.meleo-message-bubble p {
+  color:
+    rgba(255,255,255,.98);
+}
+
+
+.meleo-message-bubble time {
+  display:flex;
+
+  align-items:center;
+
+  justify-content:flex-end;
+
+  gap:3px;
+
+  margin-top:3px;
+
+  color:
+    rgba(23,56,60,.4);
+
+  font-size:.61rem;
+
+  font-variant-numeric:
+    tabular-nums;
+}
+
+
+.meleo-message.mine
+.meleo-message-bubble time {
+  color:
+    rgba(255,255,255,.64);
+}
+
+
+.meleo-message-seen {
+  font-size:.65rem;
+
+  color:
+    rgba(255,255,255,.82);
+}
+
+
+/* ==========================================================
+   6. EMPTY THREAD
+   ========================================================== */
+
+.meleo-thread-empty {
+  max-width:320px;
+
+  margin:auto;
+
+  padding:30px 22px;
+
+  text-align:center;
+
+  color:
+    rgba(23,56,60,.58);
+}
+
+
+.meleo-thread-empty > span {
+  display:grid;
+  place-items:center;
+
+  width:44px;
+  height:44px;
+
+  margin:
+    0
+    auto
+    12px;
+
+  border-radius:50%;
+
+  background:
+    rgba(28,102,87,.065);
+
+  color:#236b5d;
+
+  font-size:1.1rem;
+}
+
+
+.meleo-thread-empty h3 {
+  margin:
+    0
+    0
+    5px;
+
+  color:#17383c;
+
+  font-size:.96rem;
+
+  font-weight:760;
+}
+
+
+.meleo-thread-empty p {
+  margin:0;
+
+  font-size:.78rem;
+
+  line-height:1.5;
+}
+
+
+/* ==========================================================
+   7. COMPOSER
+   ========================================================== */
+
+.meleo-thread-composer {
+  border-top:
+    1px solid
+    rgba(17,55,64,.055);
+
+  box-shadow:
+    0 -8px 24px rgba(18,48,54,.025);
+}
+
+
+.meleo-thread-input {
+  border:
+    1px solid
+    rgba(17,55,64,.085);
+
+  background:
+    #f7f9f7;
+
+  transition:
+    border-color .18s ease,
+    background .18s ease,
+    box-shadow .18s ease;
+}
+
+
+.meleo-thread-input:focus-within {
+  border-color:
+    rgba(32,105,91,.25);
+
+  background:#fff;
+
+  box-shadow:
+    0 0 0 4px rgba(32,105,91,.065);
+}
+
+
+.meleo-thread-input textarea {
+  border:0 !important;
+
+  outline:0 !important;
+
+  background:transparent !important;
+
+  color:#17383c;
+
+  font:inherit;
+
+  font-size:.84rem;
+
+  line-height:1.4;
+}
+
+
+.meleo-thread-input textarea::placeholder {
+  color:
+    rgba(23,56,60,.4);
+}
+
+
+.meleo-thread-input button {
+  display:grid;
+  place-items:center;
+
+  border:0;
+
+  background:
+    linear-gradient(
+      145deg,
+      #1e6c5c,
+      #175448
+    );
+
+  color:#fff;
+
+  cursor:pointer;
+
+  box-shadow:
+    0 5px 14px rgba(28,102,87,.17);
+
+  transition:
+    transform .16s ease,
+    box-shadow .16s ease,
+    opacity .16s ease;
+}
+
+
+.meleo-thread-input button:hover:not(:disabled) {
+  transform:
+    translateY(-1px);
+
+  box-shadow:
+    0 7px 18px rgba(28,102,87,.21);
+}
+
+
+.meleo-thread-input button:active:not(:disabled) {
+  transform:
+    translateY(0)
+    scale(.96);
+}
+
+
+.meleo-thread-input button:disabled {
+  opacity:.42;
+
+  cursor:not-allowed;
+
+  box-shadow:none;
+}
+
+
+/* ==========================================================
+   8. FOCUS ACCESSIBILITY
+   ========================================================== */
+
+.meleo-conversation-row:focus-visible,
+.meleo-messenger-filters button:focus-visible,
+.meleo-thread-back:focus-visible,
+.meleo-thread-input button:focus-visible {
+  outline:
+    3px solid
+    rgba(34,111,96,.18);
+
+  outline-offset:2px;
+}
+
+
+/* ==========================================================
+   9. DESKTOP FINE-TUNING
+   ========================================================== */
+
+@media (min-width:701px) {
+
+  .meleo-messenger {
+    border-radius:22px;
+  }
+
+
+  .meleo-conversation-list {
+    padding:
+      3px
+      9px
+      14px;
+  }
+
+
+  .meleo-conversation-row {
+    margin-bottom:3px;
+
+    padding:
+      11px
+      9px;
+  }
+
+
+  .meleo-thread-head {
+    min-height:68px;
+
+    padding:
+      10px
+      15px;
+  }
+
+
+  .meleo-thread-context {
+    padding:
+      8px
+      14px;
+  }
+
+
+  .meleo-context-chip {
+    max-width:620px;
+  }
+
+
+  .meleo-thread-messages {
+    padding:
+      18px
+      20px
+      16px;
+  }
+
+
+  .meleo-message-bubble {
+    max-width:
+      min(
+        68%,
+        560px
+      );
+  }
+
+
+  .meleo-thread-composer {
+    padding:
+      10px
+      14px
+      12px;
+  }
+
+
+  .meleo-thread-input {
+    min-height:48px;
+
+    border-radius:24px;
+
+    padding:
+      3px
+      3px
+      3px
+      14px;
+  }
+
+}
+
+
+/* ==========================================================
+   10. MOBILE FINE-TUNING
+   ========================================================== */
+
+@media (max-width:700px) {
+
+  .meleo-messenger {
+    border-left:0 !important;
+    border-right:0 !important;
+
+    box-shadow:none !important;
+  }
+
+
+  .meleo-messenger-sidebar {
+    border-right:0 !important;
+  }
+
+
+  .meleo-messenger-sidebar-head {
+    padding:
+      13px
+      13px
+      9px !important;
+  }
+
+
+  .meleo-messenger-search {
+    margin:
+      0
+      11px
+      7px !important;
+  }
+
+
+  .meleo-messenger-filters {
+    padding:
+      0
+      11px
+      8px !important;
+  }
+
+
+  .meleo-conversation-list {
+    padding:
+      1px
+      7px
+      calc(
+        12px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+
+  .meleo-conversation-row {
+    border-radius:14px;
+
+    padding:
+      10px
+      8px !important;
+  }
+
+
+  .meleo-thread-head {
+    box-shadow:
+      0 2px 10px rgba(18,48,54,.025);
+  }
+
+
+  .meleo-thread-context {
+    padding:
+      5px
+      7px !important;
+  }
+
+
+  .meleo-context-chip {
+    min-height:44px !important;
+  }
+
+
+  .meleo-thread-messages {
+    padding:
+      11px
+      9px
+      12px !important;
+  }
+
+
+  .meleo-message-bubble {
+    padding:
+      8px
+      10px
+      5px;
+  }
+
+
+  .meleo-message-bubble p {
+    font-size:.82rem;
+  }
+
+
+  .meleo-thread-composer {
+    padding:
+      6px
+      7px
+      calc(
+        6px +
+        env(safe-area-inset-bottom)
+      ) !important;
+  }
+
+
+  .meleo-thread-input {
+    box-shadow:
+      0 2px 9px rgba(18,48,54,.025);
+  }
+
+}
+
+
+/* ==========================================================
+   11. REDUCED MOTION
+   ========================================================== */
+
+@media (prefers-reduced-motion:reduce) {
+
+  .meleo-conversation-row,
+  .meleo-messenger-filters button,
+  .meleo-thread-back,
+  .meleo-thread-input,
+  .meleo-thread-input button {
+
+    transition:none !important;
+  }
+
+}

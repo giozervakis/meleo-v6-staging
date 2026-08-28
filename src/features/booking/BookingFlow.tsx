@@ -1,5 +1,41 @@
-import React, { useState } from 'react'
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useState
+} from 'react'
+
 import { api } from '../../lib/api'
+
+type AvailabilityResponse = {
+  professionalId:string
+  date:string
+  dayOfWeek?:number
+  slots:string[]
+  occupied?:string[]
+  source?:string
+}
+
+function tomorrow(){
+  const d=new Date()
+  d.setDate(d.getDate()+1)
+
+  const year=d.getFullYear()
+  const month=String(d.getMonth()+1).padStart(2,'0')
+  const day=String(d.getDate()).padStart(2,'0')
+
+  return `${year}-${month}-${day}`
+}
+
+function today(){
+  const d=new Date()
+
+  const year=d.getFullYear()
+  const month=String(d.getMonth()+1).padStart(2,'0')
+  const day=String(d.getDate()).padStart(2,'0')
+
+  return `${year}-${month}-${day}`
+}
 
 function BookingFlow({
   p,
@@ -13,55 +49,183 @@ function BookingFlow({
   MiniCard
 }:any){
 
-  const defaultTimeSlots = [
-    '08:00','08:30',
-    '09:00','09:30',
-    '10:00','10:30',
-    '11:00','11:30',
-    '12:00','12:30',
-    '13:00','13:30',
-    '14:00','14:30',
-    '15:00','15:30',
-    '16:00','16:30',
-    '17:00','17:30',
-    '18:00','18:30',
-    '19:00','19:30',
-    '20:00'
-  ]
-
-  const professionalTimes =
-    Array.isArray(p?.availability)
-      ? p.availability.filter(
-          (x:any) => typeof x === 'string' && x.trim() !== ''
-        )
-      : []
-
-  const availableTimes =
-    professionalTimes.length > 0
-      ? professionalTimes
-      : defaultTimeSlots
-
   const availableServices =
-    Array.isArray(p?.services) && p.services.length > 0
+    Array.isArray(p?.services) &&
+    p.services.length > 0
       ? p.services
       : ['Επίσκεψη']
 
-  const [step,setStep] = useState(1)
+  const [step,setStep]=
+    useState(1)
 
-  const [contactConsent,setContactConsent] = useState(false)
+  const [contactConsent,setContactConsent]=
+    useState(false)
 
-  const [form,setForm] = useState({
-    service: seed?.service&&availableServices.includes(seed.service)?seed.service:availableServices[0],
-    date: new Date(Date.now()+86400000).toISOString().slice(0,10),
-    time: availableTimes[0] || '10:00',
-    address: seed?.address||'',
-    notes: '',
-    repeat: seed?.repeat||'once'
-  })
+  const [form,setForm]=
+    useState({
+      service:
+        seed?.service &&
+        availableServices.includes(seed.service)
+          ? seed.service
+          : availableServices[0],
+      date:tomorrow(),
+      time:'',
+      address:seed?.address||'',
+      notes:'',
+      repeat:seed?.repeat||'once'
+    })
 
-  const [busy,setBusy] = useState(false)
+  const [busy,setBusy]=
+    useState(false)
+
+  const [slots,setSlots]=
+    useState<string[]>([])
+
+  const [occupied,setOccupied]=
+    useState<string[]>([])
+
+  const [slotsLoading,setSlotsLoading]=
+    useState(false)
+
+  const [slotsError,setSlotsError]=
+    useState('')
+
+  const [availabilitySource,setAvailabilitySource]=
+    useState('')
+
+  const loadAvailability=
+    useCallback(
+      async(
+        date:string,
+        preserveTime=true
+      )=>{
+        if(!p?.id || !date){
+          setSlots([])
+          return []
+        }
+
+        setSlotsLoading(true)
+        setSlotsError('')
+
+        try{
+          const data=
+            await api<AvailabilityResponse>(
+              `/professionals/${encodeURIComponent(p.id)}/availability?date=${encodeURIComponent(date)}`,
+              {},
+              token
+            )
+
+          const nextSlots=
+            Array.isArray(data?.slots)
+              ? data.slots
+                  .map(x=>String(x||'').trim())
+                  .filter(Boolean)
+              : []
+
+          const nextOccupied=
+            Array.isArray(data?.occupied)
+              ? data.occupied
+              : []
+
+          setSlots(nextSlots)
+          setOccupied(nextOccupied)
+          setAvailabilitySource(
+            String(data?.source||'')
+          )
+
+          setForm(current=>{
+
+            const keepCurrent=
+              preserveTime &&
+              nextSlots.includes(
+                current.time
+              )
+
+            return {
+              ...current,
+              time:
+                keepCurrent
+                  ? current.time
+                  : (
+                      nextSlots[0]||''
+                    )
+            }
+          })
+
+          return nextSlots
+
+        }catch(e:any){
+          setSlots([])
+          setOccupied([])
+          setAvailabilitySource('')
+          setForm(current=>({
+            ...current,
+            time:''
+          }))
+
+          setSlotsError(
+            e?.message ||
+            'Δεν ήταν δυνατή η φόρτωση των διαθέσιμων ωρών.'
+          )
+
+          return []
+
+        }finally{
+          setSlotsLoading(false)
+        }
+      },
+      [p?.id,token]
+    )
+
+  useEffect(
+    ()=>{
+      loadAvailability(
+        form.date,
+        true
+      )
+    },
+    [
+      form.date,
+      loadAvailability
+    ]
+  )
+
+  const selectedDateLabel=
+    useMemo(
+      ()=>{
+        if(!form.date){
+          return ''
+        }
+
+        try{
+          return new Intl.DateTimeFormat(
+            'el-GR',
+            {
+              weekday:'long',
+              day:'numeric',
+              month:'long'
+            }
+          ).format(
+            new Date(
+              `${form.date}T12:00:00`
+            )
+          )
+        }catch{
+          return form.date
+        }
+      },
+      [form.date]
+    )
 
   async function submit(){
+
+    if(!form.time){
+      setToast(
+        'Επίλεξε διαθέσιμη ώρα.'
+      )
+      return
+    }
+
     setBusy(true)
 
     try{
@@ -79,18 +243,43 @@ function BookingFlow({
       )
 
       setStep(3)
-      setToast('Το αίτημα κράτησης καταχωρήθηκε')
+
+      setToast(
+        'Το αίτημα κράτησης καταχωρήθηκε'
+      )
 
     }catch(e:any){
-      setToast(e.message)
+
+      const message=
+        e?.message ||
+        'Δεν ήταν δυνατή η καταχώρηση.'
+
+      setToast(message)
+
+      /*
+       * Backend is authoritative.
+       * A 409 is exposed by api() as an Error message,
+       * so refresh availability after any failed booking.
+       * This safely handles stale/conflicting slots without
+       * weakening server-side validation.
+       */
+      await loadAvailability(
+        form.date,
+        false
+      )
+
     }finally{
       setBusy(false)
     }
   }
 
-  if(!['patient','professional'].includes(user?.role)){
+  if(
+    !['patient','professional']
+      .includes(user?.role)
+  ){
     return (
       <section className="page">
+
         <div className="container narrow">
 
           <Empty
@@ -106,6 +295,7 @@ function BookingFlow({
           </button>
 
         </div>
+
       </section>
     )
   }
@@ -133,11 +323,7 @@ function BookingFlow({
           </div>
 
 
-          {/* =========================
-              STEP 1
-          ========================== */}
-
-          {step===1 && (
+          {step===1&&(
 
             <div className="form-card">
 
@@ -149,6 +335,11 @@ function BookingFlow({
                 Πότε χρειάζεσαι φροντίδα;
               </h1>
 
+              <p className="booking-live-intro">
+                Επίλεξε ημερομηνία και θα εμφανιστούν
+                μόνο οι πραγματικά διαθέσιμες ώρες
+                του επαγγελματία.
+              </p>
 
               <label>
                 Υπηρεσία
@@ -162,66 +353,170 @@ function BookingFlow({
                     })
                   }
                 >
-                  {availableServices.map((x:string)=>(
-                    <option
-                      key={x}
-                      value={x}
-                    >
-                      {x}
-                    </option>
-                  ))}
-                </select>
-
-              </label>
-
-
-              <div className="two">
-
-                <label>
-                  Ημερομηνία
-
-                  <input
-                    type="date"
-                    value={form.date}
-                    min={new Date().toISOString().slice(0,10)}
-                    onChange={e=>
-                      setForm({
-                        ...form,
-                        date:e.target.value
-                      })
-                    }
-                  />
-
-                </label>
-
-
-                <label>
-                  Ώρα
-
-                  <select
-                    value={form.time}
-                    onChange={e=>
-                      setForm({
-                        ...form,
-                        time:e.target.value
-                      })
-                    }
-                  >
-
-                    {availableTimes.map((x:string)=>(
-
+                  {availableServices.map(
+                    (x:string)=>(
                       <option
                         key={x}
                         value={x}
                       >
                         {x}
                       </option>
+                    )
+                  )}
+                </select>
+              </label>
+
+
+              <label>
+                Ημερομηνία
+
+                <input
+                  type="date"
+                  value={form.date}
+                  min={today()}
+                  onChange={e=>
+                    setForm(current=>({
+                      ...current,
+                      date:e.target.value,
+                      time:''
+                    }))
+                  }
+                />
+              </label>
+
+
+              <div className="booking-live-availability">
+
+                <div className="booking-live-head">
+
+                  <div>
+                    <span>
+                      ΔΙΑΘΕΣΙΜΕΣ ΩΡΕΣ
+                    </span>
+
+                    <strong>
+                      {selectedDateLabel}
+                    </strong>
+                  </div>
+
+                  {!slotsLoading&&(
+                    <small>
+                      {slots.length}
+                      {' '}
+                      διαθέσιμες
+                    </small>
+                  )}
+
+                </div>
+
+
+                {slotsLoading&&(
+
+                  <div className="booking-slots-loading">
+                    <span/>
+                    Έλεγχος πραγματικής διαθεσιμότητας…
+                  </div>
+
+                )}
+
+
+                {!slotsLoading&&slotsError&&(
+
+                  <div className="booking-slots-error">
+
+                    <strong>
+                      Δεν μπορέσαμε να ελέγξουμε
+                      τη διαθεσιμότητα.
+                    </strong>
+
+                    <p>
+                      {slotsError}
+                    </p>
+
+                    <button
+                      type="button"
+                      onClick={()=>
+                        loadAvailability(
+                          form.date,
+                          false
+                        )
+                      }
+                    >
+                      Προσπάθησε ξανά
+                    </button>
+
+                  </div>
+
+                )}
+
+
+                {!slotsLoading&&
+                 !slotsError&&
+                 slots.length===0&&(
+
+                  <div className="booking-no-slots">
+
+                    <span>○</span>
+
+                    <div>
+                      <strong>
+                        Δεν υπάρχει διαθέσιμη ώρα
+                        αυτή την ημέρα.
+                      </strong>
+
+                      <p>
+                        Επίλεξε άλλη ημερομηνία για
+                        να δεις το διαθέσιμο πρόγραμμα.
+                      </p>
+                    </div>
+
+                  </div>
+
+                )}
+
+
+                {!slotsLoading&&
+                 !slotsError&&
+                 slots.length>0&&(
+
+                  <div className="booking-slot-grid">
+
+                    {slots.map(time=>(
+
+                      <button
+                        type="button"
+                        key={time}
+                        className={
+                          form.time===time
+                            ? 'selected'
+                            : ''
+                        }
+                        onClick={()=>
+                          setForm(current=>({
+                            ...current,
+                            time
+                          }))
+                        }
+                      >
+                        {time}
+                      </button>
 
                     ))}
 
-                  </select>
+                  </div>
 
-                </label>
+                )}
+
+
+                {!slotsLoading&&
+                 availabilitySource&&(
+
+                  <small className="booking-live-note">
+                    Η διαθεσιμότητα ελέγχεται
+                    ζωντανά πριν την καταχώρηση.
+                  </small>
+
+                )}
 
               </div>
 
@@ -238,7 +533,6 @@ function BookingFlow({
                     })
                   }
                 >
-
                   <option value="once">
                     Μία επίσκεψη
                   </option>
@@ -252,27 +546,25 @@ function BookingFlow({
                   </option>
 
                 </select>
-
               </label>
 
 
               <button
                 className="btn btn-dark wide"
+                disabled={
+                  slotsLoading ||
+                  !form.time
+                }
                 onClick={()=>setStep(2)}
               >
                 Συνέχεια →
               </button>
 
             </div>
-
           )}
 
 
-          {/* =========================
-              STEP 2
-          ========================== */}
-
-          {step===2 && (
+          {step===2&&(
 
             <div className="form-card">
 
@@ -283,6 +575,27 @@ function BookingFlow({
               <h1>
                 Στοιχεία επίσκεψης
               </h1>
+
+              <div className="booking-selected-slot">
+
+                <span>
+                  ΕΠΙΛΕΓΜΕΝΗ ΩΡΑ
+                </span>
+
+                <strong>
+                  {selectedDateLabel}
+                  {' · '}
+                  {form.time}
+                </strong>
+
+                <button
+                  type="button"
+                  onClick={()=>setStep(1)}
+                >
+                  Αλλαγή
+                </button>
+
+              </div>
 
 
               <label>
@@ -298,7 +611,6 @@ function BookingFlow({
                     })
                   }
                 />
-
               </label>
 
 
@@ -315,7 +627,6 @@ function BookingFlow({
                     })
                   }
                 />
-
               </label>
 
 
@@ -334,7 +645,9 @@ function BookingFlow({
                 </div>
 
                 <div>
-                  <span>Βασικό κόστος επίσκεψης</span>
+                  <span>
+                    Βασικό κόστος επίσκεψης
+                  </span>
                   <b>{priceLabel(p,true)}</b>
                 </div>
 
@@ -354,13 +667,15 @@ function BookingFlow({
                   type="checkbox"
                   checked={contactConsent}
                   onChange={e=>
-                    setContactConsent(e.target.checked)
+                    setContactConsent(
+                      e.target.checked
+                    )
                   }
                 />
 
                 <span>
-                  Συμφωνώ να κοινοποιηθούν το email και
-                  το τηλέφωνό μου στον συγκεκριμένο
+                  Συμφωνώ να κοινοποιηθούν το email
+                  και το τηλέφωνό μου στον συγκεκριμένο
                   επαγγελματία για τη διαχείριση αυτού
                   του αιτήματος.
                 </span>
@@ -373,14 +688,14 @@ function BookingFlow({
                 disabled={
                   !form.address ||
                   !contactConsent ||
+                  !form.time ||
                   busy
                 }
                 onClick={submit}
               >
                 {busy
                   ? 'Καταχώρηση...'
-                  : 'Αποστολή αιτήματος'
-                }
+                  : 'Αποστολή αιτήματος'}
               </button>
 
 
@@ -392,15 +707,10 @@ function BookingFlow({
               </button>
 
             </div>
-
           )}
 
 
-          {/* =========================
-              SUCCESS
-          ========================== */}
-
-          {step===3 && (
+          {step===3&&(
 
             <div className="success-card">
 
@@ -418,28 +728,28 @@ function BookingFlow({
               </h1>
 
               <p>
-                Ο επαγγελματίας θα δει το αίτημα στο
-                dashboard του. Μπορείς να παρακολουθείς
-                την κατάσταση από τις κρατήσεις σου.
+                Ο επαγγελματίας θα δει το αίτημα
+                στο dashboard του. Η συγκεκριμένη
+                ώρα δεν προσφέρεται πλέον σε νέο
+                αίτημα όσο η κράτηση παραμένει ενεργή.
               </p>
 
               <button
                 className="btn btn-dark"
-                onClick={()=>setView('patient-dashboard')}
+                onClick={()=>
+                  setView(
+                    'patient-dashboard'
+                  )
+                }
               >
                 Οι κρατήσεις μου
               </button>
 
             </div>
-
           )}
 
         </div>
 
-
-        {/* =========================
-            SIDEBAR
-        ========================== */}
 
         <aside className="booking-side">
 
@@ -452,6 +762,10 @@ function BookingFlow({
           </p>
 
           <ol>
+            <li>
+              Επιλέγεις πραγματικά διαθέσιμη ώρα.
+            </li>
+
             <li>
               Στέλνεις το αίτημα.
             </li>
@@ -476,4 +790,3 @@ function BookingFlow({
 }
 
 export default BookingFlow
-

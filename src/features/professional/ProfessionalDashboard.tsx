@@ -2,8 +2,14 @@ import React, { useEffect, useRef, useState } from 'react'
 import { api } from '../../lib/api'
 import { serviceMap, specialtyOptions } from '../../domain/catalog'
 import type { Booking, Plan } from '../../domain/types'
-import { NotificationsPage, HelpCenter } from '../support/SupportPages'
+import ProfessionalNotifications from './notifications/ProfessionalNotifications'
+import ProfessionalSupport from './support/ProfessionalSupport'
 import { APP_VERSION } from '../../version'
+import ProfessionalMessages from './messages/ProfessionalMessages'
+import ProfessionalAvailability from './availability/ProfessionalAvailability'
+import ProfessionalReputation from './reputation/ProfessionalReputation'
+import ProfessionalBilling from './billing/ProfessionalBilling'
+import ProfessionalVerification from './verification/ProfessionalVerification'
 
 function initials(name:string){ return name.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase() }
 function statusLabel(s:string){ return ({pending:'Σε αναμονή',clarification:'Χρειάζονται διευκρινίσεις',quoted:'Πρόταση κόστους',accepted:'Επιβεβαιωμένη',completed:'Ολοκληρώθηκε',cancelled:'Ακυρώθηκε'} as any)[s]||s }
@@ -300,7 +306,7 @@ if(
 }
  async function status(id:string,s:string,agreedPrice?:number){await api('/bookings/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:s,agreedPrice})},token);refresh();setToast(s==='accepted'?'Η επίσκεψη επιβεβαιώθηκε':'Η κατάσταση ενημερώθηκε')}
  async function saveProfile(){const payload={...form,price:Number(form.price),years:Number(form.years),services:typeof form.services==='string'?form.services.split(',').map((x:string)=>x.trim()).filter(Boolean):form.services,availability:typeof form.availability==='string'?form.availability.split(',').map((x:string)=>x.trim()).filter(Boolean):form.availability};await api('/professional/profile',{method:'PUT',body:JSON.stringify(payload)},token);await onRefresh();setToast('Το προφίλ ενημερώθηκε')}
- async function uploadVerificationFile(file:File){try{setUploadBusy(true);const dataBase64=await fileToBase64(file);const d=await api('/professional/verification-document',{method:'POST',body:JSON.stringify({name:file.name,mime:file.type||'application/octet-stream',type:'professional_credential',dataBase64})},token);setDocs((x:any[])=>[...x,d]);setToast('Το δικαιολογητικό ανέβηκε κρυπτογραφημένο.')}catch(e:any){setToast(e.message)}finally{setUploadBusy(false)}}
+ async function uploadVerificationFile(file:File){try{setUploadBusy(true);const dataBase64=await fileToBase64(file);const d=await api('/professional/verification-document',{method:'POST',body:JSON.stringify({name:file.name,data:dataBase64})},token);setDocs((x:any[])=>[...x,d]);setToast('Το δικαιολογητικό ανέβηκε κρυπτογραφημένο.')}catch(e:any){setToast(e.message)}finally{setUploadBusy(false)}}
  async function verifyReq(){try{await api('/professional/verification',{method:'POST',body:JSON.stringify(vr)},token);setToast('Το αίτημα επαλήθευσης καταχωρήθηκε')}catch(e:any){setToast(e.message)}}
  const income=bookings.filter(b=>b.status==='completed').reduce((a,b)=>a+Number(b.agreedPrice??b.price??0),0)
  const completion=(()=>{const f=[professional?.title,professional?.specialty,professional?.city,professional?.bio,(professional?.services||[]).length,(professional?.availability||[]).length,professional?.years,professional?.verified];return Math.round(f.filter(Boolean).length/f.length*100)})()
@@ -367,7 +373,7 @@ const activeConversation=
  ['requests','◇','Αιτήματα'],
  ['messages','💬','Μηνύματα'],
  ['profile','○','Προφίλ'],
- ['availability','◷','Διαθεσιμότητα'],
+ ['availability','◷','Διαθεσιμότητα'],['reputation','★','Αξιολογήσεις & Φήμη'],
  ['subscription','◆','Συνδρομή'],
  ['verification','✓','Επαλήθευση'],
  ['notifications','🔔','Ειδοποιήσεις'],
@@ -415,7 +421,9 @@ const activeConversation=
           ? 'Επαγγελματικό προφίλ'
           : tab==='availability'
             ? 'Διαθεσιμότητα'
-            : tab==='subscription'
+            : tab==='reputation'
+              ? 'Αξιολογήσεις & Φήμη'
+              : tab==='subscription'
               ? 'Συνδρομή MELEO'
               : tab==='notifications'
                 ? 'Ειδοποιήσεις'
@@ -482,399 +490,57 @@ const activeConversation=
   </div>
 
 </>}
-{tab==='requests'&&<div className="panel large-panel">{bookings.length?bookings.map(b=><CompactBooking key={b.id} b={b} status={status} full token={token} onRefresh={refresh} setToast={setToast}/>):<Empty title="Δεν υπάρχουν αιτήματα" text="Τα νέα requests θα εμφανίζονται εδώ."/>}</div>}
-{tab==='messages'&&
-  <div className="meleo-inbox-v2">
-
-    <div className="inbox-v2-head">
-      <div>
-        <span className="eyebrow">
-          MELEO COMMUNICATION
-        </span>
-
-        <h3>Conversation Inbox</h3>
-
-        <p>
-          Όλες οι συνομιλίες με τους ασθενείς σου
-          σε ένα σημείο.
-        </p>
-      </div>
-
-      <div className="inbox-unread-summary">
-        <strong>{messageUnreadTotal}</strong>
-
-        <span>
-          {messageUnreadTotal===1
-            ? 'αδιάβαστο μήνυμα'
-            : 'αδιάβαστα μηνύματα'
-          }
-        </span>
-      </div>
-    </div>
-
-
-    <div className="inbox-shell">
-
-      <aside className="inbox-conversations">
-
-        <div className="inbox-list-head">
-          <div>
-            <strong>Συνομιλίες</strong>
-
-            <small>
-              {messageBookings.length} συνολικά
-            </small>
-          </div>
-
-          {messageUnreadTotal>0&&
-            <span className="inbox-total-badge">
-              {messageUnreadTotal>99
-                ? '99+'
-                : messageUnreadTotal
-              }
-            </span>
-          }
-        </div>
-
-
-        <div className="inbox-list">
-
-          {messageBookings.length===0
-            ?
-            <div className="inbox-list-empty">
-              <span>💬</span>
-              <b>Δεν υπάρχουν συνομιλίες</b>
-              <small>
-                Τα μηνύματα από ασθενείς θα εμφανίζονται εδώ.
-              </small>
-            </div>
-
-            :
-            messageBookings.map((b:any)=>{
-
-              const messages=b.messages||[]
-              const last=messages.at(-1)
-
-              const unread=
-                Number(
-                  messageUnreadByBooking[b.id]||0
-                )
-
-              const active=
-                activeConversation?.id===b.id
-
-              return(
-                <button
-                  key={b.id}
-                  className={
-                    'inbox-conversation-item '+
-                    (active?'active ':'')+
-                    (unread>0?'unread':'')
-                  }
-                  onClick={()=>
-                    openConversation(b.id)
-                  }
-                >
-
-                  <div className="inbox-avatar">
-                    {initials(
-                      b.patientName||
-                      b.patient?.name||
-                      'Ασθενής'
-                    )}
-                  </div>
-
-                  <div className="inbox-conversation-main">
-
-                    <div className="inbox-conversation-top">
-
-                      <strong>
-                        {b.patientName||
-                         b.patient?.name||
-                         'Ασθενής MELEO'}
-                      </strong>
-
-                      {last?.createdAt&&
-                        <time>
-                          {new Date(
-                            last.createdAt
-                          ).toLocaleTimeString(
-                            'el-GR',
-                            {
-                              hour:'2-digit',
-                              minute:'2-digit'
-                            }
-                          )}
-                        </time>
-                      }
-
-                    </div>
-
-                    <span className="inbox-service">
-                      {b.service||
-                       b.specialty||
-                       'Αίτημα επίσκεψης'}
-                    </span>
-
-                    <div className="inbox-preview-row">
-
-                      <p>
-                        {last?.text||
-                         last?.body||
-                         'Άνοιξε τη συνομιλία'}
-                      </p>
-
-                      {unread>0&&
-                        <b className="conversation-unread">
-                          {unread>99
-                            ? '99+'
-                            : unread
-                          }
-                        </b>
-                      }
-
-                    </div>
-
-                  </div>
-
-                </button>
-              )
-            })
-          }
-
-        </div>
-
-      </aside>
-
-
-      <section className="inbox-chat-panel">
-
-  {activeConversation
-    ?
-    <>
-
-      <header className="inbox-chat-head">
-
-        <div className="inbox-chat-person">
-
-<div className="inbox-avatar large">
-  {initials(
-    activeConversation.patientName||
-    'Ασθενής'
-  )}
-</div>
-
-<div>
-  <strong>
-    {activeConversation.patientName||
-     'Ασθενής MELEO'}
-  </strong>
-
-            <span>
-              {activeConversation.service||
-               activeConversation.specialty||
-               'Αίτημα επίσκεψης'}
-            </span>
-          </div>
-
-        </div>
-
-        <span
-          className={
-            'status '+
-            activeConversation.status
-          }
-        >
-          {statusLabel(
-            activeConversation.status
-          )}
-        </span>
-
-      </header>
-
-	  <div className="inbox-booking-context">
-
-  <div>
-    <small>Υπηρεσία</small>
-    <strong>
-      {activeConversation.service||'—'}
-    </strong>
-  </div>
-
-  <div>
-    <small>Ημερομηνία</small>
-    <strong>
-      {activeConversation.date||'—'}
-    </strong>
-  </div>
-
-  <div>
-    <small>Ώρα</small>
-    <strong>
-      {activeConversation.time||'—'}
-    </strong>
-  </div>
-
-  <div>
-    <small>Κόστος</small>
-    <strong>
-      {activeConversation.agreedPrice
-        ? money(activeConversation.agreedPrice)
-        : activeConversation.proposedPrice
-          ? money(activeConversation.proposedPrice)
-          : activeConversation.price
-            ? `Από ${money(activeConversation.price)}`
-            : 'Σε αναμονή'
-      }
-    </strong>
-  </div>
-
-</div>
-
-      <div
-  className="inbox-messages"
-  ref={inboxMessagesRef}
->
-
-        {(activeConversation.messages||[]).length===0
-          ?
-          <div className="chat-empty">
-            <span>💬</span>
-            <strong>Ξεκίνα τη συνομιλία</strong>
-            <p>
-              Στείλε μήνυμα σχετικά με
-              το συγκεκριμένο αίτημα.
-            </p>
-          </div>
-          :
-          (activeConversation.messages||[]).map((m:any)=>{
-
-            const mine=
-              m.senderRole==='professional' ||
-              m.senderUserId===user.id
-
-            return(
-              <div
-                key={m.id}
-                className={
-                  'inbox-message-row '+
-                  (mine?'mine':'theirs')
-                }
-              >
-
-                <div
-                  className={
-                    'inbox-message-bubble '+
-                    (m.kind||'message')
-                  }
-                >
-
-                  {!mine&&
-                    <b>
-                      {m.senderName||
-                       activeConversation.patientName||
-                       'Ασθενής'}
-                    </b>
-                  }
-
-                  <p>
-                    {m.text||
-                     m.body||
-                     ''}
-                  </p>
-
-                  <small>
-                    {m.createdAt
-                      ? new Date(
-                          m.createdAt
-                        ).toLocaleString(
-                          'el-GR',
-                          {
-                            day:'2-digit',
-                            month:'2-digit',
-                            hour:'2-digit',
-                            minute:'2-digit'
-                          }
-                        )
-                      : ''
-                    }
-                  </small>
-
-                </div>
-
-              </div>
-            )
-          })
-        }
-
-      </div>
-
-
-      <div className="inbox-composer">
-
-        <textarea
-          value={messageDraft}
-          onChange={e=>
-            setMessageDraft(
-              e.target.value
-            )
-          }
-          placeholder="Γράψε μήνυμα στον ασθενή…"
-          maxLength={1500}
-          onKeyDown={e=>{
-            if(
-              e.key==='Enter' &&
-              !e.shiftKey
-            ){
-              e.preventDefault()
-              sendInboxMessage()
-            }
-          }}
-        />
-
-        <div className="inbox-composer-foot">
-
-          <small>
-            Enter για αποστολή · Shift + Enter για νέα γραμμή
-          </small>
-
-          <button
-            className="inbox-send-button"
-            disabled={
-              !messageDraft.trim() ||
-              messageSending
-            }
-            onClick={sendInboxMessage}
-          >
-            {messageSending
-              ? 'Αποστολή…'
-              : <>Αποστολή <span>→</span></>
-            }
-          </button>
-
-        </div>
-
-      </div>
-
-    </>
-    :
-    <div className="inbox-no-selection">
-      <span>💬</span>
-      <h3>Επίλεξε συνομιλία</h3>
-      <p>
-        Επίλεξε έναν ασθενή από τη λίστα
-        για να δεις τα μηνύματα.
-      </p>
-    </div>
-  }
-
-</section>
-
-    </div>
-
-  </div>
+{tab==='requests'&&
+  <ProfessionalRequestsWorkspace
+    bookings={bookings}
+    status={status}
+    token={token}
+    onRefresh={refresh}
+    setToast={setToast}
+  />
 }
-{tab==='profile'&&<div className="panel form-panel"><div className="form-grid"><label>Επαγγελματικός τίτλος<input value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>Ειδικότητα<select value={form.specialty||'Νοσηλευτική'} onChange={e=>setForm({...form,specialty:e.target.value})}>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></label><ProfessionalLocationEditor form={form} setForm={setForm}/><label>Εμφάνιση κόστους<select value={form.pricingMode||'from'} onChange={e=>setForm({...form,pricingMode:e.target.value})}><option value="from">Ναι · Από βασικό κόστος επίσκεψης</option><option value="contact">Όχι · Κατόπιν επικοινωνίας</option></select></label>{form.pricingMode!=='contact'&&<label>Βασικό κόστος απλής επίσκεψης (€)<input type="number" min="0" value={form.price||''} onChange={e=>setForm({...form,price:e.target.value})}/></label>}<div className="full contact-privacy-card"><b>Δημόσια στοιχεία επικοινωνίας</b><p className="muted">Εσύ αποφασίζεις ποια προσωπικά στοιχεία εμφανίζονται στο δημόσιο προφίλ σου.</p><label className="consent-row"><input type="checkbox" checked={form.showPhone!==false} onChange={e=>setForm({...form,showPhone:e.target.checked})}/><span>Εμφάνιση τηλεφώνου / κουμπιού κλήσης</span></label><label className="consent-row"><input type="checkbox" checked={form.showEmail!==false} onChange={e=>setForm({...form,showEmail:e.target.checked})}/><span>Εμφάνιση email</span></label><label className="consent-row"><input type="checkbox" checked={Boolean(form.preferPlatformContact)} onChange={e=>setForm({...form,preferPlatformContact:e.target.checked})}/><span>Προτιμώ επικοινωνία μέσω MELEO</span></label></div><div className="full notice">Το ποσό εμφανίζεται ως <b>«Από Χ€»</b>. Το τελικό κόστος συμφωνείται τηλεφωνικά με τον πελάτη ανάλογα με τις πραγματικές ανάγκες της επίσκεψης.</div><label>Έτη εμπειρίας<input type="number" value={form.years||''} onChange={e=>setForm({...form,years:e.target.value})}/></label><label className="full">Σύντομο βιογραφικό<textarea value={form.bio||''} onChange={e=>setForm({...form,bio:e.target.value})}/></label><label className="full">Υπηρεσίες που παρέχεις (χωρισμένες με κόμμα)<input value={Array.isArray(form.services)?form.services.join(', '):form.services||''} onChange={e=>setForm({...form,services:e.target.value})}/></label></div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση προφίλ</button></div>}{tab==='availability'&&<div className="panel form-panel"><h3>Διαθέσιμες ώρες</h3><p className="muted">Για το MVP αποθηκεύουμε τις ώρες ως λίστα. Στην production έκδοση αυτό εξελίσσεται σε εβδομαδιαίο calendar.</p><label>Ώρες, χωρισμένες με κόμμα<input value={Array.isArray(form.availability)?form.availability.join(', '):form.availability||''} onChange={e=>setForm({...form,availability:e.target.value})}/></label><div className="time-grid">{(Array.isArray(form.availability)?form.availability:[]).map((t:string)=><span key={t}>{t}</span>)}</div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση</button></div>}{tab==='subscription'&&<SubscriptionPanel professional={professional} token={token} onRefresh={onRefresh} setToast={setToast} cfg={cfg}/>}{tab==='notifications'&&<NotificationsPage user={user} token={token} setToast={setToast} embedded/>}{tab==='support'&&<HelpCenter user={user} token={token} setToast={setToast} cfg={cfg} embedded/>}{tab==='verification'&&<div className="verification-layout"><div className="panel form-panel"><div className="verify-hero"><span>✓</span><div><h3>Professional Verification</h3><p>Η επαλήθευση είναι ξεχωριστή από οποιοδήποτε εμπορικό πακέτο.</p></div></div><label>Αριθμός άδειας / μητρώου<input value={vr.licenseNumber} onChange={e=>setVr({...vr,licenseNumber:e.target.value})}/></label><label>Δικαιολογητικό επαλήθευσης<input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" disabled={uploadBusy} onChange={e=>{const f=e.target.files?.[0];if(f)uploadVerificationFile(f)}}/><small className="field-hint">PDF/JPG/PNG/WEBP έως 5MB.</small></label>{docs.length>0&&<div className="uploaded-docs">{docs.map((d:any)=><span key={d.id}>✓ {d.name}</span>)}</div>}<label>Σημειώσεις<textarea value={vr.notes} onChange={e=>setVr({...vr,notes:e.target.value})}/></label><button className="btn btn-dark" onClick={verifyReq}>Υποβολή για έλεγχο</button></div><div className="panel"><h3>Τι ελέγχεται</h3><ul className="clean-list"><li>Ταυτότητα επαγγελματία</li><li>Επαγγελματική ιδιότητα</li><li>Απαιτούμενα νόμιμα δικαιολογητικά</li><li>Στοιχεία επικοινωνίας</li></ul><div className="notice">Τα δικαιολογητικά αποθηκεύονται κρυπτογραφημένα και είναι διαθέσιμα μόνο στη ροή επαλήθευσης.</div></div></div>}</div></section>
+{tab==='messages'&&
+  <ProfessionalMessages
+    bookings={bookings}
+    token={token}
+    user={user}
+    unreadByBooking={messageUnreadByBooking}
+    unreadTotal={messageUnreadTotal}
+    onRefresh={refresh}
+    onUnreadRefresh={refreshMessageUnread}
+    setToast={setToast}
+  />
+}{tab==='profile'&&<div className="panel form-panel"><div className="form-grid"><label>Επαγγελματικός τίτλος<input value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>Ειδικότητα<select value={form.specialty||'Νοσηλευτική'} onChange={e=>setForm({...form,specialty:e.target.value})}>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></label><ProfessionalLocationEditor form={form} setForm={setForm}/><label>Εμφάνιση κόστους<select value={form.pricingMode||'from'} onChange={e=>setForm({...form,pricingMode:e.target.value})}><option value="from">Ναι · Από βασικό κόστος επίσκεψης</option><option value="contact">Όχι · Κατόπιν επικοινωνίας</option></select></label>{form.pricingMode!=='contact'&&<label>Βασικό κόστος απλής επίσκεψης (€)<input type="number" min="0" value={form.price||''} onChange={e=>setForm({...form,price:e.target.value})}/></label>}<div className="full contact-privacy-card"><b>Δημόσια στοιχεία επικοινωνίας</b><p className="muted">Εσύ αποφασίζεις ποια προσωπικά στοιχεία εμφανίζονται στο δημόσιο προφίλ σου.</p><label className="consent-row"><input type="checkbox" checked={form.showPhone!==false} onChange={e=>setForm({...form,showPhone:e.target.checked})}/><span>Εμφάνιση τηλεφώνου / κουμπιού κλήσης</span></label><label className="consent-row"><input type="checkbox" checked={form.showEmail!==false} onChange={e=>setForm({...form,showEmail:e.target.checked})}/><span>Εμφάνιση email</span></label><label className="consent-row"><input type="checkbox" checked={Boolean(form.preferPlatformContact)} onChange={e=>setForm({...form,preferPlatformContact:e.target.checked})}/><span>Προτιμώ επικοινωνία μέσω MELEO</span></label></div><div className="full notice">Το ποσό εμφανίζεται ως <b>«Από Χ€»</b>. Το τελικό κόστος συμφωνείται τηλεφωνικά με τον πελάτη ανάλογα με τις πραγματικές ανάγκες της επίσκεψης.</div><label>Έτη εμπειρίας<input type="number" value={form.years||''} onChange={e=>setForm({...form,years:e.target.value})}/></label><label className="full">Σύντομο βιογραφικό<textarea value={form.bio||''} onChange={e=>setForm({...form,bio:e.target.value})}/></label><label className="full">Υπηρεσίες που παρέχεις (χωρισμένες με κόμμα)<input value={Array.isArray(form.services)?form.services.join(', '):form.services||''} onChange={e=>setForm({...form,services:e.target.value})}/></label></div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση προφίλ</button></div>}{tab==='availability'&&
+  <ProfessionalAvailability
+    availability={
+      Array.isArray(form.availability)
+        ? form.availability
+        : []
+    }
+    token={token}
+    onChange={(availability)=>
+      setForm((current:any)=>({
+        ...current,
+        availability
+      }))
+    }
+    setToast={setToast}
+  />
+}{tab==='reputation'&&
+  <ProfessionalReputation
+    professional={professional}
+    bookings={bookings}
+    analytics={analytics}
+    setTab={setTab}
+  />}{tab==='subscription'&&<ProfessionalBilling professional={professional} token={token} onRefresh={onRefresh} setToast={setToast} cfg={cfg}/>}{tab==='notifications'&&<ProfessionalNotifications token={token} setToast={setToast}/>}{tab==='support'&&<ProfessionalSupport token={token} setToast={setToast}/>}{tab==='verification'&&
+  <ProfessionalVerification
+    professional={professional}
+    user={user}
+    token={token}
+    onRefresh={onRefresh}
+    setToast={setToast}
+  />
+}</div></section>
 }
 function ProfessionalPerformance({
   analytics,
@@ -892,9 +558,84 @@ function ProfessionalPerformance({
     requests:0,
     newClients:0,
     reviews:0,
+    newReviews:0,
     requestConversion:0,
     clientConversion:0
   }
+
+  /*
+   * Relational analytics returns newReviews.
+   * Keep reviews as a backwards-compatible fallback.
+   */
+  const analyticsReviews=
+    Number(
+      analytics?.newReviews ??
+      analytics?.reviews ??
+      a.reviews ??
+      0
+    )
+
+  const impressions=
+    Number(a.impressions||0)
+
+  const profileViews=
+    Number(a.profileViews||0)
+
+  const phoneClicks=
+    Number(a.phoneClicks||0)
+
+  const requests=
+    Number(a.requests||0)
+
+  const newClients=
+    Number(a.newClients||0)
+
+  const impressionToProfile=
+    impressions>0
+      ? Math.round((profileViews/impressions)*100)
+      : 0
+
+  const profileToContact=
+    profileViews>0
+      ? Math.round(
+          (
+            (phoneClicks+requests)/
+            profileViews
+          )*100
+        )
+      : 0
+
+  const requestToClient=
+    requests>0
+      ? Math.round((newClients/requests)*100)
+      : Number(a.clientConversion||0)
+
+  const growthScore=
+    Math.max(
+      0,
+      Math.min(
+        100,
+        Math.round(
+          (
+            Math.min(100,completion)*.24
+          )+
+          (
+            Math.min(100,impressionToProfile*4)*.18
+          )+
+          (
+            Math.min(100,profileToContact*3)*.20
+          )+
+          (
+            Math.min(100,requestToClient*2)*.23
+          )+
+          (
+            professional?.verified
+              ? 15
+              : 0
+          )
+        )
+      )
+    )
 
   const trust=analytics?.trust||null
 
@@ -1089,13 +830,61 @@ const smartMatchNeedsAttention=
       : 0
 
   const funnel=[
-    {icon:'👁',label:'Εμφανίσεις',value:a.impressions||0},
-    {icon:'👤',label:'Προφίλ',value:a.profileViews||0},
-    {icon:'💬',label:'Αιτήματα',value:a.requests||0},
-    {icon:'✅',label:'Πελάτες',value:a.newClients||0}
+    {
+      icon:'👁',
+      label:'Εμφανίσεις',
+      value:impressions
+    },
+    {
+      icon:'👤',
+      label:'Προφίλ',
+      value:profileViews
+    },
+    {
+      icon:'📞',
+      label:'Τηλέφωνο',
+      value:phoneClicks
+    },
+    {
+      icon:'💬',
+      label:'Αιτήματα',
+      value:requests
+    },
+    {
+      icon:'✓',
+      label:'Πελάτες',
+      value:newClients
+    }
   ]
 
   const insights:string[]=[]
+
+  if(
+    impressions>=20 &&
+    impressionToProfile<10
+  ){
+    insights.push(
+      'Οι εμφανίσεις σου δεν μετατρέπονται ακόμη αρκετά σε επισκέψεις προφίλ. Δούλεψε τίτλο, βασική εικόνα και σαφήνεια υπηρεσιών.'
+    )
+  }
+
+  if(
+    profileViews>=10 &&
+    profileToContact<10
+  ){
+    insights.push(
+      'Υπάρχει ενδιαφέρον για το προφίλ σου, αλλά χαμηλή μετάβαση σε επικοινωνία. Έλεγξε τιμή, διαθεσιμότητα και περιγραφή υπηρεσιών.'
+    )
+  }
+
+  if(
+    requests>=3 &&
+    requestToClient<30
+  ){
+    insights.push(
+      'Τα αιτήματα δεν μετατρέπονται ακόμη αρκετά σε ολοκληρωμένους πελάτες. Η γρήγορη απάντηση και οι σαφείς προτάσεις μπορούν να βοηθήσουν.'
+    )
+  }
 
   if(completion<80){
     insights.push(
@@ -1142,33 +931,87 @@ const smartMatchNeedsAttention=
   return (
     <div className="command-center">
 
-      <section className="command-hero">
-        <div>
+      <section className="command-hero growth-center-hero">
+
+        <div className="growth-hero-copy">
+
           <span className="command-kicker">
-            MELEO PROFESSIONAL COMMAND CENTER
+            MELEO PROFESSIONAL · GROWTH CENTER
           </span>
 
-          <h2>Η δραστηριότητά σου στη MELEO</h2>
+          <h2>
+            Δες πώς η παρουσία σου
+            <em> μετατρέπεται σε πελάτες.</em>
+          </h2>
 
           <p>
-            Πραγματικά στοιχεία από προβολές, ενδιαφέρον,
-            αιτήματα και ολοκληρωμένες συνεργασίες.
+            Πραγματική εικόνα της απόδοσής σου στη MELEO:
+            από την πρώτη εμφάνιση μέχρι την επικοινωνία,
+            το αίτημα και την ολοκληρωμένη συνεργασία.
           </p>
+
+          <div className="growth-hero-signals">
+
+            <span>
+              <b>{impressionToProfile}%</b>
+              εμφάνιση → προφίλ
+            </span>
+
+            <span>
+              <b>{profileToContact}%</b>
+              προφίλ → ενδιαφέρον
+            </span>
+
+            <span>
+              <b>{requestToClient}%</b>
+              αίτημα → πελάτης
+            </span>
+
+          </div>
+
         </div>
 
-        <div className="command-plan">
-          <small>ΠΑΚΕΤΟ</small>
+        <div className="growth-hero-side">
 
-          <strong>
-            {(professional?.subscriptionPlan||'basic').toUpperCase()}
-          </strong>
+          <div className="growth-score-card">
 
-          <span>
-            {professional?.subscriptionStatus==='active'
-              ? '● Ενεργό'
-              : professional?.subscriptionStatus||'—'}
-          </span>
+            <small>GROWTH SCORE</small>
+
+            <strong>
+              {growthScore}
+              <span>/100</span>
+            </strong>
+
+            <p>
+              {growthScore>=80
+                ? 'Ισχυρή παρουσία'
+                : growthScore>=60
+                  ? 'Καλή δυναμική'
+                  : growthScore>=40
+                    ? 'Αναπτυσσόμενη παρουσία'
+                    : 'Χτίζεις τη δυναμική σου'}
+            </p>
+
+          </div>
+
+          <div className="command-plan">
+
+            <small>ΠΑΚΕΤΟ</small>
+
+            <strong>
+              {(professional?.subscriptionPlan||'basic').toUpperCase()}
+            </strong>
+
+            <span>
+              {professional?.subscriptionStatus==='active'
+                ? '● Ενεργό'
+                : professional?.subscriptionStatus||'—'}
+            </span>
+
+          </div>
+
         </div>
+
       </section>
 
       <section className="command-metrics">
@@ -1210,7 +1053,7 @@ const smartMatchNeedsAttention=
 
         <div className="command-metric">
           <span>⭐</span>
-          <strong>{Number(a.reviews||0).toLocaleString('el-GR')}</strong>
+          <strong>{analyticsReviews.toLocaleString('el-GR')}</strong>
           <b>Αξιολογήσεις</b>
           <small>verified bookings</small>
         </div>
@@ -1678,16 +1521,26 @@ const smartMatchNeedsAttention=
 
         </div>
 
-        <div className="conversion-strip">
+        <div className="conversion-strip growth-conversion-strip">
+
           <span>
-            Profile → Request
-            <b>{a.requestConversion||0}%</b>
+            <small>DISCOVERY</small>
+            Εμφάνιση → Προφίλ
+            <b>{impressionToProfile}%</b>
           </span>
 
           <span>
-            Request → Client
-            <b>{a.clientConversion||0}%</b>
+            <small>INTENT</small>
+            Προφίλ → Επικοινωνία
+            <b>{profileToContact}%</b>
           </span>
+
+          <span>
+            <small>CONVERSION</small>
+            Αίτημα → Πελάτης
+            <b>{requestToClient}%</b>
+          </span>
+
         </div>
 
       </section>
@@ -1719,6 +1572,397 @@ const smartMatchNeedsAttention=
     </div>
   )
 }
+function ProfessionalRequestsWorkspace({
+  bookings,
+  status,
+  token,
+  onRefresh,
+  setToast
+}:any){
+
+  type RequestFilter=
+    'action'|
+    'confirmed'|
+    'completed'|
+    'all'
+
+  const [filter,setFilter]=
+    useState<RequestFilter>('action')
+
+  const list=
+    Array.isArray(bookings)
+      ? bookings
+      : []
+
+  const needsAction=
+    list.filter(
+      (b:any)=>
+        [
+          'pending',
+          'clarification',
+          'quoted'
+        ].includes(b.status)
+    )
+
+  const confirmed=
+    list.filter(
+      (b:any)=>
+        b.status==='accepted'
+    )
+
+  const completed=
+    list.filter(
+      (b:any)=>
+        b.status==='completed'
+    )
+
+  const cancelled=
+    list.filter(
+      (b:any)=>
+        b.status==='cancelled'
+    )
+
+  const priority=(booking:any)=>{
+
+    switch(booking.status){
+
+      case 'pending':
+        return 0
+
+      case 'clarification':
+        return 1
+
+      case 'quoted':
+        return 2
+
+      case 'accepted':
+        return 3
+
+      case 'completed':
+        return 4
+
+      case 'cancelled':
+        return 5
+
+      default:
+        return 6
+    }
+  }
+
+  const bookingTime=(booking:any)=>{
+
+    const value=
+      booking.createdAt||
+      booking.updatedAt||
+      booking.date||
+      ''
+
+    const parsed=
+      new Date(value).getTime()
+
+    return Number.isFinite(parsed)
+      ? parsed
+      : 0
+  }
+
+  const sorted=
+    [...list]
+      .sort((a:any,b:any)=>{
+
+        const priorityDiff=
+          priority(a)-priority(b)
+
+        if(priorityDiff!==0){
+          return priorityDiff
+        }
+
+        return bookingTime(b)-bookingTime(a)
+      })
+
+  const visible=
+    sorted.filter((booking:any)=>{
+
+      if(filter==='action'){
+        return [
+          'pending',
+          'clarification',
+          'quoted'
+        ].includes(booking.status)
+      }
+
+      if(filter==='confirmed'){
+        return booking.status==='accepted'
+      }
+
+      if(filter==='completed'){
+        return booking.status==='completed'
+      }
+
+      return true
+    })
+
+  const filterLabel=
+    filter==='action'
+      ? 'Αιτήματα που χρειάζονται ενέργεια'
+      : filter==='confirmed'
+        ? 'Επιβεβαιωμένες επισκέψεις'
+        : filter==='completed'
+          ? 'Ολοκληρωμένες συνεργασίες'
+          : 'Όλα τα αιτήματα'
+
+  return(
+
+    <section className="pro-requests-workspace">
+
+      <header className="pro-requests-hero">
+
+        <div>
+
+          <span className="pro-requests-kicker">
+            MELEO PROFESSIONAL · REQUESTS
+          </span>
+
+          <h2>
+            Διαχείριση αιτημάτων
+            <em> χωρίς χαμένη ευκαιρία.</em>
+          </h2>
+
+          <p>
+            Τα νέα αιτήματα, οι διευκρινίσεις,
+            οι προτάσεις κόστους και οι επιβεβαιωμένες
+            επισκέψεις συγκεντρωμένα σε μία ροή εργασίας.
+          </p>
+
+        </div>
+
+        <div className="pro-requests-focus">
+
+          <small>ΧΡΕΙΑΖΟΝΤΑΙ ΕΝΕΡΓΕΙΑ</small>
+
+          <strong>
+            {needsAction.length}
+          </strong>
+
+          <span>
+            {needsAction.length===1
+              ? 'ενεργό αίτημα'
+              : 'ενεργά αιτήματα'}
+          </span>
+
+        </div>
+
+      </header>
+
+
+      <section className="pro-request-kpis">
+
+        <button
+          type="button"
+          className={
+            filter==='action'
+              ? 'active attention'
+              : 'attention'
+          }
+          onClick={()=>setFilter('action')}
+        >
+          <span>●</span>
+
+          <div>
+            <small>ΧΡΕΙΑΖΟΝΤΑΙ ΕΝΕΡΓΕΙΑ</small>
+            <strong>{needsAction.length}</strong>
+          </div>
+
+          <em>Νέα / διάλογος</em>
+        </button>
+
+
+        <button
+          type="button"
+          className={
+            filter==='confirmed'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>setFilter('confirmed')}
+        >
+          <span>✓</span>
+
+          <div>
+            <small>ΕΠΙΒΕΒΑΙΩΜΕΝΕΣ</small>
+            <strong>{confirmed.length}</strong>
+          </div>
+
+          <em>Προσεχείς επισκέψεις</em>
+        </button>
+
+
+        <button
+          type="button"
+          className={
+            filter==='completed'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>setFilter('completed')}
+        >
+          <span>◎</span>
+
+          <div>
+            <small>ΟΛΟΚΛΗΡΩΜΕΝΕΣ</small>
+            <strong>{completed.length}</strong>
+          </div>
+
+          <em>Ιστορικό συνεργασιών</em>
+        </button>
+
+
+        <button
+          type="button"
+          className={
+            filter==='all'
+              ? 'active'
+              : ''
+          }
+          onClick={()=>setFilter('all')}
+        >
+          <span>≡</span>
+
+          <div>
+            <small>ΣΥΝΟΛΟ</small>
+            <strong>{list.length}</strong>
+          </div>
+
+          <em>
+            {cancelled.length
+              ? `${cancelled.length} ακυρωμένα`
+              : 'Όλη η δραστηριότητα'}
+          </em>
+        </button>
+
+      </section>
+
+
+      <div className="pro-request-toolbar">
+
+        <div>
+
+          <span>
+            {filterLabel}
+          </span>
+
+          <strong>
+            {visible.length}
+          </strong>
+
+        </div>
+
+        <div className="pro-request-filter-tabs">
+
+          <button
+            type="button"
+            className={
+              filter==='action'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>setFilter('action')}
+          >
+            Ενέργεια
+
+            {needsAction.length>0&&
+              <i>
+                {needsAction.length}
+              </i>
+            }
+
+          </button>
+
+          <button
+            type="button"
+            className={
+              filter==='confirmed'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>setFilter('confirmed')}
+          >
+            Επιβεβαιωμένα
+          </button>
+
+          <button
+            type="button"
+            className={
+              filter==='completed'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>setFilter('completed')}
+          >
+            Ολοκληρωμένα
+          </button>
+
+          <button
+            type="button"
+            className={
+              filter==='all'
+                ? 'active'
+                : ''
+            }
+            onClick={()=>setFilter('all')}
+          >
+            Όλα
+          </button>
+
+        </div>
+
+      </div>
+
+
+      <div className="pro-request-worklist">
+
+        {visible.length
+          ? visible.map((booking:any)=>
+
+              <CompactBooking
+                key={booking.id}
+                b={booking}
+                status={status}
+                full
+                token={token}
+                onRefresh={onRefresh}
+                setToast={setToast}
+              />
+
+            )
+          : <div className="pro-request-empty">
+
+              <span>
+                {filter==='action'
+                  ? '✓'
+                  : '○'}
+              </span>
+
+              <h3>
+                {filter==='action'
+                  ? 'Δεν υπάρχει κάτι που χρειάζεται άμεση ενέργεια'
+                  : 'Δεν υπάρχουν αιτήματα σε αυτή την κατηγορία'}
+              </h3>
+
+              <p>
+                {filter==='action'
+                  ? 'Όταν φτάσει νέο αίτημα ή χρειαστεί συνέχεια σε έναν διάλογο, θα εμφανιστεί πρώτο εδώ.'
+                  : 'Μπορείς να επιλέξεις διαφορετική κατηγορία από τα φίλτρα παραπάνω.'}
+              </p>
+
+            </div>
+        }
+
+      </div>
+
+    </section>
+  )
+}
+
 function ProfessionalOnboarding({user,professional,token,onRefresh,setToast,cfg}:any){
  const initialPlan=(sessionStorage.getItem('meleo_selected_plan')||professional?.subscriptionPlan||'basic') as 'basic'|'premium'
  const initialStep=professional?.subscriptionStatus==='active'?(professional?.onboardingStage==='verification'?4:3):1
@@ -1737,7 +1981,7 @@ function ProfessionalOnboarding({user,professional,token,onRefresh,setToast,cfg}
    }catch(e:any){setError(e.message)}finally{setBusy(false)}
  }
  async function saveProfessional(){setError('');if(!pf.title||!pf.specialty||!pf.city){setError('Συμπλήρωσε τίτλο, ειδικότητα και βάση εξυπηρέτησης.');return}setBusy(true);try{const payload={...pf,years:Number(pf.years||0),price:Number(pf.price||0),serviceRadiusKm:Number(pf.serviceRadiusKm||15),services:Array.isArray(pf.services)?pf.services:[],availability:Array.isArray(pf.availability)?pf.availability:[]};await api('/professional/profile',{method:'PUT',body:JSON.stringify(payload)},token);await onRefresh();setStep(4);setToast('Τα επαγγελματικά στοιχεία αποθηκεύτηκαν')}catch(e:any){setError(e.message)}finally{setBusy(false)}}
- async function uploadVerificationFile(file:File){setError('');setUploadBusy(true);try{if(file.size>5*1024*1024)throw new Error('Το αρχείο πρέπει να είναι έως 5MB');const dataBase64=await fileToBase64(file);const d=await api('/professional/verification-document',{method:'POST',body:JSON.stringify({name:file.name,mime:file.type||'application/octet-stream',type:'professional_credential',dataBase64})},token);setDocs((x:any[])=>[...x,d]);setToast('Το δικαιολογητικό ανέβηκε κρυπτογραφημένο.')}catch(e:any){setError(e.message)}finally{setUploadBusy(false)}}
+ async function uploadVerificationFile(file:File){setError('');setUploadBusy(true);try{if(file.size>5*1024*1024)throw new Error('Το αρχείο πρέπει να είναι έως 5MB');const dataBase64=await fileToBase64(file);const d=await api('/professional/verification-document',{method:'POST',body:JSON.stringify({name:file.name,data:dataBase64})},token);setDocs((x:any[])=>[...x,d]);setToast('Το δικαιολογητικό ανέβηκε κρυπτογραφημένο.')}catch(e:any){setError(e.message)}finally{setUploadBusy(false)}}
  async function submitVerification(){setError('');if(!vr.licenseNumber.trim()){setError('Συμπλήρωσε αριθμό άδειας / μητρώου.');return}setBusy(true);try{await api('/professional/verification',{method:'POST',body:JSON.stringify(vr)},token);await onRefresh();setToast('Η αίτηση επαλήθευσης υποβλήθηκε. Το προφίλ σου είναι σε αναμονή ελέγχου.')}catch(e:any){setError(e.message)}finally{setBusy(false)}}
  function toggleService(service:string){setPf((x:any)=>({...x,services:(x.services||[]).includes(service)?x.services.filter((v:string)=>v!==service):[...(x.services||[]),service]}))}
  return <section className="onboarding-page"><div className="onboarding-shell"><div className="onboarding-brand"><Mark/><span>PROFESSIONAL ONBOARDING</span></div><div className="onboarding-progress">{[['1','Πακέτο'],['2','Checkout'],['3','Προφίλ'],['4','Verification']].map(([n,l],i)=><div className={(step>=i+1?'active ':'')+(step===i+1?'current':'')} key={n}><i>{n}</i><span>{l}</span></div>)}</div>
@@ -1809,7 +2053,12 @@ async function sendChat(){
 }
  async function clarify(){if(!question.trim())return;await api('/bookings/'+b.id+'/clarification',{method:'POST',body:JSON.stringify({question})},token);setQuestion('');setExpanded(true);await onRefresh();setToast('Το αίτημα επέστρεψε στον χρήστη για διευκρινίσεις')}
  async function sendQuote(){const value=Number(quote);if(!value||value<=0)return setMsg('Συμπλήρωσε το τελικό κόστος.');await api('/bookings/'+b.id+'/quote',{method:'POST',body:JSON.stringify({amount:value,message:msg})},token);setMsg('');await onRefresh();setToast('Η πρόταση κόστους στάλθηκε στον χρήστη')}
- return <div className={'request-card-pro '+(expanded?'expanded ':'')+(full?'full':'')}><div className="request-row" onClick={()=>{
+ return <div className={
+  'request-card-pro '+
+  'request-state-'+String(b.status||'unknown')+' '+
+  (expanded?'expanded ':'')+
+  (full?'full':'')
+}><div className="request-row" onClick={()=>{
   const next=!expanded
   setExpanded(next)
 
@@ -1834,50 +2083,4 @@ async function sendChat(){
 </button>
 </div>{expanded&&<div className="pro-request-detail"><div className="request-contact-strip"><div><small>ΣΤΟΙΧΕΙΑ ΕΠΙΚΟΙΝΩΝΙΑΣ</small><b>{b.patientName}</b></div><a href={`mailto:${b.patientEmail}`}>✉ {b.patientEmail}</a>{b.patientPhone&&<a href={`tel:${b.patientPhone}`}>☎ {b.patientPhone}</a>}</div><div className="request-detail-grid three"><div><small>Υπηρεσία</small><b>{b.service}</b><span>{repeatLabel(b.repeat)}</span></div><div><small>Επίσκεψη</small><b>{b.date} · {b.time}</b><span>{b.address}</span></div><div><small>Ενδεικτική τιμή</small><b>{b.price?`Από ${b.price}€`:'Κατόπιν επικοινωνίας'}</b><span>Το τελικό κόστος καθορίζεται μετά την αξιολόγηση.</span></div></div><div className="request-description important"><small>ΑΝΑΛΥΣΗ ΑΙΤΗΜΑΤΟΣ</small><p>{b.notes||'Ο χρήστης δεν έχει προσθέσει επιπλέον περιγραφή. Επικοινώνησε μαζί του πριν οριστικοποιήσεις κόστος ή επίσκεψη.'}</p></div><Conversation messages={b.messages||[]}/><CalendarActions booking={b}/>{b.status!=='cancelled'&&<div className="reply-box realtime-chat-box"><textarea placeholder="Μήνυμα προς τον συνοδό…" value={chat} onChange={e=>setChat(e.target.value)}/><button className="btn btn-dark" onClick={sendChat}>Αποστολή μηνύματος</button><small>Live chat · ενημερώνεται σε πραγματικό χρόνο</small></div>}{['pending','clarification'].includes(b.status)&&<div className="professional-decision-grid"><div className="decision-panel"><h4>Χρειάζεσαι περισσότερες πληροφορίες;</h4><textarea placeholder="π.χ. Θα ήθελα να γνωρίζω αν υπάρχει ιατρική οδηγία, πόσες ημέρες απαιτείται η φροντίδα…" value={question} onChange={e=>setQuestion(e.target.value)}/><button className="btn btn-outline wide" onClick={clarify}>↩ Ζήτησε διευκρινίσεις</button></div><div className="decision-panel highlight"><h4>Καθόρισε τελικό κόστος</h4><label>Τελικό ποσό που προτείνεις (€)<input type="number" min="1" value={quote} onChange={e=>setQuote(e.target.value)}/></label><textarea placeholder="Προαιρετικό μήνυμα για το τι περιλαμβάνει η τιμή…" value={msg} onChange={e=>setMsg(e.target.value)}/><button className="btn btn-dark wide" onClick={sendQuote}>Αποστολή πρότασης κόστους</button></div></div>}{b.status==='quoted'&&<div className="quote-waiting"><b>Αναμονή απάντησης χρήστη</b><span>Έχεις προτείνει τελικό κόστος {b.proposedPrice}€.</span></div>}{b.status==='accepted'&&<div className="accepted-actions"><div><b>✓ Επιβεβαιωμένη επίσκεψη</b><span>Συμφωνημένο κόστος: {b.agreedPrice||b.proposedPrice||b.price}€</span></div><button className="small-action" onClick={()=>status(b.id,'completed')}>Ολοκλήρωση επίσκεψης</button></div>}{['pending','clarification'].includes(b.status)&&<div className="reject-line"><button className="text-btn danger" onClick={()=>status(b.id,'cancelled')}>Απόρριψη αιτήματος</button></div>}</div>}</div>
 }
-function SubscriptionPanel({professional,token,onRefresh,setToast,cfg}:any){
- const [info,setInfo]=useState<any>(null);const [busy,setBusy]=useState('');const [error,setError]=useState('')
- async function load(){try{setInfo(await api('/professional/subscription',{},token))}catch(e:any){setError(e.message)}}
- useEffect(()=>{load()},[])
- const current=professional?.subscriptionPlan||'basic'
- const plans:Plan[]=cfg?.plans?.length?cfg.plans:FALLBACK_CONFIG.plans
- async function act(kind:string,plan?:string){
-   setError('');setBusy(kind+(plan||''))
-   try{
-     if(kind==='change'){
-       const r=await api('/professional/subscription/checkout',{method:'POST',body:JSON.stringify({plan})},token)
-       if(r.mode==='stripe'&&r.url){window.location.href=r.url;return}
-       setToast(`Το πακέτο ενημερώθηκε σε ${String(plan).toUpperCase()}`)
-     }
-     if(kind==='portal'){const r=await api('/professional/subscription/portal',{method:'POST'},token);if(r.url){window.location.href=r.url;return}}
-     if(kind==='cancel'){if(!window.confirm('Να ακυρωθεί η συνδρομή στο τέλος της τρέχουσας περιόδου; Το προφίλ σου θα σταματήσει να εμφανίζεται στις αναζητήσεις.'))return;await api('/professional/subscription/cancel',{method:'POST'},token);setToast('Η συνδρομή θα ακυρωθεί στο τέλος της περιόδου.')}
-     if(kind==='resume'){await api('/professional/subscription/resume',{method:'POST'},token);setToast('Η συνδρομή συνεχίζεται κανονικά.')}
-     await onRefresh();await load()
-   }catch(e:any){setError(e.message)}finally{setBusy('')}
- }
- const statusLabelMap:any={active:'Ενεργή',past_due:'Εκκρεμεί πληρωμή',cancelled:'Ακυρωμένη',pending:'Σε εκκρεμότητα',none:'Χωρίς συνδρομή'}
- return <div className="panel subscription-panel">
-   <div className="panel-heading"><div><h3>Η συνδρομή σου</h3><span>MELEO Professional membership</span></div><span className={'plan-pill '+current}>{current.toUpperCase()} · {money(professional?.subscriptionPrice||0)}/μήνα</span></div>
-   <div className="sub-facts">
-     <div><small>Κατάσταση</small><b>{statusLabelMap[professional?.subscriptionStatus]||professional?.subscriptionStatus||'—'}</b></div>
-     <div><small>{professional?.cancelAtPeriodEnd?'Λήγει':'Επόμενη ανανέωση'}</small><b>{info?.currentPeriodEnd?new Date(info.currentPeriodEnd).toLocaleDateString('el-GR'):'—'}</b></div>
-     <div><small>Τρόπος χρέωσης</small><b>{info?.billingMode==='stripe'?'Κάρτα / Google Pay':info?.billingMode==='demo'?'Demo (καμία χρέωση)':'—'}</b></div>
-   </div>
-   {error&&<div className="error">{error}</div>}
-   <div className="subscription-choice">{plans.map(p=><div key={p.id} className={(p.id==='premium'?'premium ':'')+(current===p.id?'active':'')}>
-     {p.recommended&&<span>ΠΡΟΤΕΙΝΟΜΕΝΟ</span>}
-     <b>{p.name}</b><strong>{money(p.price)}<small>/μήνα</small></strong>
-     <p>{p.features.slice(0,2).join(' · ')}</p>
-     <button className={'btn wide '+(p.id==='premium'?'btn-gold':'btn-outline')} disabled={current===p.id||!!busy} onClick={()=>act('change',p.id)}>{current===p.id?'Ενεργό':busy==='change'+p.id?'…':(p.price>(professional?.subscriptionPrice||0)?'Αναβάθμιση':'Μετάβαση')+' σε '+p.name}</button>
-   </div>)}</div>
-   <div className="sub-actions">
-     {info?.portalAvailable&&<button className="btn btn-outline" disabled={!!busy} onClick={()=>act('portal')}>{busy==='portal'?'…':'Κάρτα, τιμολόγια & ακύρωση'}</button>}
-     {professional?.cancelAtPeriodEnd
-       ? <button className="btn btn-dark" disabled={!!busy} onClick={()=>act('resume')}>Συνέχιση συνδρομής</button>
-       : <button className="text-btn danger" disabled={!!busy} onClick={()=>act('cancel')}>Ακύρωση συνδρομής</button>}
-   </div>
-   {!!info?.invoices?.length&&<div className="invoice-list"><b>Ιστορικό χρεώσεων</b>{info.invoices.map((x:any)=><div key={x.id}><span>{new Date(x.createdAt).toLocaleDateString('el-GR')}</span><span>{money(x.amount)}</span><span className={'status '+(x.status==='paid'?'completed':'cancelled')}>{x.status==='paid'?'Πληρωμένο':'Απέτυχε'}</span>{x.hostedInvoiceUrl&&<a href={x.hostedInvoiceUrl} target="_blank" rel="noreferrer">Απόδειξη</a>}</div>)}</div>}
-   <div className="notice">Η αλλαγή πακέτου χρεώνεται αναλογικά (proration). Η ακύρωση ισχύει στο τέλος της τρέχουσας περιόδου και δεν συνεπάγεται επιστροφή για τον χρόνο που έχει χρησιμοποιηθεί. Η MELEO <b>δεν</b> κρατά προμήθεια από τις επισκέψεις σου.</div>
- </div>
-}
-
 export default ProfessionalDashboard

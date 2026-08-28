@@ -1,6 +1,6 @@
 import { defineConfig } from 'vite'
 import react from '@vitejs/plugin-react'
-import packageInfo from './package.json'
+import packageInfo from './package.json' with { type: 'json' }
 
 export default defineConfig({
   plugins: [react()],

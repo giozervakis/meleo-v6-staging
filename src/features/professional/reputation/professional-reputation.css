@@ -1,0 +1,685 @@
+.professional-reputation{
+  display:grid;
+  gap:22px;
+}
+
+.reputation-hero{
+  position:relative;
+  overflow:hidden;
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 240px;
+  gap:30px;
+  align-items:center;
+  padding:34px;
+  border:1px solid rgba(13,47,43,.09);
+  border-radius:28px;
+  background:
+    radial-gradient(
+      circle at 90% 10%,
+      rgba(196,160,92,.15),
+      transparent 34%
+    ),
+    linear-gradient(
+      135deg,
+      #123f39 0%,
+      #0d302c 100%
+    );
+  color:#fff;
+  box-shadow:
+    0 24px 60px rgba(12,38,35,.12);
+}
+
+.reputation-hero-copy{
+  max-width:720px;
+}
+
+.reputation-eyebrow,
+.reputation-side-eyebrow{
+  display:block;
+  margin-bottom:10px;
+  font-size:11px;
+  line-height:1.2;
+  font-weight:800;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+}
+
+.reputation-eyebrow{
+  color:#e0c58f;
+}
+
+.reputation-hero h2{
+  margin:0;
+  max-width:650px;
+  font-size:clamp(30px,3.3vw,48px);
+  line-height:1.02;
+  letter-spacing:-.035em;
+}
+
+.reputation-hero p{
+  margin:16px 0 0;
+  max-width:620px;
+  color:rgba(255,255,255,.76);
+  font-size:15px;
+  line-height:1.7;
+}
+
+.reputation-score-card{
+  display:flex;
+  min-height:190px;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  padding:22px;
+  border:1px solid rgba(255,255,255,.14);
+  border-radius:24px;
+  background:rgba(255,255,255,.075);
+  text-align:center;
+}
+
+.reputation-score-card>span:first-child{
+  color:rgba(255,255,255,.7);
+  font-size:12px;
+}
+
+.reputation-score-number{
+  margin:5px 0 1px;
+  font-size:54px;
+  line-height:1;
+  font-weight:800;
+  letter-spacing:-.055em;
+}
+
+.reputation-score-card small{
+  margin-top:9px;
+  color:rgba(255,255,255,.64);
+}
+
+.reputation-stars{
+  display:inline-flex;
+  gap:3px;
+  color:rgba(255,255,255,.22);
+  font-size:17px;
+}
+
+.reputation-stars .on{
+  color:#e4c27e;
+}
+
+.reputation-stars.compact{
+  color:#d9d9d4;
+  font-size:14px;
+}
+
+.reputation-new{
+  margin-top:6px;
+  color:#e4c27e;
+  font-size:13px;
+  font-weight:800;
+}
+
+.reputation-metrics{
+  display:grid;
+  grid-template-columns:repeat(4,minmax(0,1fr));
+  gap:14px;
+}
+
+.reputation-metrics article{
+  display:grid;
+  min-width:0;
+  padding:21px;
+  border:1px solid rgba(13,47,43,.08);
+  border-radius:21px;
+  background:#fff;
+  box-shadow:0 10px 30px rgba(20,42,39,.045);
+}
+
+.reputation-metric-icon{
+  display:grid;
+  width:34px;
+  height:34px;
+  margin-bottom:16px;
+  place-items:center;
+  border-radius:11px;
+  background:#f3eee4;
+  color:#846629;
+  font-weight:800;
+}
+
+.reputation-metrics strong{
+  color:#143c37;
+  font-size:29px;
+  line-height:1;
+  letter-spacing:-.035em;
+}
+
+.reputation-metrics b{
+  margin-top:8px;
+  color:#202a28;
+  font-size:13px;
+}
+
+.reputation-metrics small{
+  margin-top:3px;
+  color:#7a8582;
+  font-size:11px;
+}
+
+.reputation-layout{
+  display:grid;
+  grid-template-columns:minmax(0,1fr) 340px;
+  gap:20px;
+  align-items:start;
+}
+
+.reputation-main,
+.reputation-side-card{
+  border:1px solid rgba(13,47,43,.08);
+  background:#fff;
+  box-shadow:0 12px 34px rgba(20,42,39,.045);
+}
+
+.reputation-main{
+  min-width:0;
+  padding:25px;
+  border-radius:24px;
+}
+
+.reputation-section-head{
+  display:flex;
+  gap:18px;
+  align-items:flex-end;
+  justify-content:space-between;
+  margin-bottom:20px;
+}
+
+.reputation-section-head>div:first-child>span{
+  color:#98763b;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.14em;
+}
+
+.reputation-section-head h3,
+.reputation-side-card h3{
+  margin:4px 0 0;
+  color:#173c37;
+  letter-spacing:-.025em;
+}
+
+.reputation-section-head h3{
+  font-size:23px;
+}
+
+.reputation-filters{
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px;
+}
+
+.reputation-filters button{
+  min-height:36px;
+  padding:0 13px;
+  border:1px solid #e2e7e5;
+  border-radius:999px;
+  background:#fff;
+  color:#66716e;
+  cursor:pointer;
+  font:inherit;
+  font-size:11px;
+  font-weight:700;
+}
+
+.reputation-filters button.active{
+  border-color:#173f39;
+  background:#173f39;
+  color:#fff;
+}
+
+.reputation-review-list{
+  display:grid;
+  gap:12px;
+}
+
+.reputation-review-card{
+  padding:20px;
+  border:1px solid #e8ecea;
+  border-radius:19px;
+  background:#fcfcfa;
+}
+
+.reputation-review-top{
+  display:flex;
+  gap:14px;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.reputation-review-author{
+  display:flex;
+  min-width:0;
+  gap:11px;
+  align-items:center;
+}
+
+.reputation-avatar{
+  display:grid;
+  width:42px;
+  height:42px;
+  flex:0 0 42px;
+  place-items:center;
+  border-radius:50%;
+  background:#173f39;
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+  letter-spacing:.04em;
+}
+
+.reputation-review-author div{
+  display:grid;
+  min-width:0;
+}
+
+.reputation-review-author strong{
+  overflow:hidden;
+  color:#202b29;
+  font-size:13px;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+
+.reputation-review-author small{
+  margin-top:2px;
+  color:#8a9491;
+  font-size:10px;
+}
+
+.reputation-review-rating{
+  display:flex;
+  flex:0 0 auto;
+  gap:8px;
+  align-items:center;
+}
+
+.reputation-review-rating b{
+  color:#173f39;
+  font-size:13px;
+}
+
+.reputation-review-text{
+  margin:18px 0;
+  color:#3c4744;
+  font-size:14px;
+  line-height:1.65;
+}
+
+.reputation-review-text.muted{
+  color:#8a9491;
+}
+
+.reputation-review-card footer{
+  display:flex;
+  flex-wrap:wrap;
+  gap:8px 18px;
+  justify-content:space-between;
+  padding-top:13px;
+  border-top:1px solid #ecefed;
+  color:#87908e;
+  font-size:10px;
+}
+
+.reputation-empty{
+  display:grid;
+  min-height:300px;
+  padding:35px;
+  place-items:center;
+  align-content:center;
+  text-align:center;
+}
+
+.reputation-empty>span{
+  color:#c5a768;
+  font-size:34px;
+}
+
+.reputation-empty h3{
+  margin:10px 0 4px;
+  color:#193d38;
+}
+
+.reputation-empty p{
+  max-width:520px;
+  margin:0;
+  color:#7d8885;
+  font-size:13px;
+  line-height:1.6;
+}
+
+.reputation-side{
+  display:grid;
+  gap:14px;
+}
+
+.reputation-side-card{
+  padding:22px;
+  border-radius:21px;
+}
+
+.reputation-side-eyebrow{
+  margin-bottom:4px;
+  color:#98763b;
+  font-size:9px;
+}
+
+.reputation-side-card h3{
+  font-size:18px;
+}
+
+.reputation-side-copy{
+  margin:10px 0 17px;
+  color:#78827f;
+  font-size:12px;
+  line-height:1.55;
+}
+
+.reputation-trust-ready{
+  display:flex;
+  gap:12px;
+  margin-top:15px;
+  padding:15px;
+  border-radius:15px;
+  background:#eef7f3;
+}
+
+.reputation-trust-ready>span{
+  display:grid;
+  width:32px;
+  height:32px;
+  flex:0 0 32px;
+  place-items:center;
+  border-radius:50%;
+  background:#173f39;
+  color:#fff;
+}
+
+.reputation-trust-ready strong{
+  color:#173f39;
+  font-size:12px;
+}
+
+.reputation-trust-ready p{
+  margin:3px 0 0;
+  color:#65736f;
+  font-size:11px;
+  line-height:1.5;
+}
+
+.reputation-progress-row{
+  display:grid;
+  gap:7px;
+  margin-top:16px;
+}
+
+.reputation-progress-row>div{
+  display:flex;
+  gap:10px;
+  justify-content:space-between;
+  color:#596562;
+  font-size:11px;
+}
+
+.reputation-progress-row b{
+  color:#173f39;
+}
+
+.reputation-progress-row progress{
+  width:100%;
+  height:7px;
+  overflow:hidden;
+  border:0;
+  border-radius:999px;
+  background:#edf0ee;
+  accent-color:#173f39;
+}
+
+.reputation-progress-note{
+  display:block;
+  margin-top:14px;
+  color:#89928f;
+  font-size:10px;
+  line-height:1.5;
+}
+
+.reputation-distribution{
+  display:grid;
+  grid-template-columns:30px minmax(0,1fr) 22px;
+  gap:9px;
+  align-items:center;
+  margin-top:12px;
+  color:#697572;
+  font-size:10px;
+}
+
+.reputation-distribution>div{
+  height:6px;
+  overflow:hidden;
+  border-radius:999px;
+  background:#edf0ee;
+}
+
+.reputation-distribution i{
+  display:block;
+  height:100%;
+  border-radius:inherit;
+  background:#c4a15c;
+}
+
+.reputation-distribution b{
+  color:#34413e;
+  text-align:right;
+}
+
+.reputation-distribution-note{
+  display:block;
+  margin-top:14px;
+  color:#8a9491;
+  font-size:10px;
+  line-height:1.5;
+}
+
+.reputation-guidance ul{
+  display:grid;
+  gap:10px;
+  margin:16px 0 0;
+  padding:0;
+  list-style:none;
+}
+
+.reputation-guidance li{
+  position:relative;
+  padding-left:18px;
+  color:#66716e;
+  font-size:11px;
+  line-height:1.45;
+}
+
+.reputation-guidance li::before{
+  position:absolute;
+  top:1px;
+  left:0;
+  content:'✓';
+  color:#9b783b;
+  font-weight:800;
+}
+
+.reputation-profile-button{
+  width:100%;
+  min-height:42px;
+  margin-top:18px;
+  border:1px solid #173f39;
+  border-radius:13px;
+  background:#fff;
+  color:#173f39;
+  cursor:pointer;
+  font:inherit;
+  font-size:11px;
+  font-weight:800;
+}
+
+.reputation-profile-button:hover{
+  background:#173f39;
+  color:#fff;
+}
+
+@media(max-width:1050px){
+  .reputation-layout{
+    grid-template-columns:1fr;
+  }
+
+  .reputation-side{
+    grid-template-columns:repeat(3,minmax(0,1fr));
+  }
+}
+
+@media(max-width:820px){
+  .reputation-hero{
+    grid-template-columns:1fr;
+    padding:26px;
+  }
+
+  .reputation-score-card{
+    min-height:auto;
+  }
+
+  .reputation-metrics{
+    grid-template-columns:repeat(2,minmax(0,1fr));
+  }
+
+  .reputation-side{
+    grid-template-columns:1fr;
+  }
+}
+
+@media(max-width:600px){
+  .professional-reputation{
+    gap:14px;
+  }
+
+  .reputation-hero{
+    gap:20px;
+    padding:22px 18px;
+    border-radius:22px;
+  }
+
+  .reputation-hero h2{
+    font-size:31px;
+  }
+
+  .reputation-hero p{
+    font-size:13px;
+  }
+
+  .reputation-score-card{
+    padding:18px;
+    border-radius:18px;
+  }
+
+  .reputation-score-number{
+    font-size:46px;
+  }
+
+  .reputation-metrics{
+    gap:9px;
+  }
+
+  .reputation-metrics article{
+    padding:16px;
+    border-radius:17px;
+  }
+
+  .reputation-metrics strong{
+    font-size:24px;
+  }
+
+  .reputation-main{
+    padding:17px;
+    border-radius:20px;
+  }
+
+  .reputation-section-head{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .reputation-filters{
+    width:100%;
+  }
+
+  .reputation-filters button{
+    flex:1;
+    min-width:55px;
+  }
+
+  .reputation-review-card{
+    padding:16px;
+  }
+
+  .reputation-review-top{
+    align-items:flex-start;
+    flex-direction:column;
+  }
+
+  .reputation-review-rating{
+    width:100%;
+    justify-content:space-between;
+  }
+
+  .reputation-review-card footer{
+    flex-direction:column;
+  }
+
+  .reputation-side-card{
+    padding:18px;
+  }
+}
+/* ==========================================================
+   MELEO V7 6F TRUST REAL DATA
+   ========================================================== */
+
+.reputation-trust-real-data{
+  display:grid;
+  grid-template-columns:repeat(3,minmax(0,1fr));
+  gap:12px;
+  margin-top:18px;
+}
+
+.reputation-trust-real-data span{
+  min-width:0;
+  padding:14px 16px;
+  border:1px solid rgba(17,53,46,.10);
+  border-radius:16px;
+  background:rgba(255,255,255,.68);
+}
+
+.reputation-trust-real-data small{
+  display:block;
+  margin-bottom:6px;
+  font-size:10px;
+  font-weight:800;
+  letter-spacing:.11em;
+  opacity:.58;
+}
+
+.reputation-trust-real-data strong{
+  display:block;
+  overflow-wrap:anywhere;
+  font-size:16px;
+  line-height:1.25;
+}
+
+@media (max-width:720px){
+  .reputation-trust-real-data{
+    grid-template-columns:1fr;
+  }
+}

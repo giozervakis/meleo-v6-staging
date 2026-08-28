@@ -1,7 +1,7 @@
 {
   "name": "meleo-production-architecture",
   "private": true,
-  "version": "6.2.1",
+  "version": "7.0.0-rc.1",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n API,WEB -c auto \"npm:dev:api\" \"npm:dev:web\"",

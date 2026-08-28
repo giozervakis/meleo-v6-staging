@@ -2069,52 +2069,6 @@ function Pricing({user,token,professional,onRefresh,setView,setToast,cfg}:any){
    </div>
  </div></section>
 }
-function SubscriptionPanel({professional,token,onRefresh,setToast,cfg}:any){
- const [info,setInfo]=useState<any>(null);const [busy,setBusy]=useState('');const [error,setError]=useState('')
- async function load(){try{setInfo(await api('/professional/subscription',{},token))}catch(e:any){setError(e.message)}}
- useEffect(()=>{load()},[])
- const current=professional?.subscriptionPlan||'basic'
- const plans:Plan[]=cfg?.plans?.length?cfg.plans:FALLBACK_CONFIG.plans
- async function act(kind:string,plan?:string){
-   setError('');setBusy(kind+(plan||''))
-   try{
-     if(kind==='change'){
-       const r=await api('/professional/subscription/checkout',{method:'POST',body:JSON.stringify({plan})},token)
-       if(r.mode==='stripe'&&r.url){window.location.href=r.url;return}
-       setToast(`Το πακέτο ενημερώθηκε σε ${String(plan).toUpperCase()}`)
-     }
-     if(kind==='portal'){const r=await api('/professional/subscription/portal',{method:'POST'},token);if(r.url){window.location.href=r.url;return}}
-     if(kind==='cancel'){if(!window.confirm('Να ακυρωθεί η συνδρομή στο τέλος της τρέχουσας περιόδου; Το προφίλ σου θα σταματήσει να εμφανίζεται στις αναζητήσεις.'))return;await api('/professional/subscription/cancel',{method:'POST'},token);setToast('Η συνδρομή θα ακυρωθεί στο τέλος της περιόδου.')}
-     if(kind==='resume'){await api('/professional/subscription/resume',{method:'POST'},token);setToast('Η συνδρομή συνεχίζεται κανονικά.')}
-     await onRefresh();await load()
-   }catch(e:any){setError(e.message)}finally{setBusy('')}
- }
- const statusLabelMap:any={active:'Ενεργή',past_due:'Εκκρεμεί πληρωμή',cancelled:'Ακυρωμένη',pending:'Σε εκκρεμότητα',none:'Χωρίς συνδρομή'}
- return <div className="panel subscription-panel">
-   <div className="panel-heading"><div><h3>Η συνδρομή σου</h3><span>MELEO Professional membership</span></div><span className={'plan-pill '+current}>{current.toUpperCase()} · {money(professional?.subscriptionPrice||0)}/μήνα</span></div>
-   <div className="sub-facts">
-     <div><small>Κατάσταση</small><b>{statusLabelMap[professional?.subscriptionStatus]||professional?.subscriptionStatus||'—'}</b></div>
-     <div><small>{professional?.cancelAtPeriodEnd?'Λήγει':'Επόμενη ανανέωση'}</small><b>{info?.currentPeriodEnd?new Date(info.currentPeriodEnd).toLocaleDateString('el-GR'):'—'}</b></div>
-     <div><small>Τρόπος χρέωσης</small><b>{info?.billingMode==='stripe'?'Κάρτα / Google Pay':info?.billingMode==='demo'?'Demo (καμία χρέωση)':'—'}</b></div>
-   </div>
-   {error&&<div className="error">{error}</div>}
-   <div className="subscription-choice">{plans.map(p=><div key={p.id} className={(p.id==='premium'?'premium ':'')+(current===p.id?'active':'')}>
-     {p.recommended&&<span>ΠΡΟΤΕΙΝΟΜΕΝΟ</span>}
-     <b>{p.name}</b><strong>{money(p.price)}<small>/μήνα</small></strong>
-     <p>{p.features.slice(0,2).join(' · ')}</p>
-     <button className={'btn wide '+(p.id==='premium'?'btn-gold':'btn-outline')} disabled={current===p.id||!!busy} onClick={()=>act('change',p.id)}>{current===p.id?'Ενεργό':busy==='change'+p.id?'…':(p.price>(professional?.subscriptionPrice||0)?'Αναβάθμιση':'Μετάβαση')+' σε '+p.name}</button>
-   </div>)}</div>
-   <div className="sub-actions">
-     {info?.portalAvailable&&<button className="btn btn-outline" disabled={!!busy} onClick={()=>act('portal')}>{busy==='portal'?'…':'Κάρτα, τιμολόγια & ακύρωση'}</button>}
-     {professional?.cancelAtPeriodEnd
-       ? <button className="btn btn-dark" disabled={!!busy} onClick={()=>act('resume')}>Συνέχιση συνδρομής</button>
-       : <button className="text-btn danger" disabled={!!busy} onClick={()=>act('cancel')}>Ακύρωση συνδρομής</button>}
-   </div>
-   {!!info?.invoices?.length&&<div className="invoice-list"><b>Ιστορικό χρεώσεων</b>{info.invoices.map((x:any)=><div key={x.id}><span>{new Date(x.createdAt).toLocaleDateString('el-GR')}</span><span>{money(x.amount)}</span><span className={'status '+(x.status==='paid'?'completed':'cancelled')}>{x.status==='paid'?'Πληρωμένο':'Απέτυχε'}</span>{x.hostedInvoiceUrl&&<a href={x.hostedInvoiceUrl} target="_blank" rel="noreferrer">Απόδειξη</a>}</div>)}</div>}
-   <div className="notice">Η αλλαγή πακέτου χρεώνεται αναλογικά (proration). Η ακύρωση ισχύει στο τέλος της τρέχουσας περιόδου και δεν συνεπάγεται επιστροφή για τον χρόνο που έχει χρησιμοποιηθεί. Η MELEO <b>δεν</b> κρατά προμήθεια από τις επισκέψεις σου.</div>
- </div>
-}
-
 function BecomeProfessional({onLogged,user,professional,token,onRefresh,setView,setToast,cfg}:any){
  const [busy,setBusy]=useState(false)
  async function enableExisting(){setBusy(true);try{await api('/me/enable-professional',{method:'POST'},token);await onRefresh();setToast('Η επαγγελματική λειτουργία ενεργοποιήθηκε. Επίλεξε πακέτο για να συνεχίσεις.');setView('pro-dashboard')}catch(e:any){setToast(e.message)}finally{setBusy(false)}}

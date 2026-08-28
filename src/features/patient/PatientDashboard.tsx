@@ -1,10 +1,10 @@
 import React, {
   useEffect,
-  useRef,
   useState
 } from 'react'
 
 import { api } from '../../lib/api'
+import PatientMessages from './messages/PatientMessages'
 
 import type {
   Booking
@@ -136,7 +136,6 @@ function PatientDashboard({
  const [patientConversation,setPatientConversation]=useState<string>('')
  const [patientMessageDraft,setPatientMessageDraft]=useState('')
  const [patientMessageSending,setPatientMessageSending]=useState(false)
- const patientInboxMessagesRef=useRef<HTMLDivElement|null>(null)
  const [patientSection,setPatientSection]=useState<'bookings'|'messages'>('bookings')
  const [recovery,setRecovery]=useState<Record<string,any[]>>({});const [recoveryBusy,setRecoveryBusy]=useState<string>('')
  async function refresh(){
@@ -390,21 +389,6 @@ const activePatientConversation=
   patientMessageBookings[0]
   ||
   null
-useEffect(()=>{
-
-  const el=patientInboxMessagesRef.current
-
-  if(!el)return
-
-  requestAnimationFrame(()=>{
-    el.scrollTop=el.scrollHeight
-  })
-
-},[
-  activePatientConversation?.id,
-  activePatientConversation?.messages?.length
-])
-
 const upcomingBookings = bookings
   .filter((b:any)=>
     ['pending','clarification','quoted','accepted'].includes(b.status)
@@ -635,9 +619,23 @@ return (
       </div>
 
 
-      <div className="patient-care-grid">
+      <div
+          className={
+            'patient-care-grid '+
+            (patientSection==='messages'
+              ? 'messages-grid-mode'
+              : '')
+          }
+        >
 
-        <div className="patient-care-main">
+        <div
+          className={
+            'patient-care-main '+
+            (patientSection==='messages'
+              ? 'messages-mode'
+              : 'bookings-mode')
+          }
+        >
 
 
           <section className="patient-command-panel next-care-panel">
@@ -888,7 +886,14 @@ return (
           }
 
 
-          <section className="patient-command-panel">
+          <section
+            className={
+              'patient-command-panel patient-section-shell '+
+              (patientSection==='messages'
+                ? 'messages-workspace-shell'
+                : 'bookings-workspace-shell')
+            }
+          >
 
 <div className="patient-section-tabs">
 
@@ -1321,392 +1326,47 @@ onClick={e=>{
             }
  </>
 }{patientSection==='messages'&&
-  <>
-
-    <div className="patient-panel-head">
-      <div>
-        <small>MELEO COMMUNICATION</small>
-        <h3>Τα μηνύματά μου</h3>
-      </div>
-
-      <span>
-        {patientMessageUnreadTotal} αδιάβαστα
-      </span>
-    </div>
-
-
-    <div className="patient-inbox-list">
-
-      {patientMessageBookings.length===0
-        ?
-        <div className="inbox-list-empty">
-          <span>💬</span>
-          <b>Δεν υπάρχουν συνομιλίες</b>
-          <small>
-            Τα μηνύματα με επαγγελματίες θα εμφανίζονται εδώ.
-          </small>
-        </div>
-
-        :
-        patientMessageBookings.map((b:any)=>{
-
-          const messages=b.messages||[]
-          const last=messages.at(-1)
-
-          const unread=
-            Number(
-              patientMessageUnreadByBooking[b.id]||0
-            )
-
-          const active=
-            activePatientConversation?.id===b.id
-
-          return(
-            <button
-              key={b.id}
-              className={
-                'inbox-conversation-item '+
-                (active?'active ':'')+
-                (unread>0?'unread':'')
-              }
-              onClick={()=>
-                openPatientConversation(b.id)
-              }
-            >
-
-              <div className="inbox-avatar">
-                {initials(
-                  b.professionalName||
-                  'Επαγγελματίας'
-                )}
-              </div>
-
-
-              <div className="inbox-conversation-main">
-
-                <div className="inbox-conversation-top">
-
-                  <strong>
-                    {b.professionalName||
-                     'Επαγγελματίας MELEO'}
-                  </strong>
-
-                  {last?.createdAt&&
-                    <time>
-                      {new Date(
-                        last.createdAt
-                      ).toLocaleTimeString(
-                        'el-GR',
-                        {
-                          hour:'2-digit',
-                          minute:'2-digit'
-                        }
-                      )}
-                    </time>
-                  }
-
-                </div>
-
-
-                <span className="inbox-service">
-                  {b.service||
-                   b.specialty||
-                   'Αίτημα επίσκεψης'}
-                </span>
-
-
-                <div className="inbox-preview-row">
-
-                  <p>
-                    {last?.text||
-                     last?.body||
-                     'Άνοιξε τη συνομιλία'}
-                  </p>
-
-                  {unread>0&&
-                    <b className="conversation-unread">
-                      {unread>99
-                        ? '99+'
-                        : unread
-                      }
-                    </b>
-                  }
-
-                </div>
-
-              </div>
-
-            </button>
-          )
-        })
-      }
-
-    </div>
-
-
-    <div className="patient-inbox-chat">
-
-      {activePatientConversation
-        ?
-        <>
-
-          <div className="inbox-chat-head">
-
-            <div className="inbox-chat-person">
-
-              <div className="inbox-avatar large">
-                {initials(
-                  activePatientConversation.professionalName||
-                  'Επαγγελματίας'
-                )}
-              </div>
-
-              <div>
-
-                <strong>
-                  {activePatientConversation.professionalName||
-                   'Επαγγελματίας MELEO'}
-                </strong>
-
-                <span>
-                  {activePatientConversation.service||
-                   activePatientConversation.specialty||
-                   'Αίτημα επίσκεψης'}
-                </span>
-
-              </div>
-
-            </div>
-
-
-            <span
-              className={
-                'status '+
-                activePatientConversation.status
-              }
-            >
-              {statusLabel(
-                activePatientConversation.status
-              )}
-            </span>
-
-          </div>
-
-
-          <div className="inbox-booking-context">
-
-            <div>
-              <small>Υπηρεσία</small>
-              <strong>
-                {activePatientConversation.service||'—'}
-              </strong>
-            </div>
-
-            <div>
-              <small>Ημερομηνία</small>
-              <strong>
-                {activePatientConversation.date||'—'}
-              </strong>
-            </div>
-
-            <div>
-              <small>Ώρα</small>
-              <strong>
-                {activePatientConversation.time||'—'}
-              </strong>
-            </div>
-
-            <div>
-              <small>Κόστος</small>
-              <strong>
-                {activePatientConversation.agreedPrice
-                  ? money(
-                      activePatientConversation.agreedPrice
-                    )
-                  : activePatientConversation.proposedPrice
-                    ? money(
-                        activePatientConversation.proposedPrice
-                      )
-                    : activePatientConversation.price
-                      ? `Από ${money(
-                          activePatientConversation.price
-                        )}`
-                      : 'Σε αναμονή'
-                }
-              </strong>
-            </div>
-
-          </div>
-
-
-          <div
-  className="inbox-messages"
-  ref={patientInboxMessagesRef}
->
-
-            {(activePatientConversation.messages||[]).length===0
-              ?
-              <div className="chat-empty">
-
-                <span>💬</span>
-
-                <strong>
-                  Ξεκίνα τη συνομιλία
-                </strong>
-
-                <p>
-                  Στείλε μήνυμα στον επαγγελματία
-                  σχετικά με το συγκεκριμένο αίτημα.
-                </p>
-
-              </div>
-
-              :
-              (activePatientConversation.messages||[])
-                .map((m:any)=>{
-
-                  const mine=
-                    m.senderUserId===user.id ||
-                    m.senderRole==='patient'
-
-                  return(
-                    <div
-                      key={m.id}
-                      className={
-                        'inbox-message-row '+
-                        (mine?'mine':'theirs')
-                      }
-                    >
-
-                      <div
-                        className={
-                          'inbox-message-bubble '+
-                          (m.kind||'message')
-                        }
-                      >
-
-                        {!mine&&
-                          <b>
-                            {m.senderName||
-                             activePatientConversation.professionalName||
-                             'Επαγγελματίας'}
-                          </b>
-                        }
-
-                        <p>
-                          {m.text||
-                           m.body||
-                           ''}
-                        </p>
-
-                        <small>
-                          {m.createdAt
-                            ? new Date(
-                                m.createdAt
-                              ).toLocaleString(
-                                'el-GR',
-                                {
-                                  day:'2-digit',
-                                  month:'2-digit',
-                                  hour:'2-digit',
-                                  minute:'2-digit'
-                                }
-                              )
-                            : ''
-                          }
-                        </small>
-
-                      </div>
-
-                    </div>
-                  )
-                })
-            }
-
-          </div>
-
-
-          <div className="inbox-composer">
-
-            <textarea
-              value={patientMessageDraft}
-              onChange={e=>
-                setPatientMessageDraft(
-                  e.target.value
-                )
-              }
-              placeholder="Γράψε μήνυμα στον επαγγελματία…"
-              maxLength={1500}
-              onKeyDown={e=>{
-
-                if(
-                  e.key==='Enter' &&
-                  !e.shiftKey
-                ){
-                  e.preventDefault()
-                  sendPatientInboxMessage()
-                }
-
-              }}
-            />
-
-
-            <div className="inbox-composer-foot">
-
-              <small>
-                Enter για αποστολή · Shift + Enter για νέα γραμμή
-              </small>
-
-              <button
-                className="inbox-send-button"
-                disabled={
-                  !patientMessageDraft.trim() ||
-                  patientMessageSending
-                }
-                onClick={sendPatientInboxMessage}
-              >
-                {patientMessageSending
-                  ? 'Αποστολή…'
-                  : <>
-                      Αποστολή
-                      <span>→</span>
-                    </>
-                }
-              </button>
-
-            </div>
-
-          </div>
-
-        </>
-
-        :
-
-        <div className="inbox-no-selection">
-
-          <span>💬</span>
-
-          <h3>
-            Επίλεξε συνομιλία
-          </h3>
-
-          <p>
-            Επίλεξε έναν επαγγελματία από τη λίστα
-            για να δεις τα μηνύματα.
-          </p>
-
-        </div>
-      }
-
-    </div>
-
-  </>
+  <PatientMessages
+    bookings={patientMessageBookings}
+    unreadByBooking={
+      patientMessageUnreadByBooking
+    }
+    unreadTotal={
+      patientMessageUnreadTotal
+    }
+    activeId={
+      patientConversation||
+      activePatientConversation?.id||
+      ''
+    }
+    draft={
+      patientMessageDraft
+    }
+    sending={
+      patientMessageSending
+    }
+    user={user}
+    setDraft={
+      setPatientMessageDraft
+    }
+    openConversation={
+      openPatientConversation
+    }
+    sendMessage={
+      sendPatientInboxMessage
+    }
+    initials={initials}
+    statusLabel={statusLabel}
+    money={money}
+  />
 }
+
           </section>
 
         </div>
 
 
+        {patientSection!=='messages'&&
         <aside className="patient-care-side">
 
 
@@ -1895,6 +1555,8 @@ onClick={e=>{
           </section>
 
         </aside>
+
+              }
 
       </div>
 
