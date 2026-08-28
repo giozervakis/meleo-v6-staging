@@ -683,25 +683,20 @@ function BookingFlow({
               </label>
 
 
-              <div
-  className="meleo-mobile-booking-submit"
-  data-meleo-mobile-booking-submit="true"
->
-  <button
-    className="btn btn-dark wide"
-    disabled={
-      !form.address ||
-      !contactConsent ||
-      !form.time ||
-      busy
-    }
-    onClick={submit}
-  >
-    {busy
-      ? 'Καταχώρηση...'
-      : 'Αποστολή αιτήματος'}
-  </button>
-</div>
+              <button
+                className="btn btn-dark wide"
+                disabled={
+                  !form.address ||
+                  !contactConsent ||
+                  !form.time ||
+                  busy
+                }
+                onClick={submit}
+              >
+                {busy
+                  ? 'Καταχώρηση...'
+                  : 'Αποστολή αιτήματος'}
+              </button>
 
 
               <button

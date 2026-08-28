@@ -622,7 +622,6 @@ export default function PatientMessages({
                   onKeyDown={e=>{
 
                     if(
-                      !isMobileMessenger &&
                       e.key==='Enter' &&
                       !e.shiftKey
                     ){
@@ -643,16 +642,9 @@ export default function PatientMessages({
 
               </div>
 
-              {!isMobileMessenger
-                ?
-                <small>
-                  Enter για αποστολή · Shift + Enter για νέα γραμμή
-                </small>
-                :
-                <small data-meleo-mobile-chat-hint="true">
-                  Πάτησε το κουμπί αποστολής για να στείλεις το μήνυμα.
-                </small>
-              }
+              <small>
+                Enter για αποστολή · Shift + Enter για νέα γραμμή
+              </small>
 
             </footer>
 
