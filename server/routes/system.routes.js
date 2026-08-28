@@ -26,6 +26,7 @@ export function registerSystemRoutes(
   app,
   {
     config,
+    googleOAuthEnabled,
     APP_VERSION,
     PLANS,
     one,
@@ -42,6 +43,7 @@ export function registerSystemRoutes(
 
   const required = {
     config,
+    googleOAuthEnabled,
     APP_VERSION,
     PLANS,
     one,
@@ -82,7 +84,7 @@ export function registerSystemRoutes(
           config.demoAuth,
 
         googleOAuthEnabled:
-          Boolean(config.googleOAuthEnabled),
+          Boolean(googleOAuthEnabled),
 
         demoCheckout:
           config.demoCheckout,

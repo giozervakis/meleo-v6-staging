@@ -1701,6 +1701,8 @@ registerSystemRoutes(
   app,
   {
     config,
+    googleOAuthEnabled:
+      GOOGLE_OAUTH_CONFIG.enabled,
     APP_VERSION,
     PLANS,
     one,
