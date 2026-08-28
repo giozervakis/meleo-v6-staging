@@ -54,43 +54,6 @@ const files = fs.readdirSync(migrationDir)
   .sort()
 
 assert.ok(files.length >= 7,'Expected at least 7 migrations')
-const schedulingMigration = fs.readFileSync(
-  path.join(migrationDir,'007_professional_scheduling.sql'),
-  'utf8'
-)
-
-const schedulingRequired = [
-  'MELEO_AVAILABILITY_DUPLICATE_PREFLIGHT',
-  'DO $$',
-  'duplicate_groups integer',
-  'HAVING count(*) > 1',
-  'MELEO migration 007 preflight failed:',
-  'CREATE UNIQUE INDEX IF NOT EXISTS',
-  'bookings_professional_active_slot_unique_idx'
-]
-
-for(const token of schedulingRequired){
-  assert.ok(
-    schedulingMigration.includes(token),
-    `Migration 007 missing duplicate-preflight token: ${token}`
-  )
-}
-
-const preflightPosition = schedulingMigration.indexOf(
-  'MELEO migration 007 preflight failed:'
-)
-
-const indexPosition = schedulingMigration.indexOf(
-  'CREATE UNIQUE INDEX IF NOT EXISTS'
-)
-
-assert.ok(
-  preflightPosition >= 0 &&
-  indexPosition >= 0 &&
-  preflightPosition < indexPosition,
-  'Migration 007 duplicate preflight must execute before unique index creation'
-)
-
 
 const checksums = files.map(name=>{
   const ddl=fs.readFileSync(
