@@ -54,6 +54,54 @@ const files = fs.readdirSync(migrationDir)
   .sort()
 
 assert.ok(files.length >= 7,'Expected at least 7 migrations')
+assert.ok(
+  files.includes('008_booking_duplicate_preflight.sql'),
+  'Migration 008 duplicate-booking preflight is missing'
+)
+
+const bookingPreflightMigration = fs.readFileSync(
+  path.join(migrationDir,'008_booking_duplicate_preflight.sql'),
+  'utf8'
+)
+
+const bookingPreflightRequired = [
+  'MELEO_BOOKING_DUPLICATE_PREFLIGHT_V2',
+  'DO $$',
+  'duplicate_groups integer',
+  'HAVING count(*) > 1',
+  'MELEO migration 008 preflight failed:',
+  'CREATE UNIQUE INDEX IF NOT EXISTS',
+  'bookings_professional_active_slot_unique_idx'
+]
+
+for(const token of bookingPreflightRequired){
+  assert.ok(
+    bookingPreflightMigration.includes(token),
+    `Migration 008 missing duplicate-preflight token: ${token}`
+  )
+}
+
+const bookingPreflightPosition = bookingPreflightMigration.indexOf(
+  'MELEO migration 008 preflight failed:'
+)
+
+const bookingIndexPosition = bookingPreflightMigration.indexOf(
+  'CREATE UNIQUE INDEX IF NOT EXISTS'
+)
+
+assert.ok(
+  bookingPreflightPosition >= 0 &&
+  bookingIndexPosition >= 0 &&
+  bookingPreflightPosition < bookingIndexPosition,
+  'Migration 008 duplicate preflight must execute before unique index creation'
+)
+
+assert.ok(
+  !bookingPreflightMigration.includes('DELETE FROM bookings') &&
+  !bookingPreflightMigration.includes('UPDATE bookings'),
+  'Migration 008 must not auto-delete or auto-update conflicting bookings'
+)
+
 
 const checksums = files.map(name=>{
   const ddl=fs.readFileSync(
