@@ -108,30 +108,45 @@ CREATE TABLE IF NOT EXISTS professional_availability_settings (
 
 -- MELEO_AVAILABILITY_DUPLICATE_PREFLIGHT
 --
--- Before applying the active-slot unique index to an existing
--- database, run this query manually.
+-- Abort before creating the unique index when an existing
+-- database contains more than one active booking for the same
+-- professional/date/time slot.
 --
--- SELECT
---   professional_id,
---   visit_date,
---   visit_time,
---   count(*) AS active_booking_count,
---   array_agg(id ORDER BY created_at) AS booking_ids
--- FROM bookings
--- WHERE status IN (
---   'pending',
---   'clarification',
---   'quoted',
---   'accepted'
--- )
--- GROUP BY
---   professional_id,
---   visit_date,
---   visit_time
--- HAVING count(*) > 1;
---
--- Do NOT automatically delete or cancel duplicate bookings.
+-- This migration intentionally does NOT delete, cancel, merge,
+-- or otherwise mutate conflicting bookings.
 
+DO $$
+DECLARE
+  duplicate_groups integer;
+BEGIN
+  SELECT count(*)
+  INTO duplicate_groups
+  FROM (
+    SELECT
+      professional_id,
+      visit_date,
+      visit_time
+    FROM bookings
+    WHERE status IN (
+      'pending',
+      'clarification',
+      'quoted',
+      'accepted'
+    )
+    GROUP BY
+      professional_id,
+      visit_date,
+      visit_time
+    HAVING count(*) > 1
+  ) AS conflicts;
+
+  IF duplicate_groups > 0 THEN
+    RAISE EXCEPTION
+      'MELEO migration 007 preflight failed: % duplicate active booking slot group(s) exist. Resolve duplicates before retrying migration.',
+      duplicate_groups;
+  END IF;
+END
+$$;
 CREATE UNIQUE INDEX IF NOT EXISTS
 bookings_professional_active_slot_unique_idx
 
