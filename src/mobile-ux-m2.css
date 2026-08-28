@@ -1,0 +1,1712 @@
+/* ============================================================
+   MELEO MOBILE UX M2
+   Functional interaction polish
+   ============================================================ */
+
+
+/* ============================================================
+   MOBILE MESSENGER / SOFT KEYBOARD
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .meleo-thread-composer {
+    position: sticky;
+    bottom: 0;
+    z-index: 20;
+    padding-bottom:
+      max(
+        10px,
+        env(safe-area-inset-bottom)
+      );
+    background: inherit;
+  }
+
+  .meleo-thread-input {
+    display: grid;
+    grid-template-columns:
+      minmax(0, 1fr)
+      auto;
+    align-items: end;
+    gap: 8px;
+    width: 100%;
+  }
+
+  .meleo-thread-input textarea {
+    width: 100%;
+    min-width: 0;
+    min-height: 46px;
+    max-height: 132px;
+    resize: none;
+    font-size: 16px;
+    line-height: 1.4;
+    overscroll-behavior: contain;
+  }
+
+  .meleo-thread-input button {
+    flex: 0 0 auto;
+    min-width: 48px;
+    min-height: 48px;
+    border-radius: 14px;
+    touch-action: manipulation;
+  }
+
+  .meleo-thread-composer
+  [data-meleo-mobile-chat-hint="true"] {
+    display: block;
+    margin-top: 6px;
+    line-height: 1.35;
+    opacity: .72;
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE CHAT VIEWPORT SAFETY
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .meleo-messenger,
+  .meleo-thread,
+  .meleo-thread-panel {
+    min-height: 0;
+  }
+
+  .meleo-thread-messages {
+    overscroll-behavior-y: contain;
+    scroll-padding-bottom: 96px;
+  }
+
+}
+
+
+/* ============================================================
+   TOUCH / INPUT SAFETY
+   ============================================================ */
+
+@media (pointer: coarse) {
+
+  .meleo-thread-input button,
+  .meleo-thread-composer button {
+    min-height: 48px;
+  }
+
+}
+
+
+/* ============================================================
+   ACCESSIBILITY
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .meleo-thread-composer,
+  .meleo-thread-input,
+  .meleo-thread-input textarea {
+    scroll-behavior: auto !important;
+  }
+
+}
+
+/* ============================================================
+   PROFILE MOBILE CTA
+   M2-A2 conversion / reachability layer
+   ============================================================ */
+
+
+/*
+   Hidden by default.
+   Desktop keeps the existing premium booking panel.
+*/
+.meleo-mobile-profile-cta {
+  display: none;
+}
+
+
+/* ============================================================
+   MOBILE PROFILE ACTION BAR
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  /*
+     Reserve enough document space so the fixed CTA does not
+     cover the final profile content.
+  */
+  .profile-layout {
+    padding-bottom:
+      calc(
+        92px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+
+  .meleo-mobile-profile-cta {
+    position: fixed;
+
+    left:
+      max(
+        10px,
+        env(safe-area-inset-left)
+      );
+
+    right:
+      max(
+        10px,
+        env(safe-area-inset-right)
+      );
+
+    bottom:
+      max(
+        10px,
+        env(safe-area-inset-bottom)
+      );
+
+    z-index: 80;
+
+    display: grid;
+    grid-template-columns:
+      minmax(92px, .38fr)
+      minmax(0, 1fr);
+
+    gap: 8px;
+
+    padding: 8px;
+
+    border:
+      1px solid
+      rgba(15, 23, 42, .10);
+
+    border-radius: 18px;
+
+    background:
+      rgba(255, 255, 255, .96);
+
+    box-shadow:
+      0 12px 40px
+      rgba(15, 23, 42, .18);
+
+    -webkit-backdrop-filter:
+      blur(16px);
+
+    backdrop-filter:
+      blur(16px);
+  }
+
+
+  /*
+     If a professional does not expose a phone number,
+     the booking action automatically occupies the whole bar.
+  */
+  .meleo-mobile-profile-cta
+  > :only-child {
+    grid-column: 1 / -1;
+  }
+
+
+  .meleo-mobile-profile-call,
+  .meleo-mobile-profile-book {
+    min-width: 0;
+    min-height: 52px;
+
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    gap: 7px;
+
+    padding: 10px 12px;
+
+    border-radius: 13px;
+
+    font: inherit;
+    font-weight: 800;
+    line-height: 1.15;
+
+    text-align: center;
+
+    text-decoration: none;
+
+    cursor: pointer;
+
+    touch-action: manipulation;
+
+    -webkit-tap-highlight-color:
+      transparent;
+  }
+
+
+  .meleo-mobile-profile-call {
+    border:
+      1px solid
+      rgba(15, 23, 42, .16);
+
+    background: #fff;
+    color: #111827;
+  }
+
+
+  .meleo-mobile-profile-book {
+    border: 0;
+    background: #111827;
+    color: #fff;
+  }
+
+
+  .meleo-mobile-profile-cta-icon {
+    flex: 0 0 auto;
+    font-size: 17px;
+    line-height: 1;
+  }
+
+
+  .meleo-mobile-profile-call:focus-visible,
+  .meleo-mobile-profile-book:focus-visible {
+    outline:
+      3px solid
+      rgba(17, 24, 39, .25);
+
+    outline-offset: 2px;
+  }
+
+}
+
+
+/* ============================================================
+   SMALL PHONE SAFETY
+   ============================================================ */
+
+@media (max-width: 390px) {
+
+  .meleo-mobile-profile-cta {
+    left:
+      max(
+        6px,
+        env(safe-area-inset-left)
+      );
+
+    right:
+      max(
+        6px,
+        env(safe-area-inset-right)
+      );
+
+    bottom:
+      max(
+        6px,
+        env(safe-area-inset-bottom)
+      );
+
+    gap: 6px;
+    padding: 6px;
+    border-radius: 16px;
+  }
+
+
+  .meleo-mobile-profile-call,
+  .meleo-mobile-profile-book {
+    min-height: 50px;
+    padding: 9px 8px;
+    font-size: 13px;
+  }
+
+}
+
+
+/* ============================================================
+   TOUCH SAFETY
+   ============================================================ */
+
+@media (pointer: coarse) {
+
+  .meleo-mobile-profile-call,
+  .meleo-mobile-profile-book {
+    min-height: 48px;
+  }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .meleo-mobile-profile-cta,
+  .meleo-mobile-profile-call,
+  .meleo-mobile-profile-book {
+    transition: none !important;
+    animation: none !important;
+  }
+
+}
+
+/* ============================================================
+   BOOKING FLOW MOBILE
+   M2-A3 booking interaction polish
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .booking-layout,
+  .booking-grid,
+  .booking-wrap,
+  .booking-main,
+  .booking-content {
+    min-width: 0;
+    min-height: 0;
+  }
+
+  .booking-layout {
+    display: block;
+  }
+
+  .booking-main,
+  .booking-content {
+    width: 100%;
+    max-width: 100%;
+
+    scroll-padding-bottom:
+      calc(
+        110px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+  .booking-side {
+    position: static !important;
+
+    width: 100%;
+    max-width: 100%;
+
+    margin-top: 20px;
+  }
+
+}
+
+
+/* MOBILE INPUT SAFETY */
+
+@media (max-width: 700px) {
+
+  .booking-main input,
+  .booking-main select,
+  .booking-main textarea,
+  .booking-content input,
+  .booking-content select,
+  .booking-content textarea {
+    width: 100%;
+    max-width: 100%;
+
+    min-height: 46px;
+
+    box-sizing: border-box;
+
+    font-size: 16px;
+  }
+
+  .booking-main textarea,
+  .booking-content textarea {
+    min-height: 96px;
+  }
+
+}
+
+
+/* BOOKING STEPS */
+
+@media (max-width: 700px) {
+
+  .booking-steps {
+    width: 100%;
+    max-width: 100%;
+
+    overflow: hidden;
+  }
+
+  .booking-steps span {
+    min-width: 34px;
+    min-height: 34px;
+  }
+
+}
+
+
+/* TIME SLOTS */
+
+@media (max-width: 700px) {
+
+  .time-grid,
+  .booking-time-grid,
+  .slot-grid {
+    display: grid;
+
+    grid-template-columns:
+      repeat(
+        3,
+        minmax(0, 1fr)
+      );
+
+    gap: 8px;
+
+    width: 100%;
+  }
+
+  .time-grid > *,
+  .booking-time-grid > *,
+  .slot-grid > * {
+    min-width: 0;
+  }
+
+  .time-grid button,
+  .booking-time-grid button,
+  .slot-grid button {
+    width: 100%;
+    min-height: 46px;
+
+    padding: 9px 6px;
+
+    touch-action: manipulation;
+  }
+
+}
+
+
+@media (max-width: 390px) {
+
+  .time-grid,
+  .booking-time-grid,
+  .slot-grid {
+    grid-template-columns:
+      repeat(
+        2,
+        minmax(0, 1fr)
+      );
+  }
+
+}
+
+
+/* CONSENT */
+
+@media (max-width: 700px) {
+
+  .booking-consent {
+    display: grid;
+
+    grid-template-columns:
+      auto
+      minmax(0, 1fr);
+
+    gap: 10px;
+
+    align-items: start;
+
+    width: 100%;
+
+    padding: 12px;
+
+    box-sizing: border-box;
+
+    border-radius: 14px;
+  }
+
+  .booking-consent input[type="checkbox"] {
+    width: 22px;
+    height: 22px;
+    min-height: 22px;
+
+    margin-top: 1px;
+  }
+
+  .booking-consent span {
+    min-width: 0;
+
+    line-height: 1.45;
+  }
+
+}
+
+
+/* FINAL BOOKING CTA */
+
+.meleo-mobile-booking-submit {
+  width: 100%;
+}
+
+
+@media (max-width: 700px) {
+
+  .meleo-mobile-booking-submit {
+    position: sticky;
+
+    bottom:
+      max(
+        8px,
+        env(safe-area-inset-bottom)
+      );
+
+    z-index: 55;
+
+    width: 100%;
+
+    margin-top: 14px;
+
+    padding:
+      10px
+      0
+      max(
+        6px,
+        env(safe-area-inset-bottom)
+      );
+
+    background:
+      linear-gradient(
+        to bottom,
+        rgba(255,255,255,0),
+        rgba(255,255,255,.96) 30%
+      );
+  }
+
+  .meleo-mobile-booking-submit .btn {
+    width: 100%;
+    min-height: 52px;
+
+    border-radius: 14px;
+
+    font-weight: 800;
+
+    touch-action: manipulation;
+
+    box-shadow:
+      0 10px 28px
+      rgba(15,23,42,.15);
+  }
+
+  .meleo-mobile-booking-submit .btn:disabled {
+    box-shadow: none;
+  }
+
+}
+
+
+/* TOUCH SAFETY */
+
+@media (pointer: coarse) {
+
+  .booking-main button,
+  .booking-content button,
+  .booking-side button {
+    min-height: 46px;
+  }
+
+  .meleo-mobile-booking-submit button {
+    min-height: 52px;
+  }
+
+}
+
+
+/* REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .booking-main,
+  .booking-content,
+  .meleo-mobile-booking-submit {
+    scroll-behavior: auto !important;
+    transition: none !important;
+  }
+
+}
+
+/* ============================================================
+   SEARCH RESULTS MOBILE
+   M2-A4 search result card polish
+   ============================================================ */
+
+
+/* RESULTS LAYOUT */
+
+@media (max-width: 700px) {
+
+  .discovery-results {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 12px;
+    width: 100%;
+  }
+
+  .discovery-results > * {
+    min-width: 0;
+  }
+
+}
+
+
+/* PROFESSIONAL CARD */
+
+@media (max-width: 700px) {
+
+  .discovery-card {
+    width: 100%;
+    min-width: 0;
+    border-radius: 20px;
+    overflow: hidden;
+    transform: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .discovery-card:hover {
+    transform: none;
+  }
+
+}
+
+
+/* CARD HEADER */
+
+@media (max-width: 700px) {
+
+  .discovery-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 10px;
+    padding: 14px 14px 10px;
+  }
+
+  .discovery-identity {
+    min-width: 0;
+    flex: 1 1 auto;
+    gap: 10px;
+  }
+
+  .discovery-avatar-wrap {
+    flex: 0 0 auto;
+  }
+
+  .discovery-person {
+    min-width: 0;
+    flex: 1 1 auto;
+  }
+
+  .discovery-name-row {
+    min-width: 0;
+    display: flex;
+    align-items: flex-start;
+    gap: 5px;
+    flex-wrap: wrap;
+  }
+
+  .discovery-name-row h3 {
+    min-width: 0;
+    margin: 0;
+    font-size: clamp(17px, 4.7vw, 20px);
+    line-height: 1.15;
+    overflow-wrap: anywhere;
+  }
+
+  .discovery-person p {
+    margin-top: 4px;
+    margin-bottom: 4px;
+    line-height: 1.3;
+  }
+
+  .discovery-location {
+    display: block;
+    line-height: 1.35;
+    overflow-wrap: anywhere;
+  }
+
+}
+
+
+/* FAVORITE ACTION */
+
+@media (max-width: 700px) {
+
+  .discovery-heart {
+    flex: 0 0 auto;
+    min-width: 46px;
+    min-height: 46px;
+    display: grid;
+    place-items: center;
+    padding: 0;
+    touch-action: manipulation;
+  }
+
+}
+
+
+/* VERIFIED / PREMIUM */
+
+@media (max-width: 700px) {
+
+  .discovery-verified {
+    white-space: normal;
+    line-height: 1.2;
+  }
+
+  .discovery-premium-label {
+    margin-left: 14px;
+    margin-right: 14px;
+    width: fit-content;
+    max-width: calc(100% - 28px);
+  }
+
+}
+
+
+/* SMART MATCH */
+
+@media (max-width: 700px) {
+
+  .discovery-smart-match,
+  .discovery-smart-label,
+  .discovery-ranking-note {
+    max-width: 100%;
+    min-width: 0;
+  }
+
+}
+
+
+/* QUALITY SIGNALS */
+
+@media (max-width: 700px) {
+
+  .discovery-signals {
+    min-width: 0;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .discovery-signals > * {
+    min-width: 0;
+  }
+
+  .discovery-signals span,
+  .discovery-signals small,
+  .discovery-signals b {
+    overflow-wrap: anywhere;
+  }
+
+}
+
+
+/* SERVICES / TAGS */
+
+@media (max-width: 700px) {
+
+  .discovery-card .tag-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 6px;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .discovery-card .tag-row span {
+    max-width: 100%;
+    line-height: 1.25;
+    white-space: normal;
+  }
+
+}
+
+
+/* PRICE + PRIMARY CTA */
+
+@media (max-width: 700px) {
+
+  .discovery-footer {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 10px;
+    align-items: stretch;
+    padding: 12px 14px 14px;
+  }
+
+  .discovery-price {
+    min-width: 0;
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    column-gap: 10px;
+    row-gap: 2px;
+    align-items: end;
+  }
+
+  .discovery-price small {
+    grid-column: 1;
+    min-width: 0;
+  }
+
+  .discovery-price strong {
+    grid-column: 2;
+    grid-row: 1 / span 2;
+    align-self: center;
+    white-space: nowrap;
+  }
+
+  .discovery-price span {
+    grid-column: 1;
+    min-width: 0;
+    line-height: 1.3;
+  }
+
+  .discovery-open {
+    width: 100%;
+    min-height: 52px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 12px 16px;
+    border-radius: 14px;
+    font-weight: 800;
+    touch-action: manipulation;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  .discovery-open span {
+    min-width: 0;
+  }
+
+  .discovery-open b {
+    flex: 0 0 auto;
+    font-size: 20px;
+    line-height: 1;
+  }
+
+}
+
+
+/* SAFETY NOTE */
+
+@media (max-width: 700px) {
+
+  .discovery-safety {
+    display: flex;
+    align-items: flex-start;
+    gap: 7px;
+    padding: 0 14px 14px;
+    line-height: 1.35;
+  }
+
+  .discovery-safety > span {
+    flex: 0 0 auto;
+  }
+
+}
+
+
+/* TOOLBAR / RESULT SUMMARY */
+
+@media (max-width: 700px) {
+
+  .discovery-toolbar {
+    width: 100%;
+    min-width: 0;
+  }
+
+  .discovery-results-summary {
+    min-width: 0;
+    width: 100%;
+  }
+
+}
+
+
+/* ACTIVE FILTERS */
+
+@media (max-width: 700px) {
+
+  .discovery-active-filters {
+    min-width: 0;
+    width: 100%;
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+  }
+
+  .discovery-active-filters > * {
+    flex: 0 0 auto;
+  }
+
+}
+
+
+/* EMPTY RESULTS */
+
+@media (max-width: 700px) {
+
+  .discovery-empty {
+    width: 100%;
+    padding-left: 14px;
+    padding-right: 14px;
+  }
+
+  .discovery-empty-actions {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 8px;
+    width: 100%;
+  }
+
+  .discovery-empty-actions .btn {
+    width: 100%;
+    min-height: 48px;
+  }
+
+}
+
+
+/* TOUCH SAFETY */
+
+@media (pointer: coarse) {
+
+  .discovery-card:hover {
+    transform: none !important;
+  }
+
+  .discovery-heart {
+    min-width: 46px;
+    min-height: 46px;
+    touch-action: manipulation;
+  }
+
+  .discovery-open {
+    min-height: 52px;
+    touch-action: manipulation;
+  }
+
+}
+
+
+/* SMALL PHONE SAFETY */
+
+@media (max-width: 390px) {
+
+  .discovery-card-header {
+    padding: 12px 12px 9px;
+  }
+
+  .discovery-premium-label {
+    margin-left: 12px;
+    margin-right: 12px;
+    max-width: calc(100% - 24px);
+  }
+
+  .discovery-signals,
+  .discovery-card .tag-row {
+    padding-left: 12px;
+    padding-right: 12px;
+  }
+
+  .discovery-footer {
+    padding: 10px 12px 12px;
+  }
+
+  .discovery-safety {
+    padding: 0 12px 12px;
+  }
+
+}
+
+
+/* REDUCED MOTION */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .discovery-card,
+  .discovery-open,
+  .discovery-heart {
+    transition: none !important;
+    animation: none !important;
+  }
+
+}
+
+/* ============================================================
+   HOME / MOBILE NAV
+   M2-A5 home and mobile navigation polish
+   ============================================================ */
+
+
+/* ============================================================
+   MOBILE TOPBAR
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .topbar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+
+    background:
+      rgba(255, 253, 249, .94);
+
+    -webkit-backdrop-filter:
+      blur(18px);
+
+    backdrop-filter:
+      blur(18px);
+
+    border-bottom:
+      1px solid
+      rgba(15, 37, 53, .08);
+  }
+
+  .topbar .navrow {
+    min-height: 64px;
+    height: 64px;
+
+    gap: 8px;
+
+    padding-left:
+      env(safe-area-inset-left);
+
+    padding-right:
+      env(safe-area-inset-right);
+  }
+
+  .brand-btn {
+    min-width: 44px;
+    min-height: 44px;
+
+    display: inline-flex;
+    align-items: center;
+
+    touch-action: manipulation;
+
+    -webkit-tap-highlight-color:
+      transparent;
+  }
+
+  .nav-actions {
+    min-width: 0;
+
+    display: flex;
+
+    align-items: center;
+
+    justify-content: flex-end;
+
+    gap: 6px;
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE USER / ACCOUNT ACTION
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .account-menu-wrap {
+    min-width: 0;
+  }
+
+  .user-pill {
+    min-height: 44px;
+
+    max-width:
+      min(52vw, 210px);
+
+    touch-action: manipulation;
+
+    -webkit-tap-highlight-color:
+      transparent;
+  }
+
+  .user-pill > * {
+    min-width: 0;
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE MENU OVERLAY
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .mobile-menu-overlay {
+    position: fixed;
+
+    inset: 0;
+
+    z-index: 140;
+
+    display: flex;
+
+    align-items: flex-start;
+    justify-content: flex-end;
+
+    padding-top:
+      max(
+        8px,
+        env(safe-area-inset-top)
+      );
+
+    padding-right:
+      max(
+        8px,
+        env(safe-area-inset-right)
+      );
+
+    padding-bottom:
+      max(
+        8px,
+        env(safe-area-inset-bottom)
+      );
+
+    padding-left:
+      max(
+        8px,
+        env(safe-area-inset-left)
+      );
+
+    background:
+      rgba(8, 24, 34, .32);
+
+    -webkit-backdrop-filter:
+      blur(5px);
+
+    backdrop-filter:
+      blur(5px);
+
+    overscroll-behavior:
+      contain;
+  }
+
+}
+
+
+/* ============================================================
+   MOBILE MENU PANEL
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .mobile-menu-panel {
+    width:
+      min(
+        92vw,
+        360px
+      );
+
+    max-height:
+      calc(
+        100dvh -
+        16px -
+        env(safe-area-inset-top) -
+        env(safe-area-inset-bottom)
+      );
+
+    overflow-y:
+      auto;
+
+    overscroll-behavior:
+      contain;
+
+    -webkit-overflow-scrolling:
+      touch;
+
+    border:
+      1px solid
+      rgba(15, 37, 53, .10);
+
+    border-radius:
+      24px;
+
+    background:
+      rgba(255, 253, 249, .985);
+
+    box-shadow:
+      0 24px 70px
+      rgba(8, 24, 34, .24);
+  }
+
+  .mobile-menu-panel button,
+  .mobile-menu-panel a {
+    min-height: 48px;
+
+    touch-action:
+      manipulation;
+
+    -webkit-tap-highlight-color:
+      transparent;
+  }
+
+}
+
+
+/* ============================================================
+   HOME HERO MOBILE
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .hero {
+    padding:
+      26px
+      0
+      36px;
+  }
+
+  .hero-grid {
+    display: grid;
+
+    grid-template-columns:
+      minmax(0, 1fr);
+
+    gap: 22px;
+
+    width: 100%;
+  }
+
+  .hero-copy {
+    min-width: 0;
+
+    width: 100%;
+  }
+
+  .hero-copy h1,
+  .hero h1 {
+    max-width: 100%;
+
+    margin-top: 8px;
+    margin-bottom: 14px;
+
+    font-size:
+      clamp(
+        38px,
+        11vw,
+        48px
+      ) !important;
+
+    line-height:
+      1.02;
+
+    letter-spacing:
+      -.035em;
+
+    text-wrap:
+      balance;
+
+    overflow-wrap:
+      anywhere;
+  }
+
+  .hero-copy > p {
+    max-width: 100%;
+
+    margin-bottom: 18px;
+
+    font-size:
+      16px !important;
+
+    line-height:
+      1.6;
+
+    text-wrap:
+      pretty;
+  }
+
+  .hero .eyebrow {
+    max-width: 100%;
+
+    line-height: 1.35;
+
+    white-space: normal;
+  }
+
+}
+
+
+/* ============================================================
+   HERO SEARCH BOX
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .hero .searchbox,
+  .searchbox {
+    width: 100%;
+
+    min-width: 0;
+
+    display: grid;
+
+    grid-template-columns:
+      minmax(0, 1fr);
+
+    gap: 0;
+
+    padding: 7px;
+
+    border-radius: 20px;
+  }
+
+  .hero .searchfield,
+  .searchfield {
+    min-width: 0;
+
+    width: 100%;
+
+    padding:
+      11px
+      12px;
+
+    border-bottom:
+      1px solid
+      rgba(15, 37, 53, .09);
+  }
+
+  .hero .searchfield:last-of-type {
+    border-bottom:
+      0;
+  }
+
+  .hero .searchfield select,
+  .hero .searchfield input,
+  .searchfield select,
+  .searchfield input {
+    width: 100%;
+
+    min-width: 0;
+
+    font-size:
+      16px !important;
+  }
+
+  .hero .searchbox .divider,
+  .searchbox .divider {
+    display: none;
+  }
+
+  .hero .search-btn,
+  .search-btn {
+    width: 100%;
+
+    min-height: 52px;
+
+    margin-top: 7px;
+
+    justify-content:
+      center;
+
+    border-radius:
+      14px;
+
+    font-weight:
+      850;
+
+    touch-action:
+      manipulation;
+
+    -webkit-tap-highlight-color:
+      transparent;
+  }
+
+}
+
+
+/* ============================================================
+   TRUST STRIP
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .trust-strip {
+    display: grid !important;
+
+    grid-template-columns:
+      minmax(0, 1fr);
+
+    gap: 7px !important;
+
+    width: 100%;
+
+    margin-top: 16px;
+  }
+
+  .trust-strip > * {
+    min-width: 0;
+
+    line-height: 1.35;
+
+    overflow-wrap: anywhere;
+  }
+
+}
+
+
+/* ============================================================
+   HERO DECORATIVE CARD
+   Keep mobile first content focused
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .hero-card-wrap {
+    display: none !important;
+  }
+
+}
+
+
+/* ============================================================
+   BOTTOM MOBILE NAV
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .mobile-nav {
+    position: fixed;
+
+    left: 0;
+    right: 0;
+    bottom: 0;
+
+    z-index: 120;
+
+    height:
+      calc(
+        70px +
+        env(safe-area-inset-bottom)
+      );
+
+    display: grid;
+
+    grid-template-columns:
+      repeat(
+        5,
+        minmax(0, 1fr)
+      );
+
+    padding:
+      4px
+      max(
+        4px,
+        env(safe-area-inset-right)
+      )
+      max(
+        5px,
+        env(safe-area-inset-bottom)
+      )
+      max(
+        4px,
+        env(safe-area-inset-left)
+      );
+
+    background:
+      rgba(255, 253, 249, .96);
+
+    border-top:
+      1px solid
+      rgba(15, 37, 53, .10);
+
+    -webkit-backdrop-filter:
+      blur(18px);
+
+    backdrop-filter:
+      blur(18px);
+
+    box-shadow:
+      0 -12px 34px
+      rgba(15, 37, 53, .08);
+  }
+
+  .mobile-nav button {
+    min-width: 0;
+    min-height: 48px;
+
+    padding:
+      4px
+      2px;
+
+    display: grid;
+
+    place-items: center;
+
+    align-content: center;
+
+    gap: 2px;
+
+    border: 0;
+
+    background:
+      transparent;
+
+    font-size:
+      9px;
+
+    line-height:
+      1.1;
+
+    touch-action:
+      manipulation;
+
+    -webkit-tap-highlight-color:
+      transparent;
+  }
+
+  .mobile-nav button span {
+    line-height: 1;
+  }
+
+  .mobile-nav button.active {
+    font-weight: 850;
+  }
+
+}
+
+
+/* ============================================================
+   CENTER MOBILE ACTION
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .mobile-center {
+    position: relative;
+  }
+
+  .mobile-center span {
+    width: 46px;
+    height: 46px;
+
+    margin-top:
+      -22px;
+
+    border-radius:
+      16px;
+
+    display: grid;
+
+    place-items:
+      center;
+
+    box-shadow:
+      0 12px 28px
+      rgba(15, 37, 53, .22);
+  }
+
+}
+
+
+/* ============================================================
+   PAGE BOTTOM SAFETY
+   ============================================================ */
+
+@media (max-width: 700px) {
+
+  .app-shell {
+    padding-bottom:
+      calc(
+        78px +
+        env(safe-area-inset-bottom)
+      );
+  }
+
+}
+
+
+/* ============================================================
+   SMALL PHONE SAFETY
+   ============================================================ */
+
+@media (max-width: 390px) {
+
+  .hero {
+    padding-top:
+      20px;
+  }
+
+  .hero-copy h1,
+  .hero h1 {
+    font-size:
+      clamp(
+        35px,
+        10.5vw,
+        42px
+      ) !important;
+  }
+
+  .topbar .navrow {
+    gap: 5px;
+  }
+
+  .user-pill {
+    max-width:
+      47vw;
+  }
+
+  .mobile-menu-panel {
+    width:
+      calc(100vw - 16px);
+
+    border-radius:
+      20px;
+  }
+
+  .mobile-nav button {
+    font-size:
+      8px;
+  }
+
+}
+
+
+/* ============================================================
+   TOUCH SAFETY
+   ============================================================ */
+
+@media (pointer: coarse) {
+
+  .brand-btn,
+  .user-pill,
+  .mobile-menu-panel button,
+  .mobile-menu-panel a,
+  .search-btn,
+  .mobile-nav button {
+    min-height:
+      44px;
+
+    touch-action:
+      manipulation;
+  }
+
+}
+
+
+/* ============================================================
+   REDUCED MOTION
+   ============================================================ */
+
+@media (prefers-reduced-motion: reduce) {
+
+  .mobile-menu-overlay,
+  .mobile-menu-panel,
+  .mobile-nav,
+  .search-btn,
+  .user-pill {
+    animation:
+      none !important;
+
+    transition:
+      none !important;
+  }
+
+}
