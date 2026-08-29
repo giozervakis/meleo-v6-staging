@@ -1560,15 +1560,66 @@ registerPublicWebRoutes(
 app.post('/api/webhooks/stripe',express.raw({type:'application/json',limit:'1mb'}),async(req,res)=>{
  const s=getStripe();if(!s||!config.stripe.webhookSecret)return res.status(503).json({error:'Webhook not configured'})
  let event;try{event=s.webhooks.constructEvent(req.body,req.headers['stripe-signature'],config.stripe.webhookSecret)}catch{return res.status(400).json({error:'Invalid signature'})}
- const existing=await one('SELECT * FROM webhook_events WHERE id=$1',[event.id]);if(existing?.status==='completed')return res.json({received:true,duplicate:true})
- await sql(`INSERT INTO webhook_events(id,type,status,attempts,last_attempt_at) VALUES($1,$2,'processing',1,now()) ON CONFLICT(id) DO UPDATE SET status='processing',attempts=webhook_events.attempts+1,last_attempt_at=now(),error=NULL`,[event.id,event.type])
+
+ // Atomic claim: completed/currently-processing events never execute twice.
+ // Failed or stale processing claims may be retried.
+ let claimed=await one(
+   `INSERT INTO webhook_events(id,type,status,attempts,last_attempt_at)
+    VALUES($1,$2,'processing',1,now())
+    ON CONFLICT(id) DO NOTHING RETURNING id`,
+   [event.id,event.type]
+ )
+ if(!claimed){
+   claimed=await one(
+     `UPDATE webhook_events
+      SET status='processing',attempts=attempts+1,last_attempt_at=now(),error=NULL
+      WHERE id=$1 AND (
+        status='failed' OR
+        (status='processing' AND last_attempt_at<now()-interval '5 minutes')
+      )
+      RETURNING id`,
+     [event.id]
+   )
+ }
+ if(!claimed)return res.json({received:true,duplicate:true})
+
  try{
    const obj=event.data.object
-   if(event.type.startsWith('customer.subscription.')) await applyStripeSubscription(obj)
-   if(event.type==='checkout.session.completed'&&obj.subscription){const sub=await s.subscriptions.retrieve(String(obj.subscription));await applyStripeSubscription(sub,true)}
-   if(event.type==='invoice.paid'||event.type==='invoice.payment_failed') await recordInvoice(obj,event.type==='invoice.paid'?'paid':'failed')
-   await sql(`UPDATE webhook_events SET status='completed',completed_at=now() WHERE id=$1`,[event.id]);res.json({received:true})
- }catch(err){await sql(`UPDATE webhook_events SET status='failed',error=$2 WHERE id=$1`,[event.id,String(err?.message||err).slice(0,1000)]);res.status(500).json({error:'Processing failed'})}
+   const eventContext={eventId:event.id,eventCreated:event.created}
+
+   if(event.type.startsWith('customer.subscription.')){
+     // Stripe delivery order is not guaranteed. Re-read canonical state so a
+     // delayed event cannot roll a subscription backwards.
+     let canonical=obj
+     try{
+       canonical=await s.subscriptions.retrieve(String(obj.id))
+     }catch(err){
+       if(event.type!=='customer.subscription.deleted')throw err
+     }
+     await applyStripeSubscription(canonical,false,eventContext)
+   }
+
+   if(event.type==='checkout.session.completed'&&obj.subscription){
+     const sub=await s.subscriptions.retrieve(String(obj.subscription))
+     await applyStripeSubscription(sub,true,eventContext)
+   }
+
+   if(event.type==='invoice.paid'||event.type==='invoice.payment_failed'){
+     await recordInvoice(obj,event.type==='invoice.paid'?'paid':'failed')
+   }
+
+   await sql(
+     `UPDATE webhook_events SET status='completed',completed_at=now(),error=NULL WHERE id=$1`,
+     [event.id]
+   )
+   res.json({received:true})
+ }catch(err){
+   await sql(
+     `UPDATE webhook_events SET status='failed',error=$2 WHERE id=$1`,
+     [event.id,String(err?.message||err).slice(0,1000)]
+   )
+   res.status(500).json({error:'Processing failed'})
+ }
 })
 
 app.use(express.json({ limit: '12mb' }))
