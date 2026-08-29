@@ -159,6 +159,54 @@ export function createBillingService(
       }
     }
 
+    const purpose=
+      String(
+        inv.metadata?.meleoPurpose||
+        ''
+      )
+
+    const isPlanUpgrade=
+      purpose==='plan_upgrade'
+
+    /*
+     * Stripe webhook delivery is not guaranteed to arrive in business-order.
+     *
+     * A one-off BASIC -> PREMIUM invoice can emit a payment_failed event
+     * before the explicit invoices.pay() call succeeds. In that case:
+     * - the endpoint owns the upgrade-specific failure UX
+     * - the generic recurring-subscription failure UX must not fire
+     *
+     * Also keep invoice history monotonic:
+     * - once an invoice is locally paid, a later failed event is ignored
+     * - when paid arrives after failed, remove the stale failed history row
+     */
+    if(status==='failed'){
+      const alreadyPaid=
+        await one(
+          `SELECT 1 ok
+           FROM payments
+           WHERE invoice_id=$1
+             AND status='paid'
+           LIMIT 1`,
+          [inv.id]
+        )
+
+      if(alreadyPaid){
+        return {
+          ignored:true,
+          reason:'already_paid'
+        }
+      }
+    }
+
+    if(status==='paid'){
+      await sql(
+        `DELETE FROM payments
+         WHERE invoice_id=$1
+           AND status='failed'`,
+        [inv.id]
+      )
+    }
     await sql(
       `INSERT INTO payments(
          id,professional_id,invoice_id,amount,currency,status,
@@ -182,7 +230,7 @@ export function createBillingService(
       ]
     )
 
-    if(status==='failed'&&p){
+    if(status==='failed'&&p&&!isPlanUpgrade){
       await Notifications.create(
         p.userId,
         'billing',
