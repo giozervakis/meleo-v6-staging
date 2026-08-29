@@ -9,6 +9,12 @@ export default defineConfig({
     '__MELEO_APP_VERSION__':
       JSON.stringify(
         packageInfo.version
+      ),
+    '__MELEO_BUILD_SHA__':
+      JSON.stringify(
+        process.env.RENDER_GIT_COMMIT ||
+        process.env.GIT_COMMIT ||
+        'local'
       )
   },
   server: {

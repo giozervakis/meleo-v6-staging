@@ -1,7 +1,7 @@
 {
   "name": "meleo-production-architecture",
   "private": true,
-  "version": "7.0.0-rc.1",
+  "version": "7.0.0-rc.2",
   "type": "module",
   "scripts": {
     "dev": "concurrently -n API,WEB -c auto \"npm:dev:api\" \"npm:dev:web\"",
@@ -19,6 +19,7 @@
     "authorization-stripe-check": "node scripts/authorization-stripe-selftest.mjs",
     "transactional-mail-check": "node scripts/transactional-mail-selftest.mjs",
     "database-tls-check": "node scripts/database-tls-selftest.mjs",
+    "release-identity-check": "node scripts/release-identity-selftest.mjs",
     "check": "npm run typecheck && npm run build",
     "security-selftest": "node scripts/security-selftest.mjs",
     "encoding-check": "node scripts/auth-encoding-check.mjs",
@@ -44,7 +45,7 @@
     "security:audit": "npm audit --audit-level=high",
     "security:check": "npm run security:secrets && npm run security-selftest && npm run security:audit",
     "v56-check": "node scripts/v56-check.mjs",
-    "ci:gate": "npm run typecheck && npm run build && npm run frontend-architecture-check && npm run frontend-version-check && npm run architecture-check && npm run v55-check && npm run v56-check && npm run security:secrets && npm run security-selftest && npm run encoding-check && npm run migration-check && npm run booking-concurrency-check && npm run booking-list-check && npm run gdpr-account-check && npm run authorization-stripe-check && npm run transactional-mail-check && npm run database-tls-check",
+    "ci:gate": "npm run typecheck && npm run build && npm run frontend-architecture-check && npm run frontend-version-check && npm run architecture-check && npm run v55-check && npm run v56-check && npm run security:secrets && npm run security-selftest && npm run encoding-check && npm run migration-check && npm run booking-concurrency-check && npm run booking-list-check && npm run gdpr-account-check && npm run authorization-stripe-check && npm run transactional-mail-check && npm run database-tls-check && npm run release-identity-check",
     "release:preflight": "node scripts/release-preflight.mjs",
     "release:tls": "node scripts/tls-readiness.mjs",
     "release:stripe": "node scripts/stripe-readiness.mjs",
