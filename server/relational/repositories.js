@@ -1037,10 +1037,430 @@ export const Notifications={
 
 }
 
+function bookingFromJoinedRow(
+  r,
+  messages=[],
+  review=null
+){
+  if(!r){
+    return null
+  }
+
+  return {
+    id:r.id,
+    patientId:r.patient_id,
+    professionalId:r.professional_id,
+    service:r.service,
+    date:String(r.visit_date).slice(0,10),
+    time:String(r.visit_time).slice(0,5),
+    address:r.address,
+    notes:decryptSensitive(r.notes_encrypted),
+    repeat:r.repeat_rule,
+    status:r.status,
+    price:Number(r.base_price||0),
+    proposedPrice:
+      r.proposed_price==null
+        ? null
+        : Number(r.proposed_price),
+    agreedPrice:
+      r.agreed_price==null
+        ? null
+        : Number(r.agreed_price),
+    patientName:r.patient_name,
+    patientEmail:r.patient_email,
+    patientPhone:r.patient_phone,
+    professionalName:r.professional_name,
+    professionalEmail:r.professional_email,
+    professionalPhone:r.professional_phone,
+    specialty:r.specialty,
+    subscriptionPlan:r.subscription_plan,
+    city:r.city,
+    area:r.area,
+    region:r.region,
+    recoveryParentId:r.recovery_parent_id||null,
+    messages:
+      messages.map(m=>({
+        id:m.id,
+        fromRole:m.fromRole,
+        fromName:m.fromName,
+        body_encrypted:m.body_encrypted,
+        createdAt:m.createdAt,
+        text:decryptSensitive(m.body_encrypted)
+      })),
+    reviewed:!!review,
+    review
+  }
+}
+
 export const Bookings={
-  async byId(bid){const r=await one(`SELECT b.*,pu.name patient_name,pu.email patient_email,pu.phone patient_phone,pru.name professional_name,pru.email professional_email,pru.phone professional_phone,p.specialty,p.subscription_plan,p.city,p.area,p.region FROM bookings b JOIN users pu ON pu.id=b.patient_id JOIN professionals p ON p.id=b.professional_id JOIN users pru ON pru.id=p.user_id WHERE b.id=$1`,[bid]);if(!r)return null;const messages=await many(`SELECT id,sender_role "fromRole",sender_name "fromName",body_encrypted,created_at "createdAt" FROM booking_messages WHERE booking_id=$1 ORDER BY created_at ASC`,[bid]);const review=await one('SELECT id,rating,comment,created_at "createdAt" FROM reviews WHERE booking_id=$1',[bid]);return {id:r.id,patientId:r.patient_id,professionalId:r.professional_id,service:r.service,date:String(r.visit_date).slice(0,10),time:String(r.visit_time).slice(0,5),address:r.address,notes:decryptSensitive(r.notes_encrypted),repeat:r.repeat_rule,status:r.status,price:Number(r.base_price||0),proposedPrice:r.proposed_price==null?null:Number(r.proposed_price),agreedPrice:r.agreed_price==null?null:Number(r.agreed_price),patientName:r.patient_name,patientEmail:r.patient_email,patientPhone:r.patient_phone,professionalName:r.professional_name,professionalEmail:r.professional_email,professionalPhone:r.professional_phone,specialty:r.specialty,subscriptionPlan:r.subscription_plan,city:r.city,area:r.area,region:r.region,recoveryParentId:r.recovery_parent_id||null,messages:messages.map(m=>({...m,text:decryptSensitive(m.body_encrypted)})),reviewed:!!review,review}},
-  async listForUser(user,q={}){const {page,limit,offset}=pagination(q,{defaultLimit:20,maxLimit:100});let where,params;if(user.role==='patient'){where='b.patient_id=$1';params=[user.id]}else if(user.role==='professional'){const p=await Professionals.byUser(user.id);if(String(q.scope||'')==='requested'){where='b.patient_id=$1';params=[user.id]}else if(String(q.scope||'')==='all'){where='(b.patient_id=$1 OR b.professional_id=$2)';params=[user.id,p?.id||'__none__']}else{where='b.professional_id=$1';params=[p?.id||'__none__']}}else{where='true';params=[]}const rows=await many(`SELECT b.id FROM bookings b WHERE ${where} ORDER BY b.created_at DESC LIMIT $${params.length+1} OFFSET $${params.length+2}`,[...params,limit,offset]);const c=await one(`SELECT count(*)::int total FROM bookings b WHERE ${where}`,params);const items=[];for(const r of rows)items.push(await this.byId(r.id));return {items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)}},
-  async create(data){await sql(`INSERT INTO bookings(id,patient_id,professional_id,service,visit_date,visit_time,address,notes_encrypted,repeat_rule,status,base_price,patient_contact_consent_at,recovery_parent_id) VALUES($1,$2,$3,$4,$5,$6,$7,$8,$9,'pending',$10,now(),$11)`,[data.id,data.patientId,data.professionalId,data.service,data.date,data.time,data.address||'',encryptSensitive(data.notes||''),data.repeat||'Μία φορά',data.price||0,data.recoveryParentId||null]);return this.byId(data.id)},
+
+  async byId(bid){
+
+    const r=await one(
+      `
+        SELECT
+          b.*,
+          pu.name patient_name,
+          pu.email patient_email,
+          pu.phone patient_phone,
+          pru.name professional_name,
+          pru.email professional_email,
+          pru.phone professional_phone,
+          p.specialty,
+          p.subscription_plan,
+          p.city,
+          p.area,
+          p.region
+
+        FROM bookings b
+
+        JOIN users pu
+          ON pu.id=b.patient_id
+
+        JOIN professionals p
+          ON p.id=b.professional_id
+
+        JOIN users pru
+          ON pru.id=p.user_id
+
+        WHERE b.id=$1
+      `,
+      [bid]
+    )
+
+    if(!r){
+      return null
+    }
+
+    const [
+      messages,
+      review
+    ]=await Promise.all([
+      many(
+        `
+          SELECT
+            id,
+            sender_role "fromRole",
+            sender_name "fromName",
+            body_encrypted,
+            created_at "createdAt"
+
+          FROM booking_messages
+
+          WHERE booking_id=$1
+
+          ORDER BY created_at ASC
+        `,
+        [bid]
+      ),
+
+      one(
+        `
+          SELECT
+            id,
+            rating,
+            comment,
+            created_at "createdAt"
+
+          FROM reviews
+
+          WHERE booking_id=$1
+        `,
+        [bid]
+      )
+    ])
+
+    return bookingFromJoinedRow(
+      r,
+      messages,
+      review
+    )
+  },
+
+
+  async listForUser(user,q={}){
+
+    const {
+      page,
+      limit,
+      offset
+    }=pagination(
+      q,
+      {
+        defaultLimit:20,
+        maxLimit:100
+      }
+    )
+
+    let where
+    let params
+
+    if(user.role==='patient'){
+
+      where='b.patient_id=$1'
+      params=[user.id]
+
+    }else if(user.role==='professional'){
+
+      const p=
+        await Professionals.byUser(
+          user.id
+        )
+
+      if(String(q.scope||'')==='requested'){
+
+        where='b.patient_id=$1'
+        params=[user.id]
+
+      }else if(String(q.scope||'')==='all'){
+
+        where=
+          '(b.patient_id=$1 OR b.professional_id=$2)'
+
+        params=[
+          user.id,
+          p?.id||'__none__'
+        ]
+
+      }else{
+
+        where='b.professional_id=$1'
+        params=[
+          p?.id||'__none__'
+        ]
+      }
+
+    }else{
+
+      where='true'
+      params=[]
+    }
+
+    const bookingRows=
+      await many(
+        `
+          SELECT
+            b.*,
+            pu.name patient_name,
+            pu.email patient_email,
+            pu.phone patient_phone,
+            pru.name professional_name,
+            pru.email professional_email,
+            pru.phone professional_phone,
+            p.specialty,
+            p.subscription_plan,
+            p.city,
+            p.area,
+            p.region
+
+          FROM bookings b
+
+          JOIN users pu
+            ON pu.id=b.patient_id
+
+          JOIN professionals p
+            ON p.id=b.professional_id
+
+          JOIN users pru
+            ON pru.id=p.user_id
+
+          WHERE ${where}
+
+          ORDER BY b.created_at DESC
+
+          LIMIT $${params.length+1}
+          OFFSET $${params.length+2}
+        `,
+        [
+          ...params,
+          limit,
+          offset
+        ]
+      )
+
+    const countRow=
+      await one(
+        `
+          SELECT
+            count(*)::int total
+
+          FROM bookings b
+
+          WHERE ${where}
+        `,
+        params
+      )
+
+    if(bookingRows.length===0){
+
+      const total=
+        Number(
+          countRow?.total||0
+        )
+
+      return {
+        items:[],
+        page,
+        limit,
+        total,
+        totalPages:
+          Math.ceil(
+            total/limit
+          )
+      }
+    }
+
+    const bookingIds=
+      bookingRows.map(
+        row=>row.id
+      )
+
+    const [
+      messageRows,
+      reviewRows
+    ]=await Promise.all([
+
+      many(
+        `
+          SELECT
+            booking_id "bookingId",
+            id,
+            sender_role "fromRole",
+            sender_name "fromName",
+            body_encrypted,
+            created_at "createdAt"
+
+          FROM booking_messages
+
+          WHERE booking_id = ANY($1::text[])
+
+          ORDER BY
+            booking_id ASC,
+            created_at ASC
+        `,
+        [bookingIds]
+      ),
+
+      many(
+        `
+          SELECT
+            booking_id "bookingId",
+            id,
+            rating,
+            comment,
+            created_at "createdAt"
+
+          FROM reviews
+
+          WHERE booking_id = ANY($1::text[])
+        `,
+        [bookingIds]
+      )
+    ])
+
+    const messagesByBooking=
+      new Map()
+
+    for(const message of messageRows){
+
+      const current=
+        messagesByBooking.get(
+          message.bookingId
+        )||[]
+
+      current.push(message)
+
+      messagesByBooking.set(
+        message.bookingId,
+        current
+      )
+    }
+
+    const reviewsByBooking=
+      new Map(
+        reviewRows.map(
+          review=>[
+            review.bookingId,
+            {
+              id:review.id,
+              rating:review.rating,
+              comment:review.comment,
+              createdAt:review.createdAt
+            }
+          ]
+        )
+      )
+
+    const items=
+      bookingRows.map(
+        row=>
+          bookingFromJoinedRow(
+            row,
+            messagesByBooking.get(row.id)||[],
+            reviewsByBooking.get(row.id)||null
+          )
+      )
+
+    const total=
+      Number(
+        countRow?.total||0
+      )
+
+    return {
+      items,
+      page,
+      limit,
+      total,
+      totalPages:
+        Math.ceil(
+          total/limit
+        )
+    }
+  },
+
+
+  async create(data){
+    await sql(
+      `
+        INSERT INTO bookings(
+          id,
+          patient_id,
+          professional_id,
+          service,
+          visit_date,
+          visit_time,
+          address,
+          notes_encrypted,
+          repeat_rule,
+          status,
+          base_price,
+          patient_contact_consent_at,
+          recovery_parent_id
+        )
+        VALUES(
+          $1,$2,$3,$4,$5,$6,$7,$8,$9,
+          'pending',$10,now(),$11
+        )
+      `,
+      [
+        data.id,
+        data.patientId,
+        data.professionalId,
+        data.service,
+        data.date,
+        data.time,
+        data.address||'',
+        encryptSensitive(data.notes||''),
+        data.repeat||'ΞΞ―Ξ± Ο†ΞΏΟΞ¬',
+        data.price||0,
+        data.recoveryParentId||null
+      ]
+    )
+
+    return this.byId(
+      data.id
+    )
+  },
 async addMessage(
   booking,
   sender,
