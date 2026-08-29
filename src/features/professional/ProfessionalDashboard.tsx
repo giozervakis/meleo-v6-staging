@@ -111,11 +111,48 @@ function CalendarActions({booking}:any){
 }
 function Conversation({messages}:any){if(!messages?.length)return null;return <div className="conversation"><div className="conversation-title">Ιστορικό επικοινωνίας</div>{messages.map((m:any)=><div key={m.id} className={'conversation-msg '+m.fromRole}><div><b>{m.fromName}</b><small>{new Date(m.createdAt).toLocaleString('el-GR')}</small></div><p>{m.text}</p></div>)}</div>}
 
+const PROFESSIONAL_TABS=new Set([
+  'overview',
+  'requests',
+  'messages',
+  'profile',
+  'availability',
+  'reputation',
+  'subscription',
+  'verification',
+  'notifications',
+  'support'
+])
+
+function professionalTabFromLocation(){
+  const requested=
+    String(
+      new URLSearchParams(
+        window.location.search
+      ).get('tab')||
+      ''
+    ).toLowerCase()
+
+  const aliases:Record<string,string>={
+    billing:'subscription',
+    bookings:'requests'
+  }
+
+  const normalized=
+    aliases[requested]||
+    requested
+
+  return PROFESSIONAL_TABS.has(normalized)
+    ? normalized
+    : 'overview'
+}
 function ProfessionalDashboard({user,professional,token,onRefresh,setToast,cfg,setView}:any){
 
   const [bookings,setBookings]=useState<Booking[]>([])
   const [analytics,setAnalytics]=useState<any>(null)
-  const [tab,setTab]=useState('overview')
+  const [tab,setTab]=useState(
+    ()=>professionalTabFromLocation()
+  )
 
   const [messageUnreadByBooking,setMessageUnreadByBooking]=useState<Record<string,number>>({})
   const [messageUnreadTotal,setMessageUnreadTotal]=useState(0)
@@ -124,6 +161,25 @@ function ProfessionalDashboard({user,professional,token,onRefresh,setToast,cfg,s
   const [messageSending,setMessageSending]=useState(false)
   const inboxMessagesRef=useRef<HTMLDivElement|null>(null)
 
+  useEffect(()=>{
+    const syncTabFromUrl=()=>{
+      setTab(
+        professionalTabFromLocation()
+      )
+    }
+
+    window.addEventListener(
+      'popstate',
+      syncTabFromUrl
+    )
+
+    return()=>{
+      window.removeEventListener(
+        'popstate',
+        syncTabFromUrl
+      )
+    }
+  },[])
   const [form,setForm]=useState<any>(professional||{})
   const [vr,setVr]=useState({
     licenseNumber:'',

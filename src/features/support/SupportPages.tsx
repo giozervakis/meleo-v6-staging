@@ -99,6 +99,87 @@ function NotificationsPage({
   }
 
 
+  function notificationActionUrl(
+    notification:any
+  ){
+
+    const raw=
+      String(
+        notification?.actionUrl||
+        ''
+      ).trim()
+
+    if(!raw){
+      return ''
+    }
+
+    if(
+      !raw.startsWith('/') ||
+      raw.startsWith('//')
+    ){
+      return ''
+    }
+
+    try{
+      const parsed=
+        new URL(
+          raw,
+          window.location.origin
+        )
+
+      /*
+       * Legacy MELEO professional deep links used:
+       *   /professional?tab=billing
+       *
+       * The actual routed dashboard path is:
+       *   /professional/dashboard
+       *
+       * Keep old notifications working while all new notifications
+       * use the canonical dashboard route.
+       */
+      if(parsed.pathname==='/professional'){
+        parsed.pathname='/professional/dashboard'
+      }
+
+      const aliases:Record<string,string>={
+        billing:'subscription',
+        subscription:'subscription',
+        requests:'requests',
+        bookings:'requests',
+        messages:'messages',
+        verification:'verification',
+        notifications:'notifications',
+        support:'support',
+        profile:'profile',
+        availability:'availability',
+        reputation:'reputation',
+        overview:'overview'
+      }
+
+      const requestedTab=
+        String(
+          parsed.searchParams.get('tab')||
+          ''
+        ).toLowerCase()
+
+      if(requestedTab){
+        parsed.searchParams.set(
+          'tab',
+          aliases[requestedTab]||
+          requestedTab
+        )
+      }
+
+      return (
+        parsed.pathname+
+        parsed.search+
+        parsed.hash
+      )
+    }
+    catch{
+      return ''
+    }
+  }
   async function mark(
     notification:any
   ){
@@ -116,27 +197,24 @@ function NotificationsPage({
       await load()
     }
 
-    if(notification.actionUrl){
+    const url=
+      notificationActionUrl(
+        notification
+      )
 
-      const url=
-        String(notification.actionUrl)
+    if(url){
+      window.history.pushState(
+        {},
+        '',
+        url
+      )
 
-      if(
-        url.startsWith('/') &&
-        !url.startsWith('//')
-      ){
-        window.history.pushState(
-          {},
-          '',
-          url
-        )
-
-        window.dispatchEvent(
-          new PopStateEvent('popstate')
-        )
-      }
+      window.dispatchEvent(
+        new PopStateEvent('popstate')
+      )
     }
   }
+
 
 
   async function markAll(){

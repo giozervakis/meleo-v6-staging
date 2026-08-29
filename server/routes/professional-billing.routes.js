@@ -263,7 +263,7 @@ export function registerProfessionalBillingRoutes(app,deps) {
           'billing',
           'Η αλλαγή σε BASIC προγραμματίστηκε',
           `Διατηρείς το PREMIUM έως ${date}. Από τότε η συνδρομή σου θα γίνει BASIC.`,
-          {priority:'normal',actionType:'billing',actionUrl:'/professional?tab=billing'}
+          {priority:'normal',actionType:'billing',actionUrl:'/professional/dashboard?tab=subscription'}
         )
 
         mail.subscriptionDowngradeScheduled(
@@ -372,7 +372,7 @@ export function registerProfessionalBillingRoutes(app,deps) {
           'billing',
           'Η αναβάθμιση σε PREMIUM δεν ολοκληρώθηκε',
           'Η χρέωση των 5,00€ δεν ολοκληρώθηκε. Παραμένεις στο BASIC.',
-          {priority:'high',actionType:'billing',actionUrl:'/professional?tab=billing'}
+          {priority:'high',actionType:'billing',actionUrl:'/professional/dashboard?tab=subscription'}
         )
 
         mail.paymentFailed(
@@ -418,7 +418,7 @@ export function registerProfessionalBillingRoutes(app,deps) {
         'billing',
         'Η αναβάθμιση σε PREMIUM ολοκληρώθηκε',
         `Χρεώθηκε η διαφορά των ${chargedAmount}€ και τα PREMIUM προνόμιά σου ενεργοποιήθηκαν άμεσα.`,
-        {priority:'normal',actionType:'billing',actionUrl:'/professional?tab=billing'}
+        {priority:'normal',actionType:'billing',actionUrl:'/professional/dashboard?tab=subscription'}
       )
 
       mail.subscriptionUpgradeCharged(
@@ -486,7 +486,7 @@ export function registerProfessionalBillingRoutes(app,deps) {
       'billing',
       'Η προγραμματισμένη αλλαγή σε BASIC ακυρώθηκε',
       'Η συνδρομή σου παραμένει PREMIUM και θα συνεχίσει να ανανεώνεται ως PREMIUM.',
-      {priority:'normal',actionType:'billing',actionUrl:'/professional?tab=billing'}
+      {priority:'normal',actionType:'billing',actionUrl:'/professional/dashboard?tab=subscription'}
     )
 
     mail.subscriptionDowngradeCancelled(
