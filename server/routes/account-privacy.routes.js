@@ -61,7 +61,7 @@ export function registerAccountPrivacyRoutes(
           .status(400)
           .json({
             error:
-              'Ξ Ο„ΟΞ­Ο‡Ο‰Ξ½ ΞΊΟ‰Ξ΄ΞΉΞΊΟΟ‚ Ξ΄ΞµΞ½ ΞµΞ―Ξ½Ξ±ΞΉ ΟƒΟ‰ΟƒΟ„ΟΟ‚.'
+              '\u039F \u03C4\u03C1\u03AD\u03C7\u03C9\u03BD \u03BA\u03C9\u03B4\u03B9\u03BA\u03CC\u03C2 \u03B4\u03B5\u03BD \u03B5\u03AF\u03BD\u03B1\u03B9 \u03C3\u03C9\u03C3\u03C4\u03CC\u03C2.'
           })
       }
 
@@ -207,7 +207,7 @@ export function registerAccountPrivacyRoutes(
           .status(400)
           .json({
             error:
-              'Ξ›Ξ¬ΞΈΞΏΟ‚ ΞΊΟ‰Ξ΄ΞΉΞΊΟΟ‚.'
+              '\u039B\u03AC\u03B8\u03BF\u03C2 \u03BA\u03C9\u03B4\u03B9\u03BA\u03CC\u03C2.'
           })
       }
 
@@ -263,7 +263,7 @@ export function registerAccountPrivacyRoutes(
               ok:true,
               pending:true,
               message:
-                'Ξ— Ξ΄ΞΉΞ±Ξ³ΟΞ±Ο†Ξ® ΞΈΞ± ΞΏΞ»ΞΏΞΊΞ»Ξ·ΟΟ‰ΞΈΞµΞ― ΞΌΟΞ»ΞΉΟ‚ Ξ±ΞΊΟ…ΟΟ‰ΞΈΞµΞ― Ξ· ΟƒΟ…Ξ½Ξ΄ΟΞΏΞΌΞ®.'
+                '\u0397 \u03B4\u03B9\u03B1\u03B3\u03C1\u03B1\u03C6\u03AE \u03B8\u03B1 \u03BF\u03BB\u03BF\u03BA\u03BB\u03B7\u03C1\u03C9\u03B8\u03B5\u03AF \u03BC\u03CC\u03BB\u03B9\u03C2 \u03B1\u03BA\u03C5\u03C1\u03C9\u03B8\u03B5\u03AF \u03B7 \u03C3\u03C5\u03BD\u03B4\u03C1\u03BF\u03BC\u03AE.'
             })
         }
       }
@@ -331,7 +331,7 @@ export function registerAccountPrivacyRoutes(
               ok:true,
               pending:true,
               message:
-                'Ξ— Ξ΄ΞΉΞ±Ξ³ΟΞ±Ο†Ξ® ΞΈΞ± ΞΏΞ»ΞΏΞΊΞ»Ξ·ΟΟ‰ΞΈΞµΞ― ΞΌΟΞ»ΞΉΟ‚ Ξ±Ο†Ξ±ΞΉΟΞµΞΈΞΏΟΞ½ ΞΌΞµ Ξ±ΟƒΟ†Ξ¬Ξ»ΞµΞΉΞ± Ο„Ξ± Ξ­Ξ³Ξ³ΟΞ±Ο†Ξ± ΞµΟ€Ξ±Ξ»Ξ®ΞΈΞµΟ…ΟƒΞ·Ο‚.'
+                '\u0397 \u03B4\u03B9\u03B1\u03B3\u03C1\u03B1\u03C6\u03AE \u03B8\u03B1 \u03BF\u03BB\u03BF\u03BA\u03BB\u03B7\u03C1\u03C9\u03B8\u03B5\u03AF \u03BC\u03CC\u03BB\u03B9\u03C2 \u03B1\u03C6\u03B1\u03B9\u03C1\u03B5\u03B8\u03BF\u03CD\u03BD \u03BC\u03B5 \u03B1\u03C3\u03C6\u03AC\u03BB\u03B5\u03B9\u03B1 \u03C4\u03B1 \u03AD\u03B3\u03B3\u03C1\u03B1\u03C6\u03B1 \u03B5\u03C0\u03B1\u03BB\u03AE\u03B8\u03B5\u03C5\u03C3\u03B7\u03C2.'
             })
         }
       }
