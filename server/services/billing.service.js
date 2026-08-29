@@ -112,7 +112,92 @@ export function createBillingService(
     return p
   }
 
-  async function recordInvoice(inv,status){let p=null;const sid=inv.subscription||inv.parent?.subscription_details?.subscription;if(sid){const r=await one('SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',[String(sid)]);if(r)p=await Professionals.byUser(r.user_id)}await sql(`INSERT INTO payments(id,professional_id,invoice_id,amount,currency,status,hosted_invoice_url) VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(invoice_id,status) DO NOTHING`,[id('pay'),p?.id||null,inv.id,(inv.amount_paid??inv.amount_due??0)/100,(inv.currency||'eur').toUpperCase(),status,inv.hosted_invoice_url||null]);if(status==='failed'&&p)await Notifications.create(p.userId,'billing','Αποτυχία πληρωμής συνδρομής','Ενημέρωσε τον τρόπο πληρωμής για να παραμείνει ενεργό το προφίλ σου.')}
+  async function recordInvoice(inv,status){
+    let p=null
+
+    const subscriptionRef=
+      inv.subscription ||
+      inv.parent?.subscription_details?.subscription ||
+      inv.metadata?.meleoSubscriptionId ||
+      null
+
+    const subscriptionId=
+      typeof subscriptionRef==='string'
+        ? subscriptionRef
+        : subscriptionRef?.id
+
+    if(subscriptionId){
+      const row=await one(
+        'SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',
+        [String(subscriptionId)]
+      )
+      if(row)p=await Professionals.byUser(row.user_id)
+    }
+
+    if(!p&&inv.metadata?.meleoProfessionalId){
+      p=await Professionals.byId(
+        String(inv.metadata.meleoProfessionalId)
+      )
+    }
+
+    if(!p&&inv.customer){
+      const customerId=
+        typeof inv.customer==='string'
+          ? inv.customer
+          : inv.customer?.id
+
+      if(customerId){
+        const row=await one(
+          `SELECT p.user_id
+           FROM professionals p
+           JOIN users u ON u.id=p.user_id
+           WHERE u.stripe_customer_id=$1
+           LIMIT 1`,
+          [customerId]
+        )
+        if(row)p=await Professionals.byUser(row.user_id)
+      }
+    }
+
+    await sql(
+      `INSERT INTO payments(
+         id,professional_id,invoice_id,amount,currency,status,
+         provider,hosted_invoice_url
+       )
+       VALUES($1,$2,$3,$4,$5,$6,'stripe',$7)
+       ON CONFLICT(invoice_id,status) DO UPDATE SET
+         professional_id=COALESCE(payments.professional_id,EXCLUDED.professional_id),
+         amount=EXCLUDED.amount,
+         currency=EXCLUDED.currency,
+         provider='stripe',
+         hosted_invoice_url=COALESCE(EXCLUDED.hosted_invoice_url,payments.hosted_invoice_url)`,
+      [
+        id('pay'),
+        p?.id||null,
+        inv.id,
+        (inv.amount_paid??inv.amount_due??0)/100,
+        (inv.currency||'eur').toUpperCase(),
+        status,
+        inv.hosted_invoice_url||null
+      ]
+    )
+
+    if(status==='failed'&&p){
+      await Notifications.create(
+        p.userId,
+        'billing',
+        'Αποτυχία πληρωμής συνδρομής',
+        'Ενημέρωσε τον τρόπο πληρωμής για να παραμείνει ενεργό το προφίλ σου.'
+      )
+
+      const u=await Users.byId(p.userId)
+      if(u){
+        mail.paymentFailed(
+          u.email,u.name
+        ).catch(()=>{})
+      }
+    }
+  }
 
   return {
     ensureStripeCustomer,

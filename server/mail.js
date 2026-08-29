@@ -76,7 +76,15 @@ export const mail = {
       <p>Επόμενο βήμα: ολοκλήρωσε το επαγγελματικό προφίλ και υπέβαλε τα στοιχεία επαλήθευσης. Το προφίλ σου γίνεται δημόσια ορατό μόνο μετά την έγκριση.</p>
       <p style="font-size:13px;color:#7a878e">Η απόδειξη/τιμολόγιο αποστέλλεται από τον πάροχο πληρωμών. Μπορείς να ακυρώσεις οποτεδήποτε από τη διαχείριση συνδρομής.</p>`)
   }),
-  subscriptionDowngradeScheduled: (to, name, currentPlan, nextPlan, effectiveDate) => deliver({
+  subscriptionUpgradeCharged: (to, name, amount, nextRenewal) => deliver({
+    to,
+    subject: 'Η αναβάθμιση σε PREMIUM ολοκληρώθηκε — MELEO',
+    html: layout('PREMIUM ενεργό', `<p>Γεια σου ${escapeHtml(name)}, η αναβάθμισή σου από <b>BASIC</b> σε <b>PREMIUM</b> ολοκληρώθηκε επιτυχώς.</p>
+      <p>Χρεώθηκε άμεσα μόνο η διαφορά των <b>${escapeHtml(amount)}€</b>.</p>
+      <p>Τα PREMIUM προνόμιά σου είναι ήδη ενεργά και η ημερομηνία ανανέωσης της συνδρομής σου δεν αλλάζει.</p>
+      <p>Στην επόμενη ανανέωση θα χρεωθεί η κανονική τιμή PREMIUM των <b>14,99€</b>.</p>
+      ${nextRenewal ? `<p style="font-size:13px;color:#7a878e">Επόμενη ανανέωση: ${escapeHtml(new Date(nextRenewal).toLocaleDateString('el-GR'))}</p>` : ''}`)
+  }),  subscriptionDowngradeScheduled: (to, name, currentPlan, nextPlan, effectiveDate) => deliver({
     to,
     subject: `Η αλλαγή σε ${nextPlan} προγραμματίστηκε — MELEO`,
     html: layout('Η αλλαγή πακέτου προγραμματίστηκε', `<p>Γεια σου ${escapeHtml(name)}, η αλλαγή από <b>${escapeHtml(currentPlan)}</b> σε <b>${escapeHtml(nextPlan)}</b> έχει προγραμματιστεί.</p>

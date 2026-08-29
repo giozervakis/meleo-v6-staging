@@ -28,6 +28,7 @@ export function registerProfessionalBillingRoutes(app,deps) {
     mail,
     ensureStripeCustomer,
     applyStripeSubscription,
+    recordInvoice,
     now
   } = deps
 
@@ -278,7 +279,11 @@ export function registerProfessionalBillingRoutes(app,deps) {
         })
       }
 
-      // BASIC -> PREMIUM is immediate and prorated.
+      // BASIC -> PREMIUM:
+      // - fixed €5 difference, charged immediately
+      // - original Stripe billing-cycle anchor remains unchanged
+      // - PREMIUM is activated only after the one-off upgrade invoice is paid
+      // - the paid invoice is recorded locally before the HTTP response returns
       if(existingSchedule?.scheduleId){
         await s.subscriptionSchedules.release(existingSchedule.scheduleId,{
           preserve_cancel_date:true
@@ -291,32 +296,145 @@ export function registerProfessionalBillingRoutes(app,deps) {
           : sub
 
       const item=freshSub.items.data[0]
-      const configured=priceIdFor(plan)
+      const configured=priceIdFor('premium')
+      if(!configured){
+        return res.status(503).json({error:'Δεν έχει ρυθμιστεί Stripe PREMIUM price.'})
+      }
 
+      const customerId=
+        typeof freshSub.customer==='string'
+          ? freshSub.customer
+          : freshSub.customer?.id
+
+      if(!customerId){
+        return res.status(409).json({error:'Δεν βρέθηκε Stripe customer για τη συνδρομή.'})
+      }
+
+      const upgradeAmountCents=
+        Math.max(
+          0,
+          Math.round(
+            (PLANS.premium.price-PLANS.basic.price)*100
+          )
+        )
+
+      let upgradeInvoice
+
+      try{
+        const draftInvoice=await s.invoices.create({
+          customer:customerId,
+          collection_method:'charge_automatically',
+          auto_advance:false,
+          description:'MELEO BASIC → PREMIUM upgrade',
+          metadata:{
+            meleoPurpose:'plan_upgrade',
+            meleoFromPlan:'basic',
+            meleoToPlan:'premium',
+            meleoUserId:u.id,
+            meleoProfessionalId:p.id,
+            meleoSubscriptionId:freshSub.id
+          }
+        })
+
+        await s.invoiceItems.create({
+          customer:customerId,
+          invoice:draftInvoice.id,
+          amount:upgradeAmountCents,
+          currency:'eur',
+          description:'MELEO BASIC → PREMIUM — διαφορά πακέτου',
+          metadata:{
+            meleoPurpose:'plan_upgrade',
+            meleoFromPlan:'basic',
+            meleoToPlan:'premium',
+            meleoUserId:u.id,
+            meleoProfessionalId:p.id,
+            meleoSubscriptionId:freshSub.id
+          }
+        })
+
+        const finalized=
+          await s.invoices.finalizeInvoice(draftInvoice.id)
+
+        upgradeInvoice=
+          await s.invoices.pay(finalized.id)
+
+        if(
+          !upgradeInvoice?.paid &&
+          upgradeInvoice?.status!=='paid'
+        ){
+          const err=new Error('Η χρέωση της διαφοράς δεν ολοκληρώθηκε.')
+          err.statusCode=402
+          throw err
+        }
+      }catch(err){
+        await Notifications.create(
+          p.userId,
+          'billing',
+          'Η αναβάθμιση σε PREMIUM δεν ολοκληρώθηκε',
+          'Η χρέωση των 5,00€ δεν ολοκληρώθηκε. Παραμένεις στο BASIC.',
+          {priority:'high',actionType:'billing',actionUrl:'/professional?tab=billing'}
+        )
+
+        mail.paymentFailed(
+          u.email,u.name
+        ).catch(()=>{})
+
+        return res.status(
+          Number(err?.statusCode||402)
+        ).json({
+          error:
+            'Η χρέωση των 5,00€ δεν ολοκληρώθηκε. Το πακέτο παραμένει BASIC.'
+        })
+      }
+
+      // The one-off €5 invoice is already paid.
+      // Now change only the recurring price; proration is explicitly disabled
+      // so the original renewal date/current_period_end remains intact.
       const updated=await s.subscriptions.update(freshSub.id,{
         items:[{
           id:item.id,
-          ...(configured?{price:configured}:{price_data:lineItemFor(plan).price_data})
+          price:configured
         }],
-        proration_behavior:'create_prorations',
+        proration_behavior:'none',
         cancel_at_period_end:false,
-        metadata:{...freshSub.metadata,plan}
+        metadata:{
+          ...freshSub.metadata,
+          plan:'premium'
+        }
       })
 
       await applyStripeSubscription(updated)
 
+      // Do not wait for Stripe webhook delivery to populate billing history.
+      // recordInvoice is idempotent, therefore the later invoice.paid webhook
+      // safely becomes a no-op for this invoice/status pair.
+      await recordInvoice(upgradeInvoice,'paid')
+
       const refreshed=await Professionals.byId(p.id)
+      const chargedAmount=(upgradeAmountCents/100).toFixed(2)
+
       await Notifications.create(
         p.userId,
         'billing',
-        `Η συνδρομή ${plan.toUpperCase()} ενεργοποιήθηκε`,
-        plan==='premium'
-          ? 'Το PREMIUM ενεργοποιήθηκε άμεσα. Η αναλογική διαφορά υπολογίζεται από το Stripe.'
-          : `Το πακέτο ενημερώθηκε σε ${plan.toUpperCase()}.`,
+        'Η αναβάθμιση σε PREMIUM ολοκληρώθηκε',
+        `Χρεώθηκε η διαφορά των ${chargedAmount}€ και τα PREMIUM προνόμιά σου ενεργοποιήθηκαν άμεσα.`,
         {priority:'normal',actionType:'billing',actionUrl:'/professional?tab=billing'}
       )
 
-      return res.json({changed:true,professional:refreshed})
+      mail.subscriptionUpgradeCharged(
+        u.email,
+        u.name,
+        chargedAmount,
+        refreshed.currentPeriodEnd
+      ).catch(()=>{})
+
+      return res.json({
+        changed:true,
+        charged:true,
+        chargedAmount:Number(chargedAmount),
+        invoiceId:upgradeInvoice.id,
+        professional:refreshed
+      })
     }
 
     const customer=await ensureStripeCustomer(u)

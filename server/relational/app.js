@@ -2315,9 +2315,12 @@ registerProfessionalBillingRoutes(
     priceIdFor,
     lineItemFor,
     Users,
+    Notifications,
+    mail,
     ensureStripeCustomer,
-        now,
-applyStripeSubscription
+    applyStripeSubscription,
+    recordInvoice,
+    now
   }
 )
 
