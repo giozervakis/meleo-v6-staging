@@ -320,9 +320,79 @@ export function registerProfessionalBillingRoutes(app,deps) {
 
       let upgradeInvoice
 
+      /*
+       * Fixed-price upgrades are off-session charges.
+       * Checkout historically did not persist the card as the subscription default,
+       * so existing BASIC subscriptions may have no payment method available to a
+       * manually-created €5 invoice. Resolve and persist one before invoicing.
+       */
+      let paymentMethodId=
+        typeof freshSub.default_payment_method==='string'
+          ? freshSub.default_payment_method
+          : freshSub.default_payment_method?.id
+
+      if(!paymentMethodId){
+        const customer=
+          await s.customers.retrieve(customerId)
+
+        if(!customer?.deleted){
+          paymentMethodId=
+            typeof customer.invoice_settings?.default_payment_method==='string'
+              ? customer.invoice_settings.default_payment_method
+              : customer.invoice_settings?.default_payment_method?.id
+        }
+      }
+
+      if(!paymentMethodId){
+        const methods=
+          await s.paymentMethods.list({
+            customer:customerId,
+            type:'card',
+            limit:10
+          })
+
+        paymentMethodId=
+          methods.data?.[0]?.id||
+          null
+      }
+
+      if(!paymentMethodId){
+        await Notifications.create(
+          p.userId,
+          'billing',
+          'Απαιτείται τρόπος πληρωμής',
+          'Δεν βρέθηκε αποθηκευμένη κάρτα για τη χρέωση των 5,00€. Ενημέρωσε τον τρόπο πληρωμής σου και δοκίμασε ξανά.',
+          {priority:'high',actionType:'billing',actionUrl:'/professional/dashboard?tab=subscription'}
+        )
+
+        return res.status(409).json({
+          error:
+            'Δεν βρέθηκε αποθηκευμένος τρόπος πληρωμής. Ενημέρωσε την κάρτα σου και δοκίμασε ξανά.'
+        })
+      }
+
+      if(!freshSub.default_payment_method){
+        await s.subscriptions.update(
+          freshSub.id,
+          {
+            default_payment_method:paymentMethodId
+          }
+        )
+      }
+
+      await s.customers.update(
+        customerId,
+        {
+          invoice_settings:{
+            default_payment_method:paymentMethodId
+          }
+        }
+      )
+
       try{
         const draftInvoice=await s.invoices.create({
           customer:customerId,
+          default_payment_method:paymentMethodId,
           collection_method:'charge_automatically',
           auto_advance:false,
           description:'MELEO BASIC → PREMIUM upgrade',
@@ -451,6 +521,9 @@ export function registerProfessionalBillingRoutes(app,deps) {
       automatic_tax:config.stripe.automaticTax?{enabled:true}:undefined,
       client_reference_id:u.id,
       subscription_data:{
+        payment_settings:{
+          save_default_payment_method:'on_subscription'
+        },
         metadata:{plan,meleoUserId:u.id,meleoProfessionalId:p.id}
       },
       metadata:{plan,meleoUserId:u.id,meleoProfessionalId:p.id},
