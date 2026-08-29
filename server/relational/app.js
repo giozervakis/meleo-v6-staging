@@ -2330,10 +2330,12 @@ registerBookingCoreRoutes(
     isDate,
     isTime,
     Professionals,
+    Users,
     allowsVisibility,
     id,
     Bookings,
     Notifications,
+    mail,
     audit
   }
 )

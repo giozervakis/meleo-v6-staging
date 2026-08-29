@@ -313,10 +313,12 @@ export function registerBookingCoreRoutes(
     isDate,
     isTime,
     Professionals,
+    Users,
     allowsVisibility,
     id,
     Bookings,
     Notifications,
+    mail,
     audit
   } = deps
   // MELEO V7 PHASE 6E.2 AUTHORITATIVE BOOKING VALIDATION
@@ -477,6 +479,29 @@ export function registerBookingCoreRoutes(
         'Νέο αίτημα επίσκεψης',
         `${req.user.name} · ${service}`
       )
+
+
+
+
+      const professionalUser =
+        await Users.byId(
+          p.userId
+        )
+
+
+      if(professionalUser?.email){
+        mail
+          .newBooking(
+            professionalUser.email,
+            professionalUser.name,
+            service,
+            date,
+            time
+          )
+          .catch(
+            ()=>{}
+          )
+      }
 
 
       await audit(
