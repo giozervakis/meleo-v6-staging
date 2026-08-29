@@ -1821,10 +1821,12 @@ registerAccountPrivacyRoutes(
     verifyPassword,
     passwordPolicy,
     passwordPolicyError,
-    clearSessionCookie
+    clearSessionCookie,
+    deleteVerificationObject,
+    getStripe,
+    now
   }
 )
-
 
 // Geocoding with persistent cache. Nominatim only in dev unless explicitly selected.
 async function geocode(pathname){const key=sha256(pathname);if(config.redis.url){try{const hit=await redisGetJson(config.redis.keyPrefix+'geo:'+key);if(hit)return hit}catch(err){console.warn('[MELEO v5.1] Redis geocode cache fallback:',err.message)}}const cached=await one('SELECT payload FROM geocode_cache WHERE cache_key=$1 AND expires_at>now()',[key]);if(cached){if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,cached.payload,86400).catch(()=>{});return cached.payload;}const provider=(process.env.GEOCODING_PROVIDER||'nominatim').toLowerCase();
