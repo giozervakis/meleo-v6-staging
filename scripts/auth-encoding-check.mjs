@@ -21,23 +21,18 @@ const allowedExtensions = new Set([
 ])
 
 const legacyDebt = new Set([
-  'src/features/home/HomeExperience.tsx',
-  'src/features/professional/availability/ProfessionalAvailability.tsx',
-  'src/features/professional/billing/ProfessionalBilling.tsx',
-  'src/features/professional/reputation/ProfessionalReputation.tsx',
 ])
 
 function suspiciousPairCount(text) {
   let total = 0
 
+  const suspiciousFollower =
+    /[\u039E\u039F](?:[\u0080-\u00FF\u0370-\u038F]|\u0152|\u0153|\u0160|\u0161|\u0178|\u017D|\u017E|\u0192|\u02C6|\u02DC|[\u2013-\u2022]|\u2026|\u2030|\u2039|\u203A|\u20AC|\u2122)/gu
+
   for (const line of text.split(/\r?\n/u)) {
-    const matches =
-      line.match(/[\u039E\u039F][\u0370-\u03FF\u0080-\u00FF]/gu) || []
+    const matches = line.match(suspiciousFollower) || []
 
-    const hasXiPrefix =
-      matches.some(match => match.codePointAt(0) === 0x039e)
-
-    if (matches.length >= 2 && hasXiPrefix) {
+    if (matches.length >= 2) {
       total += matches.length
     }
   }
@@ -81,6 +76,19 @@ function detectorSelfTest() {
 
   const cleanUppercase = '\u03A0\u03A1\u039F\u03A4\u0391\u03A3\u0397 \u039A\u039F\u03A3\u03A4\u039F\u03A5\u03A3'
 
+  const cleanForensicSamples =
+    '\u039E\u03AD\u03C1\u03C9 \u039E\u03B5\u03BA\u03AF\u03BD\u03B1 ' +
+    '\u0395\u03A0\u0395\u0399\u0393\u039F\u03A5\u03A3\u0391 \u0395\u039D\u0394\u0395\u0399\u039E\u0397 ' +
+    '\u0395\u039E\u0391\u0399\u03A1\u0395\u03A3\u0395\u0399\u03A3 \u0397\u039C\u0395\u03A1\u039F\u039C\u0397\u039D\u0399\u0391\u03A3 ' +
+    '\u03A0\u03A1\u039F\u0393\u03A1\u0391\u039C\u039C\u0391\u03A4\u0399\u03A3\u039C\u0395\u039D\u0397 \u039B\u0397\u039E\u0397 ' +
+    '\u0391\u039E\u0399\u039F\u039B\u039F\u0393\u0397\u03A3\u0395\u0399\u03A3'
+
+  const brokenWithoutC1 = String.fromCodePoint(
+    0x039e, 0x00b5,
+    0x039e, 0x00bd,
+    0x039f, 0x0192
+  )
+
   if (inspectText(clean).length !== 0) {
     throw new Error(
       'Encoding detector self-test rejected valid Greek'
@@ -90,6 +98,18 @@ function detectorSelfTest() {
   if (inspectText(cleanUppercase).length !== 0) {
     throw new Error(
       'Encoding detector self-test rejected valid uppercase Greek'
+    )
+  }
+
+  if (inspectText(cleanForensicSamples).length !== 0) {
+    throw new Error(
+      'Encoding detector self-test rejected valid forensic Greek samples'
+    )
+  }
+
+  if (inspectText(brokenWithoutC1).length === 0) {
+    throw new Error(
+      'Encoding detector self-test missed no-C1 mojibake'
     )
   }
 
