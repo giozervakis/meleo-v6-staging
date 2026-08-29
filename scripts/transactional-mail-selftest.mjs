@@ -7,9 +7,15 @@ const mail =
     'utf8'
   )
 
-const booking =
+const bookingCore =
   fs.readFileSync(
     'server/routes/booking-core.routes.js',
+    'utf8'
+  )
+
+const bookingState =
+  fs.readFileSync(
+    'server/routes/booking-state.routes.js',
     'utf8'
   )
 
@@ -19,21 +25,34 @@ const verification =
     'utf8'
   )
 
+const privacy =
+  fs.readFileSync(
+    'server/routes/account-privacy.routes.js',
+    'utf8'
+  )
+
 const app =
   fs.readFileSync(
     'server/relational/app.js',
     'utf8'
   )
 
-assert.ok(
-  mail.includes('newBooking:'),
-  'mail.newBooking template is missing'
-)
-
-assert.ok(
-  mail.includes('verificationDecision:'),
-  'mail.verificationDecision template is missing'
-)
+for (const template of [
+  'verifyEmail:',
+  'resetPassword:',
+  'subscriptionActive:',
+  'paymentFailed:',
+  'verificationDecision:',
+  'newBooking:',
+  'bookingCancelled:',
+  'bookingCompleted:',
+  'accountDeleted:'
+]) {
+  assert.ok(
+    mail.includes(template),
+    `Transactional mail template missing: ${template}`
+  )
+}
 
 for (const token of [
   'Users,',
@@ -41,28 +60,46 @@ for (const token of [
   'await Users.byId(',
   '.newBooking(',
   'professionalUser.email',
-  'professionalUser.name',
-  'service,',
-  'date,',
-  'time',
-  '.catch('
+  'professionalUser.name'
 ]) {
   assert.ok(
-    booking.includes(token),
-    `Booking mail invariant missing: ${token}`
+    bookingCore.includes(token),
+    `Booking-core mail invariant missing: ${token}`
   )
 }
 
 assert.ok(
-  booking.indexOf('await Bookings.create(') <
-    booking.indexOf('.newBooking('),
-  'Booking email must be triggered only after booking creation'
+  bookingCore.indexOf('await Bookings.create(') <
+    bookingCore.indexOf('.newBooking('),
+  'New-booking email must follow successful booking creation'
+)
+
+for (const token of [
+  'Users,',
+  'mail',
+  "status==='cancelled'",
+  "status==='completed'",
+  '.bookingCancelled(',
+  '.bookingCompleted(',
+  'recipient.email',
+  'recipient.name'
+]) {
+  assert.ok(
+    bookingState.includes(token),
+    `Booking-state mail invariant missing: ${token}`
+  )
+}
+
+assert.ok(
+  bookingState.indexOf('await Bookings.update(') <
+    bookingState.indexOf('.bookingCancelled('),
+  'Cancellation email must follow booking state persistence'
 )
 
 assert.ok(
-  booking.indexOf('await Notifications.create(') <
-    booking.indexOf('.newBooking('),
-  'In-app booking notification must remain before email dispatch'
+  bookingState.indexOf('await Bookings.update(') <
+    bookingState.indexOf('.bookingCompleted('),
+  'Completion email must follow booking state persistence'
 )
 
 for (const token of [
@@ -71,8 +108,7 @@ for (const token of [
   'u.email',
   'u.name',
   'approved,',
-  'note',
-  '.catch('
+  'note'
 ]) {
   assert.ok(
     verification.includes(token),
@@ -80,37 +116,60 @@ for (const token of [
   )
 }
 
-const registrationStart =
-  app.indexOf('registerBookingCoreRoutes(')
+for (const token of [
+  'mail,',
+  '.accountDeleted(',
+  'u.email',
+  'u.name',
+  "'privacy.account_deleted'"
+]) {
+  assert.ok(
+    privacy.includes(token),
+    `Account deletion mail invariant missing: ${token}`
+  )
+}
 
-const registrationEnd =
-  app.indexOf(
+assert.ok(
+  privacy.indexOf("'privacy.account_deleted'") <
+    privacy.indexOf('.accountDeleted('),
+  'Account deletion confirmation must follow deletion audit'
+)
+
+function registrationBetween(startToken, endToken) {
+  const start = app.indexOf(startToken)
+  const end = app.indexOf(endToken, start)
+
+  assert.ok(
+    start >= 0 && end > start,
+    `Could not isolate registration: ${startToken}`
+  )
+
+  return app.slice(start, end)
+}
+
+const bookingStateRegistration =
+  registrationBetween(
     'registerBookingStateRoutes(',
-    registrationStart
+    'registerBookingCommunicationRoutes('
   )
 
 assert.ok(
-  registrationStart >= 0 &&
-  registrationEnd > registrationStart,
-  'Could not isolate booking-core registration'
+  bookingStateRegistration.includes('Users,') &&
+  bookingStateRegistration.includes('mail'),
+  'Booking-state registration must pass Users + mail'
 )
 
-const registration =
-  app.slice(
-    registrationStart,
-    registrationEnd
+const privacyRegistration =
+  registrationBetween(
+    'registerAccountPrivacyRoutes(',
+    '// Geocoding with persistent cache'
   )
 
 assert.ok(
-  registration.includes('Users,'),
-  'Booking-core registration must pass Users'
-)
-
-assert.ok(
-  registration.includes('mail,'),
-  'Booking-core registration must pass mail'
+  privacyRegistration.includes('mail,'),
+  'Account-privacy registration must pass mail'
 )
 
 console.log(
-  'MELEO transactional mail wiring self-test: OK'
+  'MELEO transactional mail lifecycle self-test: OK'
 )

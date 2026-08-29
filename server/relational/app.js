@@ -1875,6 +1875,7 @@ registerAccountPrivacyRoutes(
     clearSessionCookie,
     deleteVerificationObject,
     getStripe,
+    mail,
     now
   }
 )
@@ -2348,8 +2349,10 @@ registerBookingStateRoutes(
     str,
     Bookings,
     Professionals,
+    Users,
     canEditBooking,
-    Notifications
+    Notifications,
+    mail
   }
 )
 

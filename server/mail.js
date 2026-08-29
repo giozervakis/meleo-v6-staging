@@ -94,5 +94,25 @@ export const mail = {
     subject: 'Νέο αίτημα επίσκεψης — MELEO',
     html: layout('Νέο αίτημα', `<p>Γεια σου ${escapeHtml(name)}, έχεις νέο αίτημα: <b>${escapeHtml(service)}</b> · ${escapeHtml(date)} ${escapeHtml(time)}.</p>
       <p>Μπες στο dashboard για να απαντήσεις, να ζητήσεις διευκρινίσεις ή να προτείνεις τελικό κόστος.</p>`)
+  }),
+  bookingCancelled: (to, name, service, date, time) => deliver({
+    to,
+    subject: 'Ακύρωση κράτησης — MELEO',
+    html: layout('Η κράτηση ακυρώθηκε', `<p>Γεια σου ${escapeHtml(name)}, η κράτηση για <b>${escapeHtml(service)}</b> στις ${escapeHtml(date)} ${escapeHtml(time)} ακυρώθηκε.</p>
+      <p>Μπορείς να δεις την ενημερωμένη κατάσταση από το dashboard σου.</p>`)
+  }),
+  bookingCompleted: (to, name, service) => deliver({
+    to,
+    subject: 'Η επίσκεψη ολοκληρώθηκε — αξιολόγησε την εμπειρία σου',
+    html: layout('Η επίσκεψη ολοκληρώθηκε', `<p>Γεια σου ${escapeHtml(name)}, η επίσκεψη για <b>${escapeHtml(service)}</b> σημειώθηκε ως ολοκληρωμένη.</p>
+      <p>Η αξιολόγησή σου βοηθά άλλους χρήστες να επιλέξουν με μεγαλύτερη εμπιστοσύνη και βοηθά τη MELEO να διατηρεί ποιοτικά επαγγελματικά προφίλ.</p>
+      <p>Μπες στο dashboard σου για να αφήσεις την αξιολόγησή σου.</p>`)
+  }),
+  accountDeleted: (to, name) => deliver({
+    to,
+    subject: 'Ο λογαριασμός σας στη MELEO διαγράφηκε',
+    html: layout('Η διαγραφή ολοκληρώθηκε', `<p>Γεια σου ${escapeHtml(name)}, η διαγραφή του λογαριασμού σου στη MELEO ολοκληρώθηκε.</p>
+      <p>Τα στοιχεία που προβλέπεται να αφαιρεθούν ή να ανωνυμοποιηθούν έχουν υποβληθεί στη διαδικασία διαγραφής σύμφωνα με τη λειτουργία του λογαριασμού.</p>
+      <p style="font-size:13px;color:#7a878e">Αν δεν πραγματοποίησες εσύ αυτή την ενέργεια, επικοινώνησε άμεσα με την υποστήριξη.</p>`)
   })
 }

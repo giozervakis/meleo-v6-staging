@@ -34,6 +34,7 @@ export function registerAccountPrivacyRoutes(
     clearSessionCookie,
     deleteVerificationObject,
     getStripe,
+    mail,
     now
   } = deps
 
@@ -586,6 +587,15 @@ export function registerAccountPrivacyRoutes(
             verificationDocuments.length
         }
       ).catch(()=>{})
+
+      mail
+        .accountDeleted(
+          u.email,
+          u.name
+        )
+        .catch(
+          ()=>{}
+        )
 
       clearSessionCookie(res)
 
