@@ -21,7 +21,6 @@ const allowedExtensions = new Set([
 ])
 
 const legacyDebt = new Set([
-  'server/relational/repositories.js',
   'src/Account.tsx',
   'src/App.tsx',
   'src/features/admin/AdminPage.tsx',

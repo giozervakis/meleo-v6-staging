@@ -1451,7 +1451,7 @@ export const Bookings={
         data.time,
         data.address||'',
         encryptSensitive(data.notes||''),
-        data.repeat||'ΞΞ―Ξ± Ο†ΞΏΟΞ¬',
+        data.repeat||'\u03BC\u03AF\u03B1 \u03C6\u03BF\u03C1\u03AC',
         data.price||0,
         data.recoveryParentId||null
       ]
