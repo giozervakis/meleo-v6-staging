@@ -78,16 +78,16 @@ export const mail = {
   }),
   subscriptionDowngradeScheduled: (to, name, currentPlan, nextPlan, effectiveDate) => deliver({
     to,
-    subject: ``Η αλλαγή σε `${nextPlan} προγραμματίστηκε — MELEO``,
-    html: layout('Η αλλαγή πακέτου προγραμματίστηκε', ``<p>Γεια σου `${escapeHtml(name)}, η αλλαγή από <b>`${escapeHtml(currentPlan)}</b> σε <b>`${escapeHtml(nextPlan)}</b> έχει προγραμματιστεί.</p>
-      <p>Μέχρι και <b>`${escapeHtml(effectiveDate)}</b> διατηρείς όλα τα προνόμια του `${escapeHtml(currentPlan)} που έχεις ήδη πληρώσει.</p>
-      <p>Από την επόμενη ανανέωση θα ισχύει το `${escapeHtml(nextPlan)}. Μπορείς να ακυρώσεις την προγραμματισμένη αλλαγή από τη διαχείριση συνδρομής πριν τεθεί σε ισχύ.</p>``)
+    subject: `Η αλλαγή σε ${nextPlan} προγραμματίστηκε — MELEO`,
+    html: layout('Η αλλαγή πακέτου προγραμματίστηκε', `<p>Γεια σου ${escapeHtml(name)}, η αλλαγή από <b>${escapeHtml(currentPlan)}</b> σε <b>${escapeHtml(nextPlan)}</b> έχει προγραμματιστεί.</p>
+      <p>Μέχρι και <b>${escapeHtml(effectiveDate)}</b> διατηρείς όλα τα προνόμια του ${escapeHtml(currentPlan)} που έχεις ήδη πληρώσει.</p>
+      <p>Από την επόμενη ανανέωση θα ισχύει το ${escapeHtml(nextPlan)}. Μπορείς να ακυρώσεις την προγραμματισμένη αλλαγή από τη διαχείριση συνδρομής πριν τεθεί σε ισχύ.</p>`)
   }),
   subscriptionDowngradeCancelled: (to, name, currentPlan) => deliver({
     to,
     subject: 'Η προγραμματισμένη αλλαγή πακέτου ακυρώθηκε — MELEO',
-    html: layout('Η αλλαγή πακέτου ακυρώθηκε', ``<p>Γεια σου `${escapeHtml(name)}, η προγραμματισμένη αλλαγή πακέτου ακυρώθηκε.</p>
-      <p>Η συνδρομή σου παραμένει <b>`${escapeHtml(currentPlan)}</b> και θα συνεχίσει να ανανεώνεται κανονικά.</p>``)
+    html: layout('Η αλλαγή πακέτου ακυρώθηκε', `<p>Γεια σου ${escapeHtml(name)}, η προγραμματισμένη αλλαγή πακέτου ακυρώθηκε.</p>
+      <p>Η συνδρομή σου παραμένει <b>${escapeHtml(currentPlan)}</b> και θα συνεχίσει να ανανεώνεται κανονικά.</p>`)
   }),
   paymentFailed: (to, name) => deliver({
     to,
