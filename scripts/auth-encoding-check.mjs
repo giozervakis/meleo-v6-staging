@@ -21,17 +21,10 @@ const allowedExtensions = new Set([
 ])
 
 const legacyDebt = new Set([
-  'src/Account.tsx',
-  'src/App.tsx',
-  'src/features/admin/AdminPage.tsx',
   'src/features/home/HomeExperience.tsx',
-  'src/features/professional/ProfessionalDashboard.tsx',
   'src/features/professional/availability/ProfessionalAvailability.tsx',
   'src/features/professional/billing/ProfessionalBilling.tsx',
   'src/features/professional/reputation/ProfessionalReputation.tsx',
-  'src/features/professional/verification/ProfessionalVerification.tsx',
-  'src/features/profile/Profile.tsx',
-  'src/styles.css'
 ])
 
 function suspiciousPairCount(text) {
@@ -41,7 +34,10 @@ function suspiciousPairCount(text) {
     const matches =
       line.match(/[\u039E\u039F][\u0370-\u03FF\u0080-\u00FF]/gu) || []
 
-    if (matches.length >= 2) {
+    const hasXiPrefix =
+      matches.some(match => match.codePointAt(0) === 0x039e)
+
+    if (matches.length >= 2 && hasXiPrefix) {
       total += matches.length
     }
   }
@@ -83,9 +79,17 @@ function detectorSelfTest() {
     0x039f, 0x0083
   )
 
+  const cleanUppercase = '\u03A0\u03A1\u039F\u03A4\u0391\u03A3\u0397 \u039A\u039F\u03A3\u03A4\u039F\u03A5\u03A3'
+
   if (inspectText(clean).length !== 0) {
     throw new Error(
       'Encoding detector self-test rejected valid Greek'
+    )
+  }
+
+  if (inspectText(cleanUppercase).length !== 0) {
+    throw new Error(
+      'Encoding detector self-test rejected valid uppercase Greek'
     )
   }
 

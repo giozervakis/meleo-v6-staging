@@ -10502,8 +10502,8 @@
 @media (min-width: 981px) {
 
   /*
-   * Ξ¤ΞΏ professional workspace Ο€ΟΞ­Ο€ΞµΞΉ Ξ½Ξ± ΞΊΞ±Ο„Ξ±Ξ»Ξ±ΞΌΞ²Ξ¬Ξ½ΞµΞΉ Ο„ΞΏΟ…Ξ»Ξ¬Ο‡ΞΉΟƒΟ„ΞΏΞ½
-   * ΞΏΞ»ΟΞΊΞ»Ξ·ΟΞΏ Ο„ΞΏ Ξ΄ΞΉΞ±ΞΈΞ­ΟƒΞΉΞΌΞΏ viewport ΞΊΞ¬Ο„Ο‰ Ξ±Ο€Ο Ο„ΞΏ main header.
+   * The professional workspace must fill at least
+   * the viewport available below the main header.
    */
   .dashboard-pro {
     position: relative;
@@ -10513,8 +10513,8 @@
   }
 
   /*
-   * Ξ¤ΞΏ content ΞΊΟΞ±Ο„Ξ¬ Ο„ΞΏ dashboard Ξ±Ξ½ΞΏΞΉΟ‡Ο„Ο ΞΌΞ­Ο‡ΟΞΉ Ο„ΞΏ Ο„Ξ­Ξ»ΞΏΟ‚
-   * ΞΊΞ±ΞΉ Ξ΄ΞµΞ½ Ξ±Ο†Ξ®Ξ½ΞµΞΉ Ο„ΞΏ footer Ξ½Ξ± Ξ±Ξ½ΞµΞ²Ξ±Ξ―Ξ½ΞµΞΉ Ο€ΟΟΟ‰ΟΞ±.
+   * Keep dashboard content open through the available page height
+   * so the global footer stays below the workspace.
    */
   .pro-content {
     position: relative;
@@ -10524,8 +10524,8 @@
   }
 
   /*
-   * Ξ¤ΞΏ sidebar Ο€Ξ±ΟΞ±ΞΌΞ­Ξ½ΞµΞΉ ΞΌΞ­ΟƒΞ± ΟƒΟ„ΞΏ grid.
-   * Ξ‘Ξ½ Ο…Ο€Ξ®ΟΟ‡Ξµ fixed/absolute declaration Ο„Ξ·Ξ½ Ξ±ΞΊΟ…ΟΟΞ½ΞΏΟ…ΞΌΞµ.
+   * Keep the sidebar inside the grid.
+   * Neutralize any fixed or absolute positioning here.
    */
   .pro-sidebar {
     position: sticky !important;
@@ -10544,7 +10544,7 @@
   }
 
   /*
-   * Ξ¤ΞΏ sidebar Ξ΄ΞΏΟ…Ξ»ΞµΟΞµΞΉ Ο‰Ο‚ Ο€ΟΞ±Ξ³ΞΌΞ±Ο„ΞΉΞΊΞ® ΞΊΞ¬ΞΈΞµΟ„Ξ· ΟƒΟ„Ξ®Ξ»Ξ·.
+   * The sidebar behaves as a real vertical column.
    */
   .pro-sidebar {
     display: flex;
@@ -10552,15 +10552,15 @@
   }
 
   /*
-   * Navigation / user information Ξ΄ΞµΞ½ ΟƒΟ…ΞΌΟ€ΞΉΞ­Ξ¶ΞΏΞ½Ο„Ξ±ΞΉ.
+   * Navigation / user information must not be compressed.
    */
   .pro-sidebar > * {
     flex-shrink: 0;
   }
 
   /*
-   * Ξ¤ΞΏ Ο„ΞµΞ»ΞµΟ…Ο„Ξ±Ξ―ΞΏ Ξ²ΞΏΞ·ΞΈΞ·Ο„ΞΉΞΊΟ block ΞΌΞ­Ξ½ΞµΞΉ ΞΌΞ­ΟƒΞ± ΟƒΟ„ΞΏ sidebar
-   * ΞΊΞ±ΞΉ ΟΟ‡ΞΉ Ο€Ξ¬Ξ½Ο‰ ΟƒΟ„ΞΏ global footer.
+   * Keep the final helper block inside the sidebar,
+   * not above the global footer.
    */
   .pro-sidebar > :last-child {
     position: relative !important;
