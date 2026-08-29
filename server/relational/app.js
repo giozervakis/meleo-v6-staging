@@ -57,17 +57,6 @@ import { registerPublicWebRoutes } from '../routes/public-web.routes.js'
 assertProductionReady()
 await migrate()
 
-// RC3-B3 temporary staging runtime proof.
-// No Stripe secrets are logged or returned over HTTP.
-if (
-  config.isStaging &&
-  String(process.env.PAYMENTS_MODE || '').trim().toLowerCase() === 'stripe'
-) {
-  const { runStripeRuntimeProbe } =
-    await import('../stripe-runtime-probe.js')
-  await runStripeRuntimeProbe(config)
-}
-
 /**
  * MELEO Google OAuth / OpenID Connect
  * Phase 2A foundation.
