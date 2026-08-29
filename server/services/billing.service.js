@@ -101,8 +101,8 @@ export function createBillingService(
     if(notifyUser&&status==='active'){
       await Notifications.create(
         p.userId,'subscription',
-        `Ξ— ΟƒΟ…Ξ½Ξ΄ΟΞΏΞΌΞ® ${plan.toUpperCase()} ΞµΞ―Ξ½Ξ±ΞΉ ΞµΞ½ΞµΟΞ³Ξ®`,
-        `${PLANS[plan].price.toFixed(2)}β‚¬/ΞΌΞ®Ξ½Ξ±`
+        `\u0397 \u03c3\u03c5\u03bd\u03b4\u03c1\u03bf\u03bc\u03ae ${plan.toUpperCase()} \u03b5\u03af\u03bd\u03b1\u03b9 \u03b5\u03bd\u03b5\u03c1\u03b3\u03ae`,
+        `${PLANS[plan].price.toFixed(2)}\u20ac/\u03bc\u03ae\u03bd\u03b1`
       )
       const u=await Users.byId(p.userId)
       mail.subscriptionActive(

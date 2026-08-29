@@ -40,6 +40,13 @@ for(const token of [
   "applyStripeSubscription(canonical,false,eventContext)"
 ])assert.ok(app.includes(token),`Missing webhook invariant: ${token}`)
 
+assert.ok(!billing.includes('\uFFFD'),'billing.service.js contains U+FFFD')
+assert.ok(!billing.includes('\u039E'),'billing.service.js contains historical mojibake marker U+039E')
+assert.ok(
+  billing.includes('\\u0397 \\u03c3\\u03c5\\u03bd\\u03b4\\u03c1\\u03bf\\u03bc\\u03ae'),
+  'Billing notification must remain encoding-safe'
+)
+
 for(const token of [
   'last_stripe_event_created',
   'last_stripe_event_id',
