@@ -9,12 +9,93 @@ import { config, root } from '../config.js'
 const scryptAsync = promisify(crypto.scrypt)
 let pool
 
+function databaseSslMode(databaseUrl){
+  try{
+    const url=new URL(databaseUrl)
+    return String(
+      url.searchParams.get('sslmode')||''
+    ).toLowerCase()
+  }catch{
+    return ''
+  }
+}
+
+function databaseConnectionString(databaseUrl){
+  try{
+    const url=new URL(databaseUrl)
+
+    /*
+     * node-postgres may replace an explicit ssl object when sslmode/sslrootcert
+     * are present in the connection string. TLS policy is therefore resolved
+     * by MELEO and these libpq SSL query parameters are removed before Pool
+     * construction.
+     */
+    for(const key of [
+      'sslmode',
+      'sslrootcert',
+      'sslcert',
+      'sslkey'
+    ]){
+      url.searchParams.delete(key)
+    }
+
+    return url.toString()
+  }catch{
+    return databaseUrl
+  }
+}
+
+function databaseCa(){
+  if(config.databaseSslCaPem){
+    return String(config.databaseSslCaPem)
+      .replace(/\\n/g,'\n')
+  }
+
+  if(config.databaseSslCaFile){
+    return fs.readFileSync(
+      path.resolve(
+        root,
+        config.databaseSslCaFile
+      ),
+      'utf8'
+    )
+  }
+
+  return undefined
+}
+
+export function databaseTlsOptions(
+  databaseUrl=config.databaseUrl
+){
+  const sslMode=
+    databaseSslMode(databaseUrl)
+
+  const needsSsl=
+    config.databaseSsl ||
+    [
+      'require',
+      'verify-ca',
+      'verify-full'
+    ].includes(sslMode)
+
+  if(!needsSsl){
+    return undefined
+  }
+
+  const ca=databaseCa()
+
+  return {
+    rejectUnauthorized:true,
+    ...(ca ? {ca} : {})
+  }
+}
+
 export function getPool(){
   if(pool) return pool
   if(!config.databaseUrl) throw new Error('DATABASE_URL απαιτείται για το relational backend')
-  const needsSsl = /[?&]sslmode=require/.test(config.databaseUrl) || config.databaseSsl
+
   pool = new pg.Pool({
-    connectionString: config.databaseUrl,
+    connectionString: databaseConnectionString(config.databaseUrl),
     max: Math.max(5, config.databasePoolMax || 10),
     connectionTimeoutMillis: Math.max(1000, config.databaseConnectionTimeoutMs || 5000),
     idleTimeoutMillis: Math.max(5000, config.databaseIdleTimeoutMs || 30000),
@@ -22,7 +103,7 @@ export function getPool(){
     query_timeout: Math.max(1000, config.databaseQueryTimeoutMs || 20000),
     keepAlive: true,
     allowExitOnIdle: false,
-    ssl: needsSsl ? { rejectUnauthorized:false } : undefined,
+    ssl: databaseTlsOptions(),
     application_name:'meleo-v6'
   })
   pool.on('error', err=>console.error('[MELEO v5] pg pool error:',err.message))

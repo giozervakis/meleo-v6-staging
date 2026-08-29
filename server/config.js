@@ -34,6 +34,8 @@ export const config = {
   // Χωρίς αυτό, πέφτουμε σε τοπικό JSON αρχείο μόνο για development.
   databaseUrl: process.env.DATABASE_URL || '',
   databaseSsl: bool(process.env.DATABASE_SSL, false),
+  databaseSslCaFile: process.env.DATABASE_SSL_CA_FILE || '',
+  databaseSslCaPem: process.env.DATABASE_SSL_CA_PEM || '',
   databasePoolMax: Number(process.env.DATABASE_POOL_MAX || 10),
   databaseConnectionTimeoutMs: Number(process.env.DATABASE_CONNECTION_TIMEOUT_MS || 5000),
   databaseIdleTimeoutMs: Number(process.env.DATABASE_IDLE_TIMEOUT_MS || 30000),
@@ -166,6 +168,8 @@ export function assertProductionReady() {
     if (String(process.env.PAYMENTS_MODE || '').trim().toLowerCase() === 'demo') fatal.push('PAYMENTS_MODE=demo is forbidden in production.')
     if (!config.appUrl.startsWith('https://')) fatal.push('APP_URL: απαιτείται δημόσιο https URL (π.χ. https://meleo.gr).')
     if (!config.databaseUrl) fatal.push('DATABASE_URL: σε production απαιτείται PostgreSQL. Ο JSON driver δεν υποστηρίζεται (δεν αντέχει πολλά instances ούτε ασφαλή backups).')
+    if (/sslmode=(?:disable|allow|prefer)/i.test(config.databaseUrl)) fatal.push('DATABASE_URL: σε production δεν επιτρέπεται sslmode=disable/allow/prefer. Χρησιμοποίησε TLS verification ή private provider network χωρίς sslmode override.')
+    if (process.env.DATABASE_SSL_REJECT_UNAUTHORIZED && !bool(process.env.DATABASE_SSL_REJECT_UNAUTHORIZED, true)) fatal.push('DATABASE_SSL_REJECT_UNAUTHORIZED=false απαγορεύεται σε production.')
     if (config.redis.required && !config.redis.url) fatal.push('REDIS_URL: απαιτείται στο production v5.1 για shared rate limiting/cache μεταξύ πολλαπλών instances.')
     if (!config.redis.url) warn.push('REDIS_URL: δεν έχει οριστεί — θα χρησιμοποιηθεί PostgreSQL fallback για rate limiting/cache.')
     if (!config.stripe.secretKey) fatal.push('STRIPE_SECRET_KEY: χωρίς αυτό δεν μπορεί να γίνει καμία πραγματική χρέωση.')
