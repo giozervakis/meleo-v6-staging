@@ -2316,7 +2316,8 @@ registerProfessionalBillingRoutes(
     lineItemFor,
     Users,
     ensureStripeCustomer,
-    applyStripeSubscription
+        now,
+applyStripeSubscription
   }
 )
 

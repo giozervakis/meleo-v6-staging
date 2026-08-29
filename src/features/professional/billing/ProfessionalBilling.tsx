@@ -29,6 +29,8 @@ type BillingInfo={
   billingMode?:string|null
   currentPeriodEnd?:string|null
   cancelAtPeriodEnd?:boolean
+  scheduledPlan?:string|null
+  scheduledPlanEffectiveAt?:string|null
   portalAvailable?:boolean
   invoices?:BillingInvoice[]
 }
@@ -254,7 +256,7 @@ export default function ProfessionalBilling({
     null
 
   async function action(
-    kind:'change'|'portal'|'cancel'|'resume',
+    kind:'change'|'portal'|'cancel'|'resume'|'cancelDowngrade',
     plan?:string
   ){
     if(busy)return
@@ -294,7 +296,9 @@ export default function ProfessionalBilling({
         }
 
         setToast(
-          `Το πακέτο ενημερώθηκε σε ${String(plan||'').toUpperCase()}.`
+          result?.scheduled
+            ? `Η αλλαγή σε ${String(plan||'').toUpperCase()} προγραμματίστηκε για την επόμενη ανανέωση.`
+            : `Το πακέτο ενημερώθηκε σε ${String(plan||'').toUpperCase()}.`
         )
       }
 
@@ -341,6 +345,21 @@ export default function ProfessionalBilling({
 
         setToast(
           'Η συνδρομή συνεχίζεται κανονικά.'
+        )
+      }
+
+      if(kind==='cancelDowngrade'){
+
+        await api(
+          '/professional/subscription/downgrade/cancel',
+          {
+            method:'POST'
+          },
+          token
+        )
+
+        setToast(
+          'Η προγραμματισμένη αλλαγή ακυρώθηκε. Παραμένεις PREMIUM.'
         )
       }
 
@@ -486,6 +505,37 @@ export default function ProfessionalBilling({
         </div>
       }
 
+
+      {info?.scheduledPlan&&
+        <div className="pro-billing-alert ending">
+          <div>
+            <span>↘</span>
+          </div>
+
+          <section>
+            <strong>
+              Αλλαγή σε {String(info.scheduledPlan).toUpperCase()} στην επόμενη ανανέωση
+            </strong>
+
+            <p>
+              Μέχρι {' '}
+              <b>{dateLabel(info.scheduledPlanEffectiveAt)}</b>
+              {' '}διατηρείς όλα τα προνόμια του {current.toUpperCase()} που έχεις ήδη πληρώσει.
+              Από τότε θα ενεργοποιηθεί το {String(info.scheduledPlan).toUpperCase()}.
+            </p>
+          </section>
+
+          <button
+            type="button"
+            disabled={!!busy}
+            onClick={()=>action('cancelDowngrade')}
+          >
+            {busy==='cancelDowngrade'
+              ? 'Ακύρωση αλλαγής…'
+              : 'Παραμονή στο PREMIUM'}
+          </button>
+        </div>
+      }
 
       {cancelAtPeriodEnd&&
         <div className="pro-billing-alert ending">
