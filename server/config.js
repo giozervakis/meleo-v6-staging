@@ -19,6 +19,13 @@ const isProd = NODE_ENV === 'production'
 const isStaging = NODE_ENV === 'staging'
 const isHosted = isProd || isStaging
 
+function stripeKeyMode(key) {
+  const value = String(key || '').trim()
+  if (value.startsWith('sk_live_')) return 'live'
+  if (value.startsWith('sk_test_')) return 'test'
+  return value ? 'unknown' : 'missing'
+}
+
 export const config = {
   env: NODE_ENV,
   isProd,
@@ -145,6 +152,8 @@ export const config = {
 
 config.databaseDriver = config.databaseUrl ? 'postgres' : 'json'
 config.stripeEnabled = Boolean(config.stripe.secretKey)
+config.stripe.keyMode = stripeKeyMode(config.stripe.secretKey)
+config.stripe.expectedMode = config.isProd ? 'live' : config.isStaging ? 'test' : 'any'
 config.mailEnabled = Boolean(config.mail.resendKey)
 // Το demo checkout δεν επιτρέπεται ΠΟΤΕ σε production.
 config.demoCheckout = config.demoCheckout && !isProd
@@ -173,8 +182,9 @@ export function assertProductionReady() {
     if (config.redis.required && !config.redis.url) fatal.push('REDIS_URL: απαιτείται στο production v5.1 για shared rate limiting/cache μεταξύ πολλαπλών instances.')
     if (!config.redis.url) warn.push('REDIS_URL: δεν έχει οριστεί — θα χρησιμοποιηθεί PostgreSQL fallback για rate limiting/cache.')
     if (!config.stripe.secretKey) fatal.push('STRIPE_SECRET_KEY: χωρίς αυτό δεν μπορεί να γίνει καμία πραγματική χρέωση.')
-    if (config.stripe.secretKey.startsWith('sk_test')) warn.push('STRIPE_SECRET_KEY: χρησιμοποιείται TEST key σε production — δεν θα εισπραχθούν πραγματικά χρήματα.')
+    if (config.stripe.keyMode !== 'live') fatal.push('STRIPE_SECRET_KEY: production απαιτεί αποκλειστικά sk_live_ Stripe key. Test/unknown keys απαγορεύονται.')
     if (!config.stripe.webhookSecret) fatal.push('STRIPE_WEBHOOK_SECRET: χωρίς επαλήθευση webhook οι συνδρομές δεν ενημερώνονται αξιόπιστα.')
+    if (!config.stripe.priceBasic || !config.stripe.pricePremium) fatal.push('STRIPE_PRICE_BASIC / STRIPE_PRICE_PREMIUM: απαιτούνται και τα δύο σε production.')
     if (!config.admin.password || config.admin.password.length < 12) fatal.push('ADMIN_PASSWORD: απαιτείται ισχυρός κωδικός (>= 12 χαρακτήρες) για τον λογαριασμό admin.')
     if (!config.admin.totpSecret || config.admin.totpSecret.length < 16) fatal.push('ADMIN_TOTP_SECRET: απαιτείται TOTP secret για 2FA του Admin.')
     if (!config.admin.ipAllowlist.length) warn.push('ADMIN_IP_ALLOWLIST: δεν έχει οριστεί. Το admin παραμένει προστατευμένο με TOTP + throttling, αλλά χωρίς IP restriction.')
@@ -184,8 +194,15 @@ export function assertProductionReady() {
     if (!config.observability.metricsToken) warn.push('OBSERVABILITY_TOKEN: /api/metrics θα παραμένει κλειστό σε production χωρίς token.')
     if (!config.mail.resendKey) warn.push('RESEND_API_KEY: δεν στέλνονται emails (επιβεβαίωση, reset κωδικού, ειδοποιήσεις).')
     if (!config.legal.company || !config.legal.vatNumber) warn.push('LEGAL_COMPANY_NAME / LEGAL_VAT_NUMBER: απαιτούνται στοιχεία παρόχου στους Όρους Χρήσης (ν. ηλεκτρονικού εμπορίου).')
-    if (!config.stripe.priceBasic || !config.stripe.pricePremium) warn.push('STRIPE_PRICE_BASIC / STRIPE_PRICE_PREMIUM: χωρίς σταθερά Price IDs δημιουργούνται inline τιμές — δουλεύει, αλλά δυσκολεύει τα reports στο Stripe.')
     if (!config.stripe.automaticTax) warn.push('STRIPE_AUTOMATIC_TAX=false: ο ΦΠΑ δεν υπολογίζεται αυτόματα. Επιβεβαίωσε τη φορολογική μεταχείριση με τον λογιστή σου.')
+  }
+
+
+  if (config.isStaging && String(process.env.PAYMENTS_MODE || '').trim().toLowerCase() === 'stripe') {
+    if (!config.stripe.secretKey) fatal.push('STRIPE_SECRET_KEY: staging Stripe mode requires a key.')
+    if (config.stripe.keyMode !== 'test') fatal.push('STRIPE_SECRET_KEY: staging απαιτεί αποκλειστικά sk_test_. Live/unknown keys απαγορεύονται.')
+    if (!config.stripe.webhookSecret) fatal.push('STRIPE_WEBHOOK_SECRET: staging Stripe mode requires a webhook secret.')
+    if (!config.stripe.priceBasic || !config.stripe.pricePremium) fatal.push('STRIPE_PRICE_BASIC / STRIPE_PRICE_PREMIUM: staging Stripe mode requires both test Price IDs.')
   }
 
   if (warn.length) console.warn('\n[MELEO] Προειδοποιήσεις εκκίνησης:\n' + warn.map(x => '  ! ' + x).join('\n'))

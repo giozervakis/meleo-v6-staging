@@ -12,7 +12,18 @@ function normalized(value) {
   return String(value ?? '').trim().toLowerCase()
 }
 
-if (normalized(process.env.NODE_ENV) === 'production') {
+function stripeKeyMode(value) {
+  const key = String(value || '').trim()
+  if (key.startsWith('sk_live_')) return 'live'
+  if (key.startsWith('sk_test_')) return 'test'
+  return key ? 'unknown' : 'missing'
+}
+
+const nodeEnv = normalized(process.env.NODE_ENV)
+const paymentsMode = normalized(process.env.PAYMENTS_MODE)
+const stripeMode = stripeKeyMode(process.env.STRIPE_SECRET_KEY)
+
+if (nodeEnv === 'production') {
   const adminTotpSecret =
     String(process.env.ADMIN_TOTP_SECRET || '').trim()
 
@@ -29,6 +40,18 @@ if (normalized(process.env.NODE_ENV) === 'production') {
       failures.push(`${key}=${process.env[key]} is forbidden in production`)
     }
   }
+
+  if (stripeMode !== 'live') failures.push('STRIPE_SECRET_KEY must use sk_live_ in production')
+  if (!String(process.env.STRIPE_WEBHOOK_SECRET || '').trim()) failures.push('STRIPE_WEBHOOK_SECRET is required in production')
+  if (!String(process.env.STRIPE_PRICE_BASIC || '').trim()) failures.push('STRIPE_PRICE_BASIC is required in production')
+  if (!String(process.env.STRIPE_PRICE_PREMIUM || '').trim()) failures.push('STRIPE_PRICE_PREMIUM is required in production')
+}
+
+if (nodeEnv === 'staging' && paymentsMode === 'stripe') {
+  if (stripeMode !== 'test') failures.push('STRIPE_SECRET_KEY must use sk_test_ in staging Stripe mode')
+  if (!String(process.env.STRIPE_WEBHOOK_SECRET || '').trim()) failures.push('STRIPE_WEBHOOK_SECRET is required in staging Stripe mode')
+  if (!String(process.env.STRIPE_PRICE_BASIC || '').trim()) failures.push('STRIPE_PRICE_BASIC is required in staging Stripe mode')
+  if (!String(process.env.STRIPE_PRICE_PREMIUM || '').trim()) failures.push('STRIPE_PRICE_PREMIUM is required in staging Stripe mode')
 }
 
 if (
