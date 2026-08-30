@@ -573,44 +573,44 @@ return (
       </div>
 
 
-      <div className="patient-care-metrics" aria-label="Personal care overview">
+      <div className="patient-care-metrics" role="list" aria-label="Personal care overview">
 
-        <div className="patient-care-metric">
+        <div className="patient-care-metric" role="listitem">
           <span>💬</span>
           <strong>{activeRequests}</strong>
           <b>Ενεργά αιτήματα</b>
           <small>σε εξέλιξη</small>
         </div>
 
-        <div className="patient-care-metric">
+        <div className="patient-care-metric" role="listitem">
           <span>✓</span>
           <strong>{completedBookings.length}</strong>
           <b>Ολοκληρωμένες</b>
           <small>επισκέψεις</small>
         </div>
 
-        <div className="patient-care-metric">
+        <div className="patient-care-metric" role="listitem">
           <span>♡</span>
           <strong>{careTeam.length}</strong>
           <b>Ομάδα Φροντίδας</b>
           <small>αγαπημένοι επαγγελματίες</small>
         </div>
 
-        <div className="patient-care-metric">
+        <div className="patient-care-metric" role="listitem">
           <span>★</span>
           <strong>{pendingReviews.length}</strong>
           <b>Αξιολογήσεις</b>
           <small>σε αναμονή</small>
         </div>
 
-        <div className="patient-care-metric">
+        <div className="patient-care-metric" role="listitem">
           <span>◎</span>
           <strong>{uniqueProfessionals}</strong>
           <b>Επαγγελματίες</b>
           <small>που σε εξυπηρέτησαν</small>
         </div>
 
-        <div className="patient-care-metric">
+        <div className="patient-care-metric" role="listitem">
           <span>↻</span>
           <strong>{careContinuity}%</strong>
           <b>Care Continuity</b>
@@ -639,7 +639,7 @@ return (
         >
 
 
-          <section className="patient-command-panel next-care-panel" aria-labelledby="rc3d-next-care-title">
+          <section className="patient-command-panel next-care-panel" aria-labelledby="rc3d-next-care-title" aria-live="polite">
 
             <div className="patient-panel-head">
               <div>

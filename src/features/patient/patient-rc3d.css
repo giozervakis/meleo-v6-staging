@@ -26,3 +26,10 @@
 .rc3d-patient-page .patient-care-team-actions .btn{min-height:44px}
 @media(max-width:600px){.rc3d-patient-page .patient-care-team-grid{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-team-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.rc3d-patient-page .patient-care-team-actions .btn{width:100%}}
 @media(max-width:390px){.rc3d-patient-page .patient-care-team-top{grid-template-columns:auto minmax(0,1fr)}.rc3d-patient-page .patient-care-trust{grid-column:1/-1;justify-self:start}.rc3d-patient-page .patient-care-team-actions{grid-template-columns:minmax(0,1fr)}}
+
+/* RC3-D5-E overview and next care */
+.rc3d-patient-page .patient-care-metrics,.rc3d-patient-page .patient-care-metric,.rc3d-patient-page .next-care-content,.rc3d-patient-page .next-care-info,.rc3d-patient-page .next-care-actions{min-width:0;max-width:100%}
+.rc3d-patient-page .next-care-info h4,.rc3d-patient-page .next-care-info b,.rc3d-patient-page .next-care-info span{overflow-wrap:anywhere}
+.rc3d-patient-page .next-care-actions .btn,.rc3d-patient-page .next-care-empty .btn{min-height:44px}
+@media(max-width:600px){.rc3d-patient-page .patient-care-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rc3d-patient-page .next-care-content{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .next-care-actions,.rc3d-patient-page .next-care-empty>div:last-child>div{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.rc3d-patient-page .next-care-actions .btn,.rc3d-patient-page .next-care-empty .btn{width:100%}}
+@media(max-width:390px){.rc3d-patient-page .patient-care-metrics{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-metric{text-align:left}}
