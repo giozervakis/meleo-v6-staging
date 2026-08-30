@@ -23,6 +23,7 @@ function Empty({title,text}:any){
   )
 }
 function VerifyEmailBanner({user,token,cfg,setToast}:any){
+  const {t}=useTranslation()
   const [busy,setBusy]=useState(false)
 
   if(
@@ -49,7 +50,7 @@ function VerifyEmailBanner({user,token,cfg,setToast}:any){
 
       setToast(
         r.message||
-        'Στάλθηκε νέο email επαλήθευσης.'
+        t('patient.verifyEmail.sent')
       )
 
     }
@@ -69,12 +70,9 @@ function VerifyEmailBanner({user,token,cfg,setToast}:any){
     <div className="verify-email-banner" role="status" aria-live="polite">
 
       <div>
-        <b>Επιβεβαίωσε το email σου</b>
+        <b>{t('patient.verifyEmail.title')}</b>
 
-        <span>
-          Για πλήρη ασφάλεια λογαριασμού και ειδοποιήσεις,
-          επιβεβαίωσε τη διεύθυνση {user.email}.
-        </span>
+        <span>{t('patient.verifyEmail.text',{email:user.email})}</span>
       </div>
 
       <button
@@ -83,8 +81,8 @@ function VerifyEmailBanner({user,token,cfg,setToast}:any){
         aria-busy={busy}
       >
         {busy
-          ? 'Αποστολή…'
-          : 'Νέο email επαλήθευσης'
+          ? t('patient.verifyEmail.sending')
+          : t('patient.verifyEmail.resend')
         }
       </button>
 
