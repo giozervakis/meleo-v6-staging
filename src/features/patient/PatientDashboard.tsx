@@ -1379,8 +1379,8 @@ onClick={e=>{
 
             <div className="patient-panel-head">
               <div>
-                <small>CARE STATUS</small>
-                <h3 id="rc3d-care-status-title">Η φροντίδα σου</h3>
+                <small>{t('patient.sideRail.status.kicker')}</small>
+                <h3 id="rc3d-care-status-title">{t('patient.sideRail.status.title')}</h3>
               </div>
             </div>
 
@@ -1391,30 +1391,30 @@ onClick={e=>{
               </strong>
 
               <span>
-                Care Continuity
+                {t('patient.sideRail.status.continuity')}
               </span>
 
             </div>
 
-            <div className="care-status-list" role="list" aria-label="Στοιχεία κατάστασης φροντίδας">
+            <div className="care-status-list" role="list" aria-label={t('patient.sideRail.status.aria')}>
 
               <div>
-                <span>Ενεργά αιτήματα</span>
+                <span>{t('patient.sideRail.status.active')}</span>
                 <b>{activeRequests}</b>
               </div>
 
               <div>
-                <span>Επιβεβαιωμένες</span>
+                <span>{t('patient.sideRail.status.confirmed')}</span>
                 <b>{acceptedBookings.length}</b>
               </div>
 
               <div>
-                <span>Ολοκληρωμένες</span>
+                <span>{t('patient.sideRail.status.completed')}</span>
                 <b>{completedBookings.length}</b>
               </div>
 
               <div>
-                <span>Ομάδα Φροντίδας</span>
+                <span>{t('patient.sideRail.status.team')}</span>
                 <b>{careTeam.length}</b>
               </div>
 
@@ -1428,8 +1428,8 @@ onClick={e=>{
 
               <div className="patient-panel-head">
                 <div>
-                  <small>CARE ACTIVITY</small>
-                  <h3 id="rc3d-care-activity-title">Πρόσφατη δραστηριότητα</h3>
+                  <small>{t('patient.sideRail.activity.kicker')}</small>
+                  <h3 id="rc3d-care-activity-title">{t('patient.sideRail.activity.title')}</h3>
                 </div>
               </div>
 
@@ -1456,7 +1456,7 @@ onClick={e=>{
                       <small>
                         {new Date(
                           `${b.date}T${b.time||'00:00'}`
-                        ).toLocaleDateString('el-GR')}
+                        ).toLocaleDateString(i18n.language==='en'?'en-US':'el-GR')}
                         {' · '}
                         {statusLabel(b.status)}
                       </small>
@@ -1475,8 +1475,8 @@ onClick={e=>{
 
             <div className="patient-panel-head">
               <div>
-                <small>QUICK ACTIONS</small>
-                <h3 id="rc3d-quick-actions-title">Τι θέλεις να κάνεις;</h3>
+                <small>{t('patient.sideRail.actions.kicker')}</small>
+                <h3 id="rc3d-quick-actions-title">{t('patient.sideRail.actions.title')}</h3>
               </div>
             </div>
 
@@ -1486,9 +1486,9 @@ onClick={e=>{
               <span>⌕</span>
 
               <div>
-                <b>Βρες επαγγελματία</b>
+                <b>{t('patient.sideRail.actions.search')}</b>
                 <small>
-                  Αναζήτηση ανά ειδικότητα και περιοχή
+                  {t('patient.sideRail.actions.searchHelp')}
                 </small>
               </div>
 
@@ -1503,7 +1503,7 @@ onClick={e=>{
               <div>
                 <b>Smart Request</b>
                 <small>
-                  Περιέγραψε τι χρειάζεσαι
+                  {t('patient.sideRail.actions.smartHelp')}
                 </small>
               </div>
 
@@ -1518,7 +1518,7 @@ onClick={e=>{
               <div>
                 <b>MELEO Now</b>
                 <small>
-                  Βρες διαθέσιμο επαγγελματία
+                  {t('patient.sideRail.actions.nowHelp')}
                 </small>
               </div>
 
@@ -1531,9 +1531,9 @@ onClick={e=>{
               <span>⚙</span>
 
               <div>
-                <b>Ρυθμίσεις λογαριασμού</b>
+                <b>{t('patient.sideRail.actions.account')}</b>
                 <small>
-                  Προφίλ, ασφάλεια και εικόνα
+                  {t('patient.sideRail.actions.accountHelp')}
                 </small>
               </div>
 
@@ -1545,18 +1545,13 @@ onClick={e=>{
 
           <section className="patient-safety-card" aria-labelledby="rc3d-safety-title">
 
-            <b>
-              Ασφάλεια πρώτα
-            </b>
+            <b>{t('patient.sideRail.safety.title')}</b>
 
-            <p>
-              Σε επείγουσα κατάσταση κάλεσε{' '}
+            <p>{t('patient.sideRail.safety.emergency')} {' '}
               <strong>
                 {cfg?.emergencyNumber||'112'}
               </strong>.
-              Η MELEO δεν είναι υπηρεσία επειγόντων
-              και δεν παρέχει ιατρικές συμβουλές.
-            </p>
+              {' '}{t('patient.sideRail.safety.disclaimer')}</p>
 
           </section>
 

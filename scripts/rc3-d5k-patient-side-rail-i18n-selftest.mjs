@@ -1,0 +1,8 @@
+import fs from 'node:fs'
+const r=p=>fs.readFileSync(p,'utf8'),f=m=>{console.error('RC3-D5-K FAIL - '+m);process.exit(1)}
+const x=r('src/features/patient/PatientDashboard.tsx'),i=r('src/i18n.ts'),p=JSON.parse(r('package.json'))
+for(const q of ["patient.sideRail.status.kicker","patient.sideRail.status.aria","patient.sideRail.activity.title","patient.sideRail.actions.search","patient.sideRail.actions.accountHelp","patient.sideRail.safety.title","patient.sideRail.safety.emergency","patient.sideRail.safety.disclaimer","toLocaleDateString(i18n.language==='en'?'en-US':'el-GR')"])if(!x.includes(q))f(q)
+for(const q of ["sideRail:{status:{kicker:'ΚΑΤΑΣΤΑΣΗ ΦΡΟΝΤΙΔΑΣ'","sideRail:{status:{kicker:'CARE STATUS'","title:'Recent activity'","title:'Safety first'"])if(!i.includes(q))f(q)
+for(const q of ["b.service","b.professionalName","statusLabel(b.status)","cfg?.emergencyNumber||'112'","onClick={()=>setView('search')}","onClick={()=>setView('smart')}","onClick={()=>setView('now')}","onClick={()=>setView('account')}","aria-labelledby=\"rc3d-care-status-title\"","aria-labelledby=\"rc3d-care-activity-title\"","aria-labelledby=\"rc3d-quick-actions-title\"","aria-labelledby=\"rc3d-safety-title\""])if(!x.includes(q))f('preserved '+q)
+if(p.scripts?.['rc3-d5k-check']!=='node scripts/rc3-d5k-patient-side-rail-i18n-selftest.mjs')f('package script')
+console.log('RC3-D5-K patient side-rail i18n self-test: PASS')
