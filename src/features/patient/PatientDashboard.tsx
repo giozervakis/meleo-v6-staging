@@ -778,12 +778,12 @@ return (
 
 
           {careTeam.length>0&&
-            <section className="patient-command-panel">
+            <section className="patient-command-panel" aria-labelledby="rc3d-care-team-title">
 
               <div className="patient-panel-head">
                 <div>
                   <small>MY CARE TEAM</small>
-                  <h3>Η Ομάδα Φροντίδας μου</h3>
+                  <h3 id="rc3d-care-team-title">Η Ομάδα Φροντίδας μου</h3>
                 </div>
 
                 <span>
@@ -796,11 +796,12 @@ return (
                 Μπορείς να ζητήσεις ξανά φροντίδα χωρίς νέα αναζήτηση.
               </p>
 
-              <div className="patient-care-team-grid">
+              <div className="patient-care-team-grid" role="list">
 
                 {careTeam.slice(0,6).map((p:any)=>
                   <article
                     className="patient-care-team-card"
+                    role="listitem"
                     key={p.id}
                   >
 
@@ -822,10 +823,10 @@ return (
                       </div>
 
                       {p.trust?.eligible
-                        ? <strong className="patient-care-trust">
+                        ? <strong className="patient-care-trust" aria-label={`Trust score ${p.trust.score}`}>
                             {p.trust.score}
                           </strong>
-                        : <strong className="patient-care-trust new">
+                        : <strong className="patient-care-trust new" aria-label="Νέος επαγγελματίας">
                             NEW
                           </strong>
                       }
@@ -1438,7 +1439,7 @@ onClick={e=>{
 
 
           {careActivity.length>0&&
-            <section className="patient-command-panel">
+            <section className="patient-command-panel" aria-labelledby="rc3d-care-team-title">
 
               <div className="patient-panel-head">
                 <div>

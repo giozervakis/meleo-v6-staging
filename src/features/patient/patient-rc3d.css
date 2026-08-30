@@ -18,3 +18,11 @@
 .rc3d-patient-page .reply-box textarea{width:100%;min-height:112px;resize:vertical}
 @media(max-width:600px){.rc3d-patient-page .booking-row{grid-template-columns:auto minmax(0,1fr);gap:12px}.rc3d-patient-page .booking-card-right{grid-column:1/-1;width:100%;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center}.rc3d-patient-page .premium-details-btn{justify-self:end}.rc3d-patient-page .request-detail-grid{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .quote-box>div,.rc3d-patient-page .reply-box,.rc3d-patient-page .recovery-card,.rc3d-patient-page .call-again-box{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .recovery-card .btn,.rc3d-patient-page .call-again-box .btn,.rc3d-patient-page .reply-box .btn{width:100%}}
 @media(max-width:390px){.rc3d-patient-page .booking-row{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .date-tile{justify-self:start}.rc3d-patient-page .booking-card-right{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .premium-details-btn{justify-self:stretch;width:100%}}
+/* RC3-D5-D care team */
+.rc3d-patient-page .patient-care-team-grid,.rc3d-patient-page .patient-care-team-card,.rc3d-patient-page .patient-care-team-top,.rc3d-patient-page .patient-care-team-meta,.rc3d-patient-page .patient-care-team-actions{min-width:0;max-width:100%}
+.rc3d-patient-page .patient-care-team-card{overflow:hidden}
+.rc3d-patient-page .patient-care-team-top>div{min-width:0}
+.rc3d-patient-page .patient-care-team-top b,.rc3d-patient-page .patient-care-team-top span,.rc3d-patient-page .patient-care-team-meta span{overflow-wrap:anywhere}
+.rc3d-patient-page .patient-care-team-actions .btn{min-height:44px}
+@media(max-width:600px){.rc3d-patient-page .patient-care-team-grid{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-team-actions{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px}.rc3d-patient-page .patient-care-team-actions .btn{width:100%}}
+@media(max-width:390px){.rc3d-patient-page .patient-care-team-top{grid-template-columns:auto minmax(0,1fr)}.rc3d-patient-page .patient-care-trust{grid-column:1/-1;justify-self:start}.rc3d-patient-page .patient-care-team-actions{grid-template-columns:minmax(0,1fr)}}
