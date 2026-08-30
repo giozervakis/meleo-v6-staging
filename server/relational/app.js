@@ -15,7 +15,8 @@ import { Users, Sessions, Professionals, Notifications, Bookings, Analytics, Adm
 import Stripe from 'stripe'
 import { canViewBooking, canEditBooking, canViewPatientContact, canReviewBooking } from './authorization.js'
 import { redisRateLimit, redisGetJson, redisSetJson, redisPing, closeRedis } from '../redis.js'
-import { log, requestId } from '../logger.js'
+import { log } from '../logger.js'
+import { requestObservability } from '../request-observability.js'
 import { observeRequest, metricsText } from '../metrics.js'
 import { queueStats } from '../jobs.js'
 import { verificationObjectKey,profilePhotoObjectKey, putVerificationObject, getVerificationObject, deleteVerificationObject, storageReady, createTemporaryDocumentSignature, verifyTemporaryDocumentSignature } from '../object-storage.js'
@@ -1466,7 +1467,8 @@ async function resolveGoogleAccount(
   }
 }
 
-const app=express(); if(config.trustProxy)app.set('trust proxy',1); app.disable('x-powered-by')
+const app=express();
+app.use(requestObservability) if(config.trustProxy)app.set('trust proxy',1); app.disable('x-powered-by')
 app.use((req,res,next)=>{const rid=requestId(req.headers['x-request-id']);req.requestId=rid;res.setHeader('X-Request-ID',rid);const t=process.hrtime.bigint();res.on('finish',()=>{const ms=Number(process.hrtime.bigint()-t)/1e6;observeRequest(req.method,res.statusCode,ms);const meta={requestId:rid,method:req.method,path:req.path,status:res.statusCode,durationMs:Number(ms.toFixed(2))};if(res.statusCode>=500)log.error('http.request',meta);else if(ms>=config.observability.slowRequestMs)log.warn('http.slow_request',meta)});next()})
 const SESSION_COOKIE='meleo_session'; const SESSION_TTL_MS=30*86400000; const ADMIN_SESSION_TTL_MS=config.admin.sessionTtlHours*3600000
 const PASSWORD_MIN=8
