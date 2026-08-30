@@ -32,7 +32,8 @@ export function registerSystemRoutes(
     one,
     getPool,
     queueStats,
-    metricsText
+    metricsText,
+    collectOperationalMetrics
   }
 ) {
   if (!app) {
@@ -49,7 +50,8 @@ export function registerSystemRoutes(
     one,
     getPool,
     queueStats,
-    metricsText
+    metricsText,
+    collectOperationalMetrics
   }
 
   for (
@@ -230,6 +232,9 @@ export function registerSystemRoutes(
       const pool =
         getPool()
 
+      const operational =
+        await collectOperationalMetrics()
+
 
       res
         .type(
@@ -253,7 +258,9 @@ export function registerSystemRoutes(
               pool.idleCount,
 
             postgres_pool_waiting:
-              pool.waitingCount
+              pool.waitingCount,
+
+            ...operational
           })
         )
     }

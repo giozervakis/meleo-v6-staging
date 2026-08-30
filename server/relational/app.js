@@ -18,6 +18,7 @@ import { redisRateLimit, redisGetJson, redisSetJson, redisPing, closeRedis } fro
 import { log } from '../logger.js'
 import { requestObservability } from '../request-observability.js'
 import { observeRequest, observeError, metricsText } from '../metrics.js'
+import { collectOperationalMetrics } from '../operational-metrics.js'
 import { createHttpErrorHandler } from '../error-observability.js'
 import { queueStats } from '../jobs.js'
 import { verificationObjectKey,profilePhotoObjectKey, putVerificationObject, getVerificationObject, deleteVerificationObject, storageReady, createTemporaryDocumentSignature, verifyTemporaryDocumentSignature } from '../object-storage.js'
@@ -1763,7 +1764,8 @@ registerSystemRoutes(
     one,
     getPool,
     queueStats,
-    metricsText
+    metricsText,
+    collectOperationalMetrics
   }
 )
 let shuttingDown = false

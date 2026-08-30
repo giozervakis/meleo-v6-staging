@@ -2,7 +2,8 @@ import { config, assertProductionReady } from './config.js'
 import { migrate, tx, sql, closePool } from './relational/pool.js'
 import { deliverEmail } from './mail.js'
 import { log } from './logger.js'
-import { observeJob } from './metrics.js'
+import { observeJob, observeError } from './metrics.js'
+import { redisSetJson, closeRedis } from './redis.js'
 import {
   reconcileStripeSubscriptions,
   scheduleStripeReconciliation
@@ -21,6 +22,24 @@ const stripeReconcileIntervalSeconds=Math.max(
   )
 )
 let stopping=false, active=0
+const heartbeatKey='meleo:observability:worker:heartbeat'
+const heartbeatTtlSeconds=30
+let lastHeartbeatAt=0
+
+async function publishHeartbeat(force=false){
+  const current=Date.now()
+  if(!force&&current-lastHeartbeatAt<5000)return
+  lastHeartbeatAt=current
+  try{
+    await redisSetJson(
+      heartbeatKey,
+      {ts:new Date(current).toISOString(),workerId,active,concurrency},
+      heartbeatTtlSeconds
+    )
+  }catch{
+    observeError('redis','worker_heartbeat_failed')
+  }
+}
 
 async function claim(){
   return tx(async c=>{
@@ -129,6 +148,8 @@ await scheduleStripeReconciliation({
     )
 )
 
+await publishHeartbeat(true)
+
 log.info(
   'worker.started',
   {
@@ -139,8 +160,9 @@ log.info(
   }
 )
 while(!stopping){
+  await publishHeartbeat()
   while(!stopping&&active<concurrency){const job=await claim();if(!job)break;run(job)}
   await new Promise(r=>setTimeout(r,pollMs))
 }
 while(active>0)await new Promise(r=>setTimeout(r,100))
-await closePool();log.info('worker.stopped',{workerId});process.exit(0)
+await closeRedis();await closePool();log.info('worker.stopped',{workerId});process.exit(0)
