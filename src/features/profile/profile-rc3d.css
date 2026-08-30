@@ -1,0 +1,13 @@
+.rc3d-profile-page{overflow-x:clip}
+.rc3d-profile-page .profile-main,.rc3d-profile-page .booking-panel,.rc3d-profile-page .profile-title,.rc3d-profile-page .content-card{min-width:0}
+.rc3d-profile-page .profile-title,.rc3d-profile-page .content-card,.rc3d-profile-page .booking-panel,.rc3d-profile-page .service-item{overflow-wrap:anywhere}
+.rc3d-profile-page button,.rc3d-profile-page .btn,.rc3d-profile-page .profile-email-link{min-height:44px}
+.rc3d-profile-page :focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.rc3d-profile-page .profile-tabs{overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+.rc3d-profile-page .profile-tabs button{min-width:max-content;touch-action:manipulation}
+.rc3d-profile-page .heart[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(15,48,57,.15)}
+.rc3d-profile-page .profile-email-link{display:flex;align-items:center;overflow-wrap:anywhere}
+@media(max-width:900px){.rc3d-profile-page .profile-layout{grid-template-columns:minmax(0,1fr)}.rc3d-profile-page .booking-panel{position:static!important}.rc3d-profile-page .profile-hero{align-items:flex-start}}
+@media(max-width:600px){.rc3d-profile-page .profile-layout{padding-inline:14px}.rc3d-profile-page .profile-hero{gap:14px}.rc3d-profile-page .profile-title h1{font-size:clamp(1.6rem,8vw,2.2rem)}.rc3d-profile-page .profile-trust-grid{grid-template-columns:minmax(0,1fr)}.rc3d-profile-page .service-item{grid-template-columns:auto minmax(0,1fr)}.rc3d-profile-page .service-item>strong{grid-column:2}.rc3d-profile-page .booking-panel{margin-top:18px}}
+@media(max-width:390px){.rc3d-profile-page .profile-layout{padding-inline:10px}.rc3d-profile-page .heart.standalone{width:100%}.rc3d-profile-page .trust-mini{display:grid;grid-template-columns:minmax(0,1fr)}}
+@media(prefers-reduced-motion:reduce){.rc3d-profile-page *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
