@@ -9,6 +9,7 @@ const STORAGE_KEY='meleo.language'
 const resources={
   el:{
     translation:{
+      patient:{hero:{kicker:'MELEO PERSONAL CARE',greeting:'Καλησπέρα, {{name}}',intro:'Η φροντίδα σου, οι άνθρωποί σου και οι επόμενες κινήσεις σου σε ένα προσωπικό κέντρο.',member:'Μέλος Personal Care'},metrics:{active:'Ενεργά αιτήματα',inProgress:'σε εξέλιξη',completed:'Ολοκληρωμένες',visits:'επισκέψεις',team:'Ομάδα Φροντίδας',favoritePros:'αγαπημένοι επαγγελματίες',reviews:'Αξιολογήσεις',pending:'σε αναμονή',professionals:'Επαγγελματίες',servedBy:'που σε εξυπηρέτησαν',continuity:'Συνέχεια Φροντίδας',continuityHelp:'συνέχεια φροντίδας'},tabs:{bookings:'Οι κρατήσεις μου',messages:'Μηνύματα'}},
       nav:{
         home:'Αρχική',
         search:'Αναζήτηση',
@@ -162,6 +163,7 @@ const resources={
   },
   en:{
     translation:{
+      patient:{hero:{kicker:'MELEO PERSONAL CARE',greeting:'Good evening, {{name}}',intro:'Your care, your people and your next steps in one personal hub.',member:'Personal Care Member'},metrics:{active:'Active requests',inProgress:'in progress',completed:'Completed',visits:'visits',team:'Care Team',favoritePros:'trusted professionals',reviews:'Reviews',pending:'pending',professionals:'Professionals',servedBy:'who cared for you',continuity:'Care Continuity',continuityHelp:'continuity of care'},tabs:{bookings:'My bookings',messages:'Messages'}},
       nav:{
         home:'Home',
         search:'Search',

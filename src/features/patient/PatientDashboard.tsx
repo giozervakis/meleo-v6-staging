@@ -3,6 +3,8 @@ import React, {
   useState
 } from 'react'
 
+
+import {useTranslation} from 'react-i18next'
 import { api } from '../../lib/api'
 import PatientMessages from './messages/PatientMessages'
 import './patient-rc3d.css'
@@ -131,6 +133,7 @@ function PatientDashboard({
   priceLabel,
   money
 }:PatientDashboardProps){
+  const {t,i18n}=useTranslation()
 	const [bookings,setBookings]=useState<Booking[]>([]);const [careTeam,setCareTeam]=useState<any[]>([]);const [open,setOpen]=useState<string>('');const [reply,setReply]=useState('');
  const [messageReadBusy,setMessageReadBusy]=useState<string>('')
  const [patientMessageUnreadByBooking,setPatientMessageUnreadByBooking]=useState<Record<string,number>>({})
@@ -533,18 +536,11 @@ return (
       <div className="patient-care-hero" aria-labelledby="rc3d-patient-hero-title">
 
         <div className="patient-care-hero-copy">
-          <span className="patient-care-kicker">
-            MELEO PERSONAL CARE
-          </span>
+          <span className="patient-care-kicker">{t('patient.hero.kicker')}</span>
 
-          <h1 id="rc3d-patient-hero-title">
-            Καλησπέρα, {user.name.split(' ')[0]}
-          </h1>
+          <h1 id="rc3d-patient-hero-title">{t('patient.hero.greeting',{name:user.name.split(' ')[0]})}</h1>
 
-          <p>
-            Η φροντίδα σου, οι άνθρωποί σου και οι επόμενες κινήσεις
-            σου σε ένα προσωπικό κέντρο.
-          </p>
+          <p>{t('patient.hero.intro')}</p>
 
           <div className="patient-care-hero-status" role="status" aria-live="polite">
             <span>{patientJourneyLevel}</span>
@@ -567,7 +563,7 @@ return (
           <div>
             <b>{user.name}</b>
             <small>{user.email}</small>
-            <span>Personal Care Member</span>
+            <span>{t('patient.hero.member')}</span>
           </div>
         </div>
 
@@ -579,43 +575,43 @@ return (
         <div className="patient-care-metric" role="listitem">
           <span>💬</span>
           <strong>{activeRequests}</strong>
-          <b>Ενεργά αιτήματα</b>
-          <small>σε εξέλιξη</small>
+          <b>{t('patient.metrics.active')}</b>
+          <small>{t('patient.metrics.inProgress')}</small>
         </div>
 
         <div className="patient-care-metric" role="listitem">
           <span>✓</span>
           <strong>{completedBookings.length}</strong>
-          <b>Ολοκληρωμένες</b>
-          <small>επισκέψεις</small>
+          <b>{t('patient.metrics.completed')}</b>
+          <small>{t('patient.metrics.visits')}</small>
         </div>
 
         <div className="patient-care-metric" role="listitem">
           <span>♡</span>
           <strong>{careTeam.length}</strong>
-          <b>Ομάδα Φροντίδας</b>
-          <small>αγαπημένοι επαγγελματίες</small>
+          <b>{t('patient.metrics.team')}</b>
+          <small>{t('patient.metrics.favoritePros')}</small>
         </div>
 
         <div className="patient-care-metric" role="listitem">
           <span>★</span>
           <strong>{pendingReviews.length}</strong>
-          <b>Αξιολογήσεις</b>
-          <small>σε αναμονή</small>
+          <b>{t('patient.metrics.reviews')}</b>
+          <small>{t('patient.metrics.pending')}</small>
         </div>
 
         <div className="patient-care-metric" role="listitem">
           <span>◎</span>
           <strong>{uniqueProfessionals}</strong>
-          <b>Επαγγελματίες</b>
-          <small>που σε εξυπηρέτησαν</small>
+          <b>{t('patient.metrics.professionals')}</b>
+          <small>{t('patient.metrics.servedBy')}</small>
         </div>
 
         <div className="patient-care-metric" role="listitem">
           <span>↻</span>
           <strong>{careContinuity}%</strong>
-          <b>Care Continuity</b>
-          <small>συνέχεια φροντίδας</small>
+          <b>{t('patient.metrics.continuity')}</b>
+          <small>{t('patient.metrics.continuityHelp')}</small>
         </div>
 
       </div>
@@ -667,7 +663,7 @@ return (
                       {new Date(
                         `${nextBooking.date}T00:00:00`
                       ).toLocaleDateString(
-                        'el-GR',
+                        i18n.language==='en'?'en-US':'el-GR',
                         {month:'short'}
                       )}
                     </span>
@@ -916,7 +912,7 @@ return (
   >
     <span>📋</span>
 
-    Οι κρατήσεις μου
+    {t('patient.tabs.bookings')}
   </button>
 
 
@@ -936,7 +932,7 @@ return (
   >
     <span>💬</span>
 
-    Μηνύματα
+    {t('patient.tabs.messages')}
 
     {patientMessageUnreadTotal>0&&
       <b>
