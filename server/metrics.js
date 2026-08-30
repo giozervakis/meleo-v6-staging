@@ -30,6 +30,14 @@ export function observeRequest(method,status,durationMs){
   }
 }
 
+export function observeError(source,kind){
+  const allowedSources=new Set(['http','process','maintenance','worker','stripe','database','redis'])
+  const safeSource=allowedSources.has(String(source))?String(source):'other'
+  const rawKind=String(kind||'unknown')
+  const safeKind=/^[a-z0-9_:-]{1,64}$/i.test(rawKind)?rawKind:'unknown'
+  inc(`application_errors_total{source="${escLabel(safeSource)}",kind="${escLabel(safeKind)}"}`)
+}
+
 export function observeJob(outcome){
   inc(`background_jobs_total{outcome="${escLabel(outcome)}"}`)
 }
@@ -62,13 +70,24 @@ export function metricsText(extra={}){
   lines.push(`meleo_http_request_duration_ms_sum ${durationSumMs.toFixed(3)}`)
   lines.push(`meleo_http_request_duration_ms_count ${durationCount}`)
 
-  const otherCounters=[...counters.entries()].filter(([k])=>!k.startsWith('http_requests_total{'))
-  if(otherCounters.length){
+  const applicationErrors=[...counters.entries()].filter(([k])=>k.startsWith('application_errors_total{'))
+  if(applicationErrors.length){
+    lines.push(
+      '# HELP meleo_application_errors_total Application errors partitioned by bounded source and kind.',
+      '# TYPE meleo_application_errors_total counter'
+    )
+    for(const [k,v] of applicationErrors){
+      lines.push(`meleo_${k} ${Number(v).toFixed(0)}`)
+    }
+  }
+
+  const backgroundJobs=[...counters.entries()].filter(([k])=>k.startsWith('background_jobs_total{'))
+  if(backgroundJobs.length){
     lines.push(
       '# HELP meleo_background_jobs_total Background job outcomes.',
       '# TYPE meleo_background_jobs_total counter'
     )
-    for(const [k,v] of otherCounters){
+    for(const [k,v] of backgroundJobs){
       lines.push(`meleo_${k} ${Number(v).toFixed(0)}`)
     }
   }

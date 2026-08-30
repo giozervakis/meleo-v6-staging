@@ -17,7 +17,8 @@ import { canViewBooking, canEditBooking, canViewPatientContact, canReviewBooking
 import { redisRateLimit, redisGetJson, redisSetJson, redisPing, closeRedis } from '../redis.js'
 import { log } from '../logger.js'
 import { requestObservability } from '../request-observability.js'
-import { observeRequest, metricsText } from '../metrics.js'
+import { observeRequest, observeError, metricsText } from '../metrics.js'
+import { createHttpErrorHandler } from '../error-observability.js'
 import { queueStats } from '../jobs.js'
 import { verificationObjectKey,profilePhotoObjectKey, putVerificationObject, getVerificationObject, deleteVerificationObject, storageReady, createTemporaryDocumentSignature, verifyTemporaryDocumentSignature } from '../object-storage.js'
 import { APP_VERSION, RELEASE_CHANNEL } from '../version.js'
@@ -2702,30 +2703,14 @@ const dist=path.join(root,'dist')
 // correct for deployments where frontend and API are separated.
 //
 if(config.isHosted&&fs.existsSync(dist)){
-   app.use(express.static(dist,{maxAge:'1h',etag:true}))
- app.get(/.*/,(_req,res)=>res.sendFile(path.join(dist,'index.html')))
-}else app.use((err,req,res,_next)=>{
-  if(err?.type==='entity.too.large'){
-    log.warn('http.payload_too_large',{
-      requestId:req.requestId,
-      path:req.path,
-      method:req.method
-    })
+  app.use(express.static(dist,{maxAge:'1h',etag:true}))
+  app.get(/.*/,(_req,res)=>res.sendFile(path.join(dist,'index.html')))
+}
 
-    return res.status(413).json({
-      error:'Το αρχείο είναι πολύ μεγάλο.'
-    })
-  }
-
-  log.error('http.unhandled_error',{
-    requestId:req.requestId,
-    error:err
-  })
-
-  res.status(500).json({
-    error:'Εσωτερικό σφάλμα. Δοκίμασε ξανά.'
-  })
-})
+app.use(createHttpErrorHandler({
+  log,
+  observeError
+}))
 
 // sweeps without global lock
 setInterval(async()=>{try{
@@ -2890,6 +2875,8 @@ process.on(
 process.on(
   'uncaughtException',
   err=>{
+    observeError('process','uncaught_exception')
+
     log.error(
       'process.uncaught_exception',
       {
@@ -2912,6 +2899,8 @@ process.on(
 process.on(
   'unhandledRejection',
   reason=>{
+    observeError('process','unhandled_rejection')
+
     const err=
       reason instanceof Error
         ? reason
