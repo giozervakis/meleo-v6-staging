@@ -1000,6 +1000,7 @@ function Header({
     total:number
   }
 }){
+  const {t}=useTranslation()
   const [open,setOpen]=useState(false)
   const [accountOpen,setAccountOpen]=useState(false)
   useEffect(()=>{setOpen(false);setAccountOpen(false)},[view])
@@ -1046,7 +1047,7 @@ const messageLabel=
     ? '99+'
     : String(unreadMessages)
   return <>
-    <header className="topbar"><div className="container navrow"><button className="brand-btn" onClick={()=>go('home')}><Mark/></button><nav className="desktop-nav"><button className={view==='home'?'active':''} onClick={()=>go('home')}>Αρχική</button><button onClick={()=>go('search')}>Αναζήτηση</button><button onClick={()=>go('smart')}>Smart Request</button><button onClick={()=>go('now')}>MELEO Now</button><button onClick={()=>go('pricing')}>Συνδρομές</button><button onClick={()=>go('become-pro')}>Για επαγγελματίες</button></nav><div className="nav-actions"><LanguageSwitcher/>{user?<div className="account-menu-wrap" onClick={e=>e.stopPropagation()}><button   className={'user-pill '+(accountOpen?'open':'')}   onClick={()=>{     if(window.innerWidth > 980){       setAccountOpen(v=>!v)     }   }}   aria-haspopup="menu"   aria-expanded={accountOpen} >   <IdentityAvatar
+    <header className="topbar"><div className="container navrow"><button className="brand-btn" onClick={()=>go('home')}><Mark/></button><nav className="desktop-nav"><button className={view==='home'?'active':''} onClick={()=>go('home')}>{t('nav.home')}</button><button onClick={()=>go('search')}>{t('nav.search')}</button><button onClick={()=>go('smart')}>{t('nav.smart')}</button><button onClick={()=>go('now')}>{t('nav.now')}</button><button onClick={()=>go('pricing')}>{t('nav.pricing')}</button><button onClick={()=>go('become-pro')}>{t('nav.professionals')}</button></nav><div className="nav-actions"><LanguageSwitcher/>{user?<div className="account-menu-wrap" onClick={e=>e.stopPropagation()}><button   className={'user-pill '+(accountOpen?'open':'')}   onClick={()=>{     if(window.innerWidth > 980){       setAccountOpen(v=>!v)     }   }}   aria-haspopup="menu"   aria-expanded={accountOpen} >   <IdentityAvatar
   name={user.name}
   photoUrl={user.profilePhotoUrl}
   avatarKey={user.avatarKey}

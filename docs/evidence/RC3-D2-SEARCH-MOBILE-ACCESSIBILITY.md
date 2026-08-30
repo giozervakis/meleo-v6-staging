@@ -47,3 +47,17 @@ Implemented:
   hard-coding the obsolete Home-hero placement
 
 D2 remains pending real-device staging acceptance after this refinement.
+
+## Final header polish before closure
+
+Real-device review confirmed the global selector worked but remained too utility-like,
+and English mode exposed untranslated global navigation.
+
+This final polish:
+- upgrades the language trigger/dropdown to a restrained premium MELEO treatment
+- removes the utility-style icon
+- localizes global Header navigation for EL/EN
+- adds responsive compact behavior and reduced-motion support
+- preserves the existing language architecture and D2 scope
+
+D2 remains pending final staging visual acceptance.

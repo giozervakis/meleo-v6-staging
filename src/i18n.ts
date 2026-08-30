@@ -9,6 +9,14 @@ const STORAGE_KEY='meleo.language'
 const resources={
   el:{
     translation:{
+      nav:{
+        home:'Αρχική',
+        search:'Αναζήτηση',
+        smart:'Smart Request',
+        now:'MELEO Now',
+        pricing:'Συνδρομές',
+        professionals:'Για επαγγελματίες'
+      },
       home:{
         language:{el:'ΕΛ',en:'EN',label:'Γλώσσα'},
         eyebrow:'ΦΡΟΝΤΙΔΑ ΜΕ ΕΜΠΙΣΤΟΣΥΝΗ',
@@ -135,6 +143,14 @@ const resources={
   },
   en:{
     translation:{
+      nav:{
+        home:'Home',
+        search:'Search',
+        smart:'Smart Request',
+        now:'MELEO Now',
+        pricing:'Plans',
+        professionals:'For professionals'
+      },
       home:{
         language:{el:'EL',en:'EN',label:'Language'},
         eyebrow:'CARE YOU CAN TRUST',
