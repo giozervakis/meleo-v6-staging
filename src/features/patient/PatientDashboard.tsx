@@ -968,6 +968,17 @@ return (
 
                     <div
                       className={`booking-row booking-card-premium clickable booking-${b.status}`}
+role="button"
+tabIndex={0}
+aria-expanded={open===b.id}
+onKeyDown={e=>{
+  if(e.key==='Enter'||e.key===' '){
+    e.preventDefault()
+    const next=open===b.id?'':b.id
+    setOpen(next)
+    if(next){markConversationRead(next)}
+  }
+}}
 onClick={()=>{
   const next=
     open===b.id
@@ -1035,6 +1046,7 @@ onClick={()=>{
 
                         <button
                           className="small-action premium-details-btn"
+                          aria-expanded={open===b.id}
 onClick={e=>{
   e.stopPropagation()
 
@@ -1161,6 +1173,7 @@ onClick={e=>{
                           <div className="reply-box">
 
                             <textarea
+                              aria-label="Απάντηση ή διευκρίνιση για το αίτημα"
                               placeholder="Απάντησε ή πρόσθεσε διευκρινίσεις…"
                               value={reply}
                               onChange={e=>
@@ -1221,6 +1234,7 @@ onClick={e=>{
                                 disabled={
                                   recoveryBusy===b.id
                                 }
+                                aria-busy={recoveryBusy===b.id}
                                 onClick={()=>
                                   loadRecovery(b.id)
                                 }
