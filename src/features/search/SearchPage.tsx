@@ -1,7 +1,10 @@
 import React, {
+  useEffect,
   useMemo,
   useState
 } from 'react'
+import { useTranslation } from 'react-i18next'
+import { catalogLabel } from '../../domain/catalog-i18n'
 
 function SearchPage({
   pros,
@@ -14,6 +17,7 @@ function SearchPage({
   SearchBox,
   ProCard
 }:any){
+  const {t,i18n}=useTranslation()
 
   const [sort,setSort]=useState('recommended')
   const [trustOnly,setTrustOnly]=useState(false)
@@ -21,24 +25,46 @@ function SearchPage({
   const [nearOnly,setNearOnly]=useState(false)
   const [premiumOnly,setPremiumOnly]=useState(false)
 
+  function scrollToResults(){
+    window.setTimeout(()=>{
+      const el=document.getElementById('meleo-search-results')
+      if(!el)return
+      const top=
+        el.getBoundingClientRect().top+
+        window.scrollY-
+        92
+      window.scrollTo({
+        top:Math.max(0,top),
+        behavior:'smooth'
+      })
+      el.focus({preventScroll:true})
+    },120)
+  }
+
+  useEffect(()=>{
+    try{
+      if(sessionStorage.getItem('meleo.scrollSearchResults')==='1'){
+        sessionStorage.removeItem('meleo.scrollSearchResults')
+        scrollToResults()
+      }
+    }catch{}
+  },[])
+
   const filtered=useMemo(()=>{
     let items=[...pros]
 
     if(trustOnly){
-      items=items.filter(
-        (p:any)=>p.trust?.eligible
-      )
+      items=items.filter((p:any)=>p.trust?.eligible)
     }
 
     if(availableOnly){
       items=items.filter((p:any)=>{
-        const text=
-          String(p.available||'').toLowerCase()
-
+        const text=String(p.available||'').toLowerCase()
         return (
           text.includes('σήμερα') ||
           text.includes('άμεσα') ||
-          text.includes('διαθέσ')
+          text.includes('διαθέσ') ||
+          text.includes('available')
         )
       })
     }
@@ -55,8 +81,7 @@ function SearchPage({
 
     if(premiumOnly){
       items=items.filter(
-        (p:any)=>
-          p.subscriptionPlan==='premium'
+        (p:any)=>p.subscriptionPlan==='premium'
       )
     }
 
@@ -68,7 +93,6 @@ function SearchPage({
     nearOnly,
     premiumOnly
   ])
-
 
   const sorted=useMemo(()=>{
     const items=[...filtered]
@@ -95,47 +119,33 @@ function SearchPage({
           Number.isFinite(Number(a.distance))
             ? Number(a.distance)
             : Number.POSITIVE_INFINITY
-
         const bd=
           Number.isFinite(Number(b.distance))
             ? Number(b.distance)
             : Number.POSITIVE_INFINITY
-
         return ad-bd
       })
     }
 
-    /*
-     * recommended:
-     * διατηρεί αυστηρά το authoritative
-     * server-side Smart Match ordering.
-     */
     return items
   },[filtered,sort])
 
-
   const activeFilters=[
     trustOnly&&'MELEO Trust',
-    availableOnly&&'Διαθέσιμοι τώρα',
-    nearOnly&&'Έως 10 χλμ',
+    availableOnly&&t('searchPage.availableNow'),
+    nearOnly&&t('searchPage.within10'),
     premiumOnly&&'Premium'
   ].filter(Boolean)
 
-
-  const hasSearchContext=
-    !!(
-      search.specialty ||
-      search.service ||
-      search.locationQuery ||
-      search.locationLabel
-    )
-
+  const hasSearchContext=!!(
+    search.specialty ||
+    search.service ||
+    search.locationQuery ||
+    search.locationLabel
+  )
 
   const topMatches=
-    sorted.filter(
-      (p:any)=>p.smartMatch?.rank<=3
-    ).length
-
+    sorted.filter((p:any)=>p.smartMatch?.rank<=3).length
 
   function resetDiscoveryFilters(){
     setTrustOnly(false)
@@ -145,127 +155,65 @@ function SearchPage({
     setSort('recommended')
   }
 
-
   return (
     <section className="page discovery-page">
       <div className="container">
 
-
-        {/* HERO */}
-
         <div className="discovery-page-hero">
-
           <div>
-
             <span className="discovery-page-kicker">
-              MELEO SEARCH & DISCOVERY
+              {t('searchPage.kicker')}
             </span>
 
             <h1>
-              Βρες τη σωστή φροντίδα.
+              {t('searchPage.title1')}
               <br/>
-              <em>
-                Με καλύτερη πληροφόρηση.
-              </em>
+              <em>{t('searchPage.title2')}</em>
             </h1>
 
-            <p>
-              Η MELEO συνδυάζει ειδικότητα, υπηρεσία,
-              τοποθεσία, διαθεσιμότητα και στοιχεία
-              αξιοπιστίας ώστε να σε βοηθήσει να
-              συγκρίνεις επαγγελματίες με μεγαλύτερη
-              διαφάνεια.
-            </p>
-
+            <p>{t('searchPage.intro')}</p>
           </div>
-
 
           <div className="discovery-page-hero-badge">
-
             <span>✦</span>
-
             <div>
-              <small>
-                SMART MATCH
-              </small>
-
-              <strong>
-                Ranking με πραγματικά signals
-              </strong>
-
-              <p>
-                Trust, αξιολογήσεις, απόσταση,
-                διαθεσιμότητα και συμπεριφορά.
-              </p>
+              <small>SMART MATCH</small>
+              <strong>{t('searchPage.smartTitle')}</strong>
+              <p>{t('searchPage.smartText')}</p>
             </div>
-
           </div>
-
         </div>
 
-
-        {/* SEARCH BOX */}
-
         <div className="discovery-search-shell">
-
           <SearchBox
             search={search}
             setSearch={setSearch}
-            onSearch={async ()=>{
-  await loadPros(search)
-
-  requestAnimationFrame(()=>{
-    requestAnimationFrame(()=>{
-      document
-        .getElementById('meleo-search-results')
-        ?.scrollIntoView({
-          behavior:'smooth',
-          block:'start'
-        })
-    })
-  })
-}}
+            onSearch={async (criteria:any)=>{
+              setSearch(criteria)
+              await loadPros(criteria)
+              scrollToResults()
+            }}
           />
-
         </div>
-
-
-        {/* SEARCH CONTEXT */}
 
         {hasSearchContext&&
           <div className="discovery-context-strip">
-
             <div className="discovery-context-copy">
-
-              <small>
-                ΤΡΕΧΟΥΣΑ ΑΝΑΖΗΤΗΣΗ
-              </small>
-
+              <small>{t('searchPage.currentSearch')}</small>
               <div>
-
                 {search.specialty&&
-                  <span>
-                    {search.specialty}
-                  </span>
+                  <span>{catalogLabel(search.specialty,i18n.language)}</span>
                 }
-
                 {search.service&&
-                  <span>
-                    {search.service}
-                  </span>
+                  <span>{catalogLabel(search.service,i18n.language)}</span>
                 }
-
-                {(search.locationLabel||
-                  search.locationQuery)&&
+                {(search.locationLabel||search.locationQuery)&&
                   <span>
                     ⌖{' '}
-                    {search.locationLabel||
-                     search.locationQuery}
+                    {search.locationLabel||search.locationQuery}
                   </span>
                 }
-
               </div>
-
             </div>
 
             <button
@@ -279,150 +227,91 @@ function SearchPage({
                   lat:'',
                   lon:''
                 }
-
                 setSearch(next)
                 loadPros(next)
                 resetDiscoveryFilters()
               }}
             >
-              Καθαρισμός
+              {t('searchPage.clear')}
             </button>
-
           </div>
         }
 
-
-        {/* DISCOVERY TOOLBAR */}
-
         <div
-  id="meleo-search-results"
-  className="discovery-toolbar"
->
-
+          id="meleo-search-results"
+          className="discovery-toolbar"
+          tabIndex={-1}
+        >
           <div className="discovery-results-summary">
-
-            <small>
-              ΑΠΟΤΕΛΕΣΜΑΤΑ
-            </small>
-
-            <strong>
-              {sorted.length}
-            </strong>
-
+            <small>{t('searchPage.results')}</small>
+            <strong>{sorted.length}</strong>
             <span>
               {sorted.length===1
-                ? 'επαγγελματίας'
-                : 'επαγγελματίες'
+                ? t('searchPage.professional')
+                : t('searchPage.professionals')
               }
             </span>
-
             {topMatches>0&&
-              <b>
-                ✦ {topMatches} Smart Match
-              </b>
+              <b>✦ {topMatches} Smart Match</b>
             }
-
           </div>
-
 
           <div className="discovery-sort">
-
             <label>
-              Ταξινόμηση
-
+              {t('searchPage.sort')}
               <select
                 value={sort}
-                onChange={e=>
-                  setSort(e.target.value)
-                }
+                onChange={e=>setSort(e.target.value)}
               >
                 <option value="recommended">
-                  Προτεινόμενοι · Smart Match
+                  {t('searchPage.recommended')}
                 </option>
-
                 <option value="rating">
-                  Καλύτερη αξιολόγηση
+                  {t('searchPage.rating')}
                 </option>
-
                 <option value="distance">
-                  Κοντινότεροι
+                  {t('searchPage.distance')}
                 </option>
-
                 <option value="price">
-                  Χαμηλότερο βασικό κόστος
+                  {t('searchPage.price')}
                 </option>
               </select>
-
             </label>
-
           </div>
-
         </div>
 
-
-        {/* FILTERS */}
-
         <div className="discovery-filter-bar">
-
           <div className="discovery-filter-label">
             <span>☷</span>
-
             <div>
-              <b>
-                Φίλτρα
-              </b>
-
-              <small>
-                Περιόρισε τα αποτελέσματα
-              </small>
+              <b>{t('searchPage.filters')}</b>
+              <small>{t('searchPage.narrow')}</small>
             </div>
           </div>
 
-
           <button
             type="button"
-            className={
-              trustOnly
-                ? 'active'
-                : ''
-            }
-            onClick={()=>
-              setTrustOnly(v=>!v)
-            }
+            className={trustOnly?'active':''}
+            onClick={()=>setTrustOnly(v=>!v)}
           >
             ✦ MELEO Trust
           </button>
 
+          <button
+            type="button"
+            className={availableOnly?'active':''}
+            onClick={()=>setAvailableOnly(v=>!v)}
+          >
+            ⚡ {t('searchPage.availableNow')}
+          </button>
 
           <button
             type="button"
-            className={
-              availableOnly
-                ? 'active'
-                : ''
-            }
-            onClick={()=>
-              setAvailableOnly(v=>!v)
-            }
+            className={nearOnly?'active':''}
+            onClick={()=>setNearOnly(v=>!v)}
           >
-            ⚡ Διαθέσιμοι τώρα
+            ⌖ {t('searchPage.within10')}
           </button>
-
-
-          <button
-            type="button"
-            className={
-              nearOnly
-                ? 'active'
-                : ''
-            }
-            onClick={()=>
-              setNearOnly(v=>!v)
-            }
-          >
-            ⌖ Έως 10 χλμ
-          </button>
-
 
           <button
             type="button"
@@ -431,13 +320,10 @@ function SearchPage({
                 ? 'active premium-filter'
                 : 'premium-filter'
             }
-            onClick={()=>
-              setPremiumOnly(v=>!v)
-            }
+            onClick={()=>setPremiumOnly(v=>!v)}
           >
             ◆ Premium
           </button>
-
 
           {activeFilters.length>0&&
             <button
@@ -445,161 +331,82 @@ function SearchPage({
               className="discovery-reset-filters"
               onClick={resetDiscoveryFilters}
             >
-              × Καθαρισμός φίλτρων
+              × {t('searchPage.clearFilters')}
             </button>
           }
-
         </div>
-
-
-        {/* ACTIVE FILTER PILLS */}
 
         {activeFilters.length>0&&
           <div className="discovery-active-filters">
-
-            <span>
-              Ενεργά φίλτρα
-            </span>
-
-            {activeFilters.map(
-              (x:any)=>
-                <b key={x}>
-                  {x}
-                </b>
+            <span>{t('searchPage.activeFilters')}</span>
+            {activeFilters.map((x:any)=>
+              <b key={x}>{x}</b>
             )}
-
           </div>
         }
 
-
-        {/* RESULTS */}
-
         {sorted.length
           ? <>
-
               {sort==='recommended'&&topMatches>0&&
                 <div className="discovery-ranking-note">
-
-                  <span>
-                    ✦
-                  </span>
-
+                  <span>✦</span>
                   <div>
-                    <b>
-                      Τα πρώτα αποτελέσματα ταξινομούνται
-                      με MELEO Smart Match
-                    </b>
-
-                    <p>
-                      Η σειρά συνδυάζει πολλαπλά signals.
-                      Το Premium μπορεί να δίνει περιορισμένη
-                      εμπορική ενίσχυση, αλλά δεν αντικαθιστά
-                      την αξιοπιστία, τη συνάφεια και την
-                      απόσταση.
-                    </p>
+                    <b>{t('searchPage.rankingTitle')}</b>
+                    <p>{t('searchPage.rankingText')}</p>
                   </div>
-
                 </div>
               }
 
-
               <div className="discovery-results">
-
                 {sorted.map((p:any)=>
                   <ProCard
                     key={p.id}
                     p={p}
                     open={()=>openPro(p)}
-                    favorite={
-                      favorites.includes(p.id)
-                    }
-                    toggle={()=>
-                      toggleFav(p.id)
-                    }
+                    favorite={favorites.includes(p.id)}
+                    toggle={()=>toggleFav(p.id)}
                   />
                 )}
-
               </div>
-
             </>
-
           : <div className="discovery-empty">
-
-              <div className="discovery-empty-mark">
-                ⌕
-              </div>
-
-              <small>
-                ΔΕΝ ΒΡΕΘΗΚΑΝ ΑΠΟΤΕΛΕΣΜΑΤΑ
-              </small>
-
-              <h2>
-                Δεν βρήκαμε επαγγελματία
-                με αυτά τα κριτήρια.
-              </h2>
-
-              <p>
-                Δοκίμασε να αφαιρέσεις κάποιο φίλτρο,
-                να αυξήσεις την περιοχή αναζήτησης
-                ή να δεις όλους τους επαγγελματίες
-                της ειδικότητας.
-              </p>
+              <div className="discovery-empty-mark">⌕</div>
+              <small>{t('searchPage.noResults')}</small>
+              <h2>{t('searchPage.noResultsTitle')}</h2>
+              <p>{t('searchPage.noResultsText')}</p>
 
               <div className="discovery-empty-actions">
-
                 {activeFilters.length>0&&
                   <button
                     className="btn btn-dark"
                     onClick={resetDiscoveryFilters}
                   >
-                    Καθαρισμός φίλτρων
+                    {t('searchPage.clearFilters')}
                   </button>
                 }
 
                 <button
                   className="btn btn-outline"
                   onClick={()=>{
-                    const next={
-                      ...search,
-                      service:''
-                    }
-
+                    const next={...search,service:''}
                     setSearch(next)
                     loadPros(next)
                     resetDiscoveryFilters()
                   }}
                 >
-                  Όλες οι υπηρεσίες
+                  {t('searchPage.allServices')}
                 </button>
-
               </div>
-
             </div>
         }
 
-
-        {/* EXPLAINER */}
-
         <div className="discovery-explainer">
-
-          <span>
-            ⓘ
-          </span>
-
-          <p>
-            Η MELEO είναι marketplace εύρεσης επαγγελματιών.
-            Η σειρά των αποτελεσμάτων είναι υποβοηθητική και
-            δεν αποτελεί ιατρική σύσταση ή εγγύηση
-            καταλληλότητας για συγκεκριμένο περιστατικό.
-          </p>
-
+          <span>ⓘ</span>
+          <p>{t('searchPage.disclaimer')}</p>
         </div>
-
-
       </div>
     </section>
   )
 }
 
 export default SearchPage
-

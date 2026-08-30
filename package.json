@@ -47,7 +47,7 @@
     "security:audit": "npm audit --audit-level=high",
     "security:check": "npm run security:secrets && npm run security-selftest && npm run security:audit",
     "v56-check": "node scripts/v56-check.mjs",
-    "ci:gate": "npm run typecheck && npm run build && npm run frontend-architecture-check && npm run frontend-version-check && npm run architecture-check && npm run v55-check && npm run v56-check && npm run security:secrets && npm run security-selftest && npm run encoding-check && npm run migration-check && npm run booking-concurrency-check && npm run booking-list-check && npm run gdpr-account-check && npm run authorization-stripe-check && npm run transactional-mail-check && npm run database-tls-check && npm run release-identity-check && npm run runtime-evidence-check && npm run tax-readiness-check && npm run stripe-reconciliation-check && npm run request-observability-check && npm run http-metrics-check && npm run error-observability-check && npm run operational-metrics-check && npm run readiness-alerting-check && npm run rc3-d1-check",
+    "ci:gate": "npm run typecheck && npm run build && npm run frontend-architecture-check && npm run frontend-version-check && npm run architecture-check && npm run v55-check && npm run v56-check && npm run security:secrets && npm run security-selftest && npm run encoding-check && npm run migration-check && npm run booking-concurrency-check && npm run booking-list-check && npm run gdpr-account-check && npm run authorization-stripe-check && npm run transactional-mail-check && npm run database-tls-check && npm run release-identity-check && npm run runtime-evidence-check && npm run tax-readiness-check && npm run stripe-reconciliation-check && npm run request-observability-check && npm run http-metrics-check && npm run error-observability-check && npm run operational-metrics-check && npm run readiness-alerting-check && npm run rc3-d1-check && npm run rc3-d1-feedback-check",
     "release:preflight": "node scripts/release-preflight.mjs",
     "release:tls": "node scripts/tls-readiness.mjs",
     "release:stripe": "node scripts/stripe-readiness.mjs",
@@ -80,7 +80,8 @@
     "error-observability-check": "node scripts/error-observability-selftest.mjs",
     "operational-metrics-check": "node scripts/operational-metrics-selftest.mjs",
     "readiness-alerting-check": "node scripts/readiness-alerting-selftest.mjs",
-    "rc3-d1-check": "node scripts/rc3-d1-home-i18n-selftest.mjs"
+    "rc3-d1-check": "node scripts/rc3-d1-home-i18n-selftest.mjs",
+    "rc3-d1-feedback-check": "node scripts/rc3-d1-feedback-selftest.mjs"
   },
   "dependencies": {
     "express": "5.2.1",

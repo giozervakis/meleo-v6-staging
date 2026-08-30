@@ -24,3 +24,25 @@ Evidence boundary:
 - global header/footer and authenticated screens are outside this slice
 - D1 is not FULLY CLOSED until staging is checked at 320/375/390/430px and desktop,
   including no horizontal overflow, keyboard focus, search controls, and EL/EN persistence.
+
+## Real-device feedback correction pass
+
+Observed during staging review:
+- Home search navigated to Search without reliably preserving the submitted criteria.
+- Search-page searches did not reliably move focus/viewport to the results section.
+- English mode still displayed canonical Greek specialty/service catalog labels.
+- Result-card platform chrome and catalog-derived content remained Greek.
+
+Correction:
+- Home now submits the exact criteria object, loads those results, then performs a
+  one-time Search-page result handoff.
+- Search uses an explicit delayed viewport offset + focus target after result loading.
+- Canonical Greek catalog values remain unchanged for backend/API compatibility while
+  display labels are localized to English.
+- Search-page platform chrome is localized.
+- Result-card platform labels, catalog services, price labels/notes and generic
+  Smart Match copy are localized.
+- User-generated names, locations and arbitrary free-text profile content are not
+  machine-translated.
+
+Status remains: IMPLEMENTED - real-device staging re-test pending.

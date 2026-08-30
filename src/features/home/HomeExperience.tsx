@@ -7,6 +7,7 @@ import {
 
 import { api } from '../../lib/api'
 import { useTranslation } from 'react-i18next'
+import { catalogLabel } from '../../domain/catalog-i18n'
 import './home-rc3d.css'
 
 import {
@@ -38,7 +39,21 @@ export function Home({pros,search,setSearch,loadPros,openPro,favorites,toggleFav
           <div className="eyebrow"><span className="eyedot" aria-hidden="true"/> {t('home.eyebrow')}</div>
           <h1 id="home-hero-title">{t('home.titleLead')}<br/><em>{t('home.titleEmphasis')}</em></h1>
           <p>{t('home.intro')}</p>
-          <SearchBox search={search} setSearch={setSearch} onSearch={()=>{loadPros();setView('search')}}/>
+          <SearchBox
+            search={search}
+            setSearch={setSearch}
+            onSearch={async (criteria:any)=>{
+              setSearch(criteria)
+              await loadPros(criteria)
+              try{
+                sessionStorage.setItem(
+                  'meleo.scrollSearchResults',
+                  '1'
+                )
+              }catch{}
+              setView('search')
+            }}
+          />
           <div className="trust-strip" aria-label={t('home.eyebrow')}>
             <span>✓ {t('home.trustVerified')}</span>
             <span>✓ {t('home.trustPricing')}</span>
@@ -98,7 +113,7 @@ export function Home({pros,search,setSearch,loadPros,openPro,favorites,toggleFav
 }
 
 export function SearchBox({search,setSearch,onSearch}:any){
-  const {t}=useTranslation()
+  const {t,i18n}=useTranslation()
   const services=search.specialty?serviceMap[search.specialty]||[]:[]
   const [geoBusy,setGeoBusy]=useState(false)
   const [geoError,setGeoError]=useState('')
@@ -131,7 +146,7 @@ export function SearchBox({search,setSearch,onSearch}:any){
         <label htmlFor="home-specialty">{t('search.specialty')}</label>
         <select id="home-specialty" name="specialty" value={search.specialty} onChange={e=>setSearch({...search,specialty:e.target.value,service:''})}>
           <option value="">{t('search.chooseSpecialty')}</option>
-          {specialtyOptions.map(x=><option key={x}>{x}</option>)}
+          {specialtyOptions.map(x=><option key={x} value={x}>{catalogLabel(x,i18n.language)}</option>)}
         </select>
       </div>
       <div className="divider" aria-hidden="true"/>
@@ -139,7 +154,7 @@ export function SearchBox({search,setSearch,onSearch}:any){
         <label htmlFor="home-service">{t('search.service')} <span className="optional">{t('search.optional')}</span></label>
         <select id="home-service" name="service" value={search.service} disabled={!search.specialty} onChange={e=>setSearch({...search,service:e.target.value})}>
           <option value="">{search.specialty?t('search.allServices'):t('search.firstSpecialty')}</option>
-          {services.map((x:string)=><option key={x}>{x}</option>)}
+          {services.map((x:string)=><option key={x} value={x}>{catalogLabel(x,i18n.language)}</option>)}
         </select>
       </div>
       <div className="divider" aria-hidden="true"/>

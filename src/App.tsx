@@ -1,8 +1,10 @@
 import React, { Suspense, lazy, useEffect, useMemo, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from './lib/api'
 import { viewFromPath, pathForView, pushView } from './lib/router'
 import type { User, Professional, BookingMessage, Booking, Plan, AppConfig } from './domain/types'
 import { serviceMap, specialtyOptions } from './domain/catalog'
+import { availabilityLabel, catalogLabel, localizedPriceLabel, localizedPriceNote } from './domain/catalog-i18n'
 import { Home, SearchBox, SmartRequest, NowRequest } from './features/home/HomeExperience'
 const AdminPage = lazy(() => import('./features/admin/AdminPage'))
 const ProfessionalDashboardPage = lazy(() => import('./features/professional/ProfessionalDashboard'))
@@ -1197,6 +1199,9 @@ function MiniCard({p}:{p:Professional}){
   )
 }
 function ProCard({p,open,favorite,toggle}:any){
+  const {t,i18n}=useTranslation()
+  const language=i18n.language==='en'?'en':'el'
+
   useEffect(()=>{
     trackProfessionalEvent(p.id,'impression')
   },[p.id])
@@ -1216,30 +1221,25 @@ function ProCard({p,open,favorite,toggle}:any){
       ? Number(p.distance)
       : null
 
+  const rawReasons=
+    (smart?.reasons||[]).slice(0,3)
+
   const reasons=
-    (smart?.reasons||[])
-      .slice(0,3)
+    language==='en'
+      ? []
+      : rawReasons
 
-  const trustEligible=
-    !!p.trust?.eligible
-
+  const trustEligible=!!p.trust?.eligible
   const trustScore=
     trustEligible
       ? Number(p.trust.score||0)
       : null
 
-  const reviews=
-    Number(p.reviews||0)
+  const reviews=Number(p.reviews||0)
+  const rating=Number(p.rating||0)
+  const premium=p.subscriptionPlan==='premium'
 
-  const rating=
-    Number(p.rating||0)
-
-  const premium=
-    p.subscriptionPlan==='premium'
-
-  const availableText=
-    String(p.available||'').trim()
-
+  const availableText=String(p.available||'').trim()
   const isAvailable=
     !!availableText &&
     ![
@@ -1248,9 +1248,16 @@ function ProCard({p,open,favorite,toggle}:any){
       'μη διαθέσιμη',
       'unavailable',
       'false'
-    ].includes(
-      availableText.toLowerCase()
-    )
+    ].includes(availableText.toLowerCase())
+
+  const displayTitle=
+    language==='en' && p.specialty
+      ? catalogLabel(p.specialty,language)
+      : catalogLabel(p.title,language)
+
+  const displayAvailability=
+    availabilityLabel(availableText,language)||
+    t('card.availability')
 
   return (
     <article
@@ -1260,53 +1267,29 @@ function ProCard({p,open,favorite,toggle}:any){
         (premium?'discovery-premium ':'')
       }
     >
-
-      {/* SMART MATCH HEADER */}
-
       {smart&&
         <div className="discovery-match">
-
           <div className="discovery-match-brand">
-            <span className="discovery-match-icon">
-              ✦
-            </span>
-
+            <span className="discovery-match-icon">✦</span>
             <div>
-              <small>
-                MELEO SMART MATCH
-              </small>
-
-              <b>
-                Ισχυρή αντιστοίχιση
-              </b>
+              <small>MELEO SMART MATCH</small>
+              <b>{t('card.strongMatch')}</b>
             </div>
           </div>
 
           <div className="discovery-match-score">
-
-            <span>
-              #{smart.rank}
-            </span>
-
+            <span>#{smart.rank}</span>
             <strong>
               {Math.round(smart.score)}
               <small>%</small>
             </strong>
-
           </div>
-
         </div>
       }
 
-
-      {/* CARD HEADER */}
-
       <div className="discovery-card-header">
-
         <div className="discovery-identity">
-
           <div className="discovery-avatar-wrap">
-
             <IdentityAvatar
               name={p.name}
               photoUrl={p.profilePhotoUrl}
@@ -1317,33 +1300,24 @@ function ProCard({p,open,favorite,toggle}:any){
             {p.verified&&
               <span
                 className="discovery-avatar-verified"
-                title="Επαληθευμένος επαγγελματίας"
+                title={t('card.verifiedTitle')}
               >
                 ✓
               </span>
             }
-
           </div>
 
           <div className="discovery-person">
-
             <div className="discovery-name-row">
-
-              <h3>
-                {p.name}
-              </h3>
-
+              <h3>{p.name}</h3>
               {p.verified&&
                 <span className="discovery-verified">
                   MELEO Verified
                 </span>
               }
-
             </div>
 
-            <p>
-              {p.title}
-            </p>
+            <p>{displayTitle}</p>
 
             {(p.city||p.area)&&
               <small className="discovery-location">
@@ -1354,11 +1328,8 @@ function ProCard({p,open,favorite,toggle}:any){
                 }
               </small>
             }
-
           </div>
-
         </div>
-
 
         <button
           type="button"
@@ -1372,22 +1343,18 @@ function ProCard({p,open,favorite,toggle}:any){
           }}
           title={
             favorite
-              ? 'Αφαίρεση από την Ομάδα Φροντίδας μου'
-              : 'Προσθήκη στην Ομάδα Φροντίδας μου'
+              ? t('card.removeCareTeam')
+              : t('card.addCareTeam')
           }
           aria-label={
             favorite
-              ? 'Αφαίρεση από την Ομάδα Φροντίδας'
-              : 'Προσθήκη στην Ομάδα Φροντίδας'
+              ? t('card.removeCareTeam')
+              : t('card.addCareTeam')
           }
         >
           {favorite?'♥':'♡'}
         </button>
-
       </div>
-
-
-      {/* PREMIUM SIGNAL */}
 
       {premium&&
         <div className="discovery-premium-label">
@@ -1396,119 +1363,66 @@ function ProCard({p,open,favorite,toggle}:any){
         </div>
       }
 
-
-      {/* QUALITY SIGNALS */}
-
       <div className="discovery-signals">
-
         <div className="discovery-rating">
-
-          <span className="discovery-star">
-            ★
-          </span>
+          <span className="discovery-star">★</span>
 
           {reviews>0
             ? <>
-                <strong>
-                  {rating.toFixed(1)}
-                </strong>
-
-                <span>
-                  {reviews} αξιολογήσεις
-                </span>
+                <strong>{rating.toFixed(1)}</strong>
+                <span>{reviews} {t('card.reviews')}</span>
               </>
             : <>
-                <strong>
-                  Νέο
-                </strong>
-
-                <span>
-                  χωρίς αξιολογήσεις
-                </span>
+                <strong>{t('card.new')}</strong>
+                <span>{t('card.noReviews')}</span>
               </>
           }
-
         </div>
-
 
         {trustEligible
           ? <div className="discovery-trust">
-
-              <span>
-                ✦ MELEO Trust
-              </span>
-
-              <strong>
-                {trustScore}/100
-              </strong>
-
+              <span>✦ MELEO Trust</span>
+              <strong>{trustScore}/100</strong>
             </div>
-
           : p.verified
             ? <div className="discovery-trust discovery-trust-new">
-
-                <span>
-                  ✓ Verified
-                </span>
-
-                <strong>
-                  Νέος
-                </strong>
-
+                <span>✓ Verified</span>
+                <strong>{t('card.newVerified')}</strong>
               </div>
-
             : null
         }
-
       </div>
-
-
-      {/* SERVICE TAGS */}
 
       {!!p.services?.length&&
         <div className="discovery-services">
-
           {p.services
             .slice(0,3)
             .map((service:string)=>
               <span key={service}>
-                {service}
+                {catalogLabel(service,language)}
               </span>
             )
           }
-
           {p.services.length>3&&
             <span className="discovery-more-services">
               +{p.services.length-3}
             </span>
           }
-
         </div>
       }
 
-
-      {/* CONTEXT / AVAILABILITY */}
-
       <div className="discovery-context">
-
         {hasDistance&&
           <div>
-            <span className="discovery-context-icon">
-              ⌖
-            </span>
-
+            <span className="discovery-context-icon">⌖</span>
             <span>
               <b>
-                {distance!.toFixed(1)} χλμ
+                {distance!.toFixed(1)} {language==='en'?'km':'χλμ'}
               </b>
-
-              <small>
-                από την περιοχή σου
-              </small>
+              <small>{t('card.fromArea')}</small>
             </span>
           </div>
         }
-
 
         <div>
           <span
@@ -1517,145 +1431,80 @@ function ProCard({p,open,favorite,toggle}:any){
               (isAvailable?'online':'')
             }
           />
-
           <span>
-            <b>
-              {availableText||'Διαθεσιμότητα'}
-            </b>
-
-            <small>
-              τρέχουσα ένδειξη
-            </small>
+            <b>{displayAvailability}</b>
+            <small>{t('card.currentIndicator')}</small>
           </span>
         </div>
-
 
         {p.responseTime&&
           <div>
-
-            <span className="discovery-context-icon">
-              ◷
-            </span>
-
+            <span className="discovery-context-icon">◷</span>
             <span>
               <b>
-                {p.responseTime}
+                {language==='en'
+                  ? 'Response information available'
+                  : p.responseTime
+                }
               </b>
-
-              <small>
-                χρόνος απάντησης
-              </small>
+              <small>{t('card.responseTime')}</small>
             </span>
-
           </div>
         }
-
       </div>
-
-
-      {/* WHY THIS PROFESSIONAL */}
 
       {smart&&
         <div className="discovery-why">
-
           <div className="discovery-why-head">
-
             <div>
-              <span className="discovery-why-mark">
-                ✦
-              </span>
-
-              <b>
-                Γιατί σου προτείνεται
-              </b>
+              <span className="discovery-why-mark">✦</span>
+              <b>{t('card.why')}</b>
             </div>
-
-            <small>
-              Smart Match #{smart.rank}
-            </small>
-
+            <small>Smart Match #{smart.rank}</small>
           </div>
-
 
           {reasons.length>0
             ? <div className="discovery-reasons">
-
                 {reasons.map(
                   (reason:string,index:number)=>
-                    <div
-                      key={`${reason}-${index}`}
-                    >
-                      <span>
-                        ✓
-                      </span>
-
-                      <p>
-                        {reason}
-                      </p>
+                    <div key={`${reason}-${index}`}>
+                      <span>✓</span>
+                      <p>{reason}</p>
                     </div>
                 )}
-
               </div>
-
             : <p className="discovery-match-generic">
-                Η ειδικότητα, η περιοχή και τα στοιχεία
-                αξιοπιστίας αυτού του επαγγελματία
-                ταιριάζουν στην αναζήτησή σου.
+                {t('card.genericReason')}
               </p>
           }
-
         </div>
       }
 
-
-      {/* PRICE + CTA */}
-
       <div className="discovery-footer">
-
         <div className="discovery-price">
-
-          <small>
-            Βασικό κόστος
-          </small>
-
+          <small>{t('card.baseCost')}</small>
           <strong>
-            {priceLabel(p,true)}
+            {localizedPriceLabel(p,language)}
           </strong>
-
           <span>
-            {priceNote(p)}
+            {localizedPriceNote(p,language)}
           </span>
-
         </div>
-
 
         <button
           type="button"
           className="discovery-open"
           onClick={open}
         >
-          <span>
-            Προβολή προφίλ
-          </span>
-
-          <b>
-            →
-          </b>
+          <span>{t('card.viewProfile')}</span>
+          <b>→</b>
         </button>
-
       </div>
-
 
       <div className="discovery-safety">
-
-        <span>
-          ✓
-        </span>
-
-        Η τελική χρέωση συμφωνείται πριν την επίσκεψη.
-
+        <span>✓</span>
+        {t('card.finalPrice')}
       </div>
-
     </article>
   )
 }
