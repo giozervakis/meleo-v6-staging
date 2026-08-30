@@ -1,6 +1,6 @@
 # RC3-D1 Home Mobile / Accessibility / i18n Foundation
 
-Status: IMPLEMENTED - real-device staging proof pending.
+Status: FULLY CLOSED.
 
 Scope is intentionally one screen: the public Home experience and its primary search
 control. This follows the RC3-D rule: one screen -> deploy -> real-device check -> next.
@@ -45,4 +45,32 @@ Correction:
 - User-generated names, locations and arbitrary free-text profile content are not
   machine-translated.
 
-Status remains: IMPLEMENTED - real-device staging re-test pending.
+Status remains: FULLY CLOSED.
+## Real-device staging acceptance - 2026-08-30
+
+User validation confirmed the corrected D1 flows are acceptable to proceed:
+- Home search preserves submitted criteria and opens the Search experience with matching results.
+- Search-page search moves the viewport/focus to the result section after loading.
+- English specialty/service selectors display localized labels while canonical backend values remain unchanged.
+- English discovery/result-card platform chrome is localized.
+- D1 mobile/accessibility/i18n foundation is accepted for progression.
+
+## Closure
+
+RC3-D1 is FULLY CLOSED.
+
+Closure scope:
+- Home responsive foundation
+- Home primary-search accessibility
+- EL default/fallback + EN persistence
+- Home-to-Search criteria handoff
+- Search result scroll/focus behavior
+- localized specialty/service display labels
+- localized Search/discovery platform chrome
+- localized result-card platform chrome
+
+Evidence boundaries remain:
+- user-entered names, locations and arbitrary free-text profile content are not machine-translated
+- specialty/service canonical backend values remain Greek identifiers by design
+- this closure does not claim full application-wide i18n or WCAG conformance
+- authenticated dashboards and remaining public screens continue in later RC3-D slices
