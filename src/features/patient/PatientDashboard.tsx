@@ -475,12 +475,12 @@ const careActivity = [
 
 const patientJourneyLevel =
   completedBookings.length>=10
-    ? 'MELEO Regular'
+    ? t('patient.hero.journey.regular')
     : completedBookings.length>=5
-      ? 'Active Care'
+      ? t('patient.hero.journey.active')
       : completedBookings.length>=1
-        ? 'Care Started'
-        : 'Getting Started'
+        ? t('patient.hero.journey.started')
+        : t('patient.hero.journey.gettingStarted')
 
 const careContinuity =
   completedBookings.length
@@ -531,13 +531,13 @@ return (
             <span>{patientJourneyLevel}</span>
 
             {needsAttention>0
-              ? <b>{needsAttention} χρειάζονται προσοχή</b>
-              : <b>Όλα ενημερωμένα</b>
+              ? <b>{t('patient.hero.attention',{count:needsAttention})}</b>
+              : <b>{t('patient.hero.upToDate')}</b>
             }
           </div>
         </div>
 
-        <div className="patient-care-identity" aria-label="Στοιχεία μέλους MELEO">
+        <div className="patient-care-identity" aria-label={t('patient.hero.memberAria')}>
           <IdentityAvatar
             name={user.name}
             photoUrl={user.profilePhotoUrl}
@@ -555,7 +555,7 @@ return (
       </div>
 
 
-      <div className="patient-care-metrics" role="list" aria-label="Personal care overview">
+      <div className="patient-care-metrics" role="list" aria-label={t('patient.metrics.aria')}>
 
         <div className="patient-care-metric" role="listitem">
           <span>💬</span>
