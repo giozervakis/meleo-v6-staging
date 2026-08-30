@@ -1,0 +1,16 @@
+.rc3d-booking-page{overflow-x:clip}
+.rc3d-booking-page .booking-flow,.rc3d-booking-page .booking-side,.rc3d-booking-page .form-card,.rc3d-booking-page .success-card{min-width:0}
+.rc3d-booking-page .rc3d-booking-card label,.rc3d-booking-page .summary-box div,.rc3d-booking-page .booking-selected-slot,.rc3d-booking-page .booking-no-slots{overflow-wrap:anywhere}
+.rc3d-booking-page button,.rc3d-booking-page input,.rc3d-booking-page select{min-height:44px}
+.rc3d-booking-page textarea{min-height:120px;resize:vertical}
+.rc3d-booking-page input,.rc3d-booking-page select,.rc3d-booking-page textarea{max-width:100%;font-size:16px}
+.rc3d-booking-page :focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.rc3d-booking-page h1[tabindex="-1"]:focus,.rc3d-booking-page .rc3d-booking-success:focus{outline:none}
+.rc3d-booking-page .booking-slot-grid button{min-width:0;touch-action:manipulation}
+.rc3d-booking-page .booking-slot-grid button[aria-pressed="true"]{box-shadow:0 0 0 2px rgba(15,48,57,.16)}
+.rc3d-booking-page .rc3d-booking-live-region:empty{display:none}
+.rc3d-booking-page .booking-slots-error button{min-height:44px}
+@media(max-width:900px){.rc3d-booking-page .booking-layout{grid-template-columns:minmax(0,1fr)}.rc3d-booking-page .booking-side{order:2}}
+@media(max-width:600px){.rc3d-booking-page .booking-layout{padding-inline:14px}.rc3d-booking-page .form-card,.rc3d-booking-page .success-card{padding-inline:16px}.rc3d-booking-page .booking-live-head,.rc3d-booking-page .booking-selected-slot{align-items:flex-start;gap:10px}.rc3d-booking-page .booking-slot-grid{grid-template-columns:repeat(3,minmax(0,1fr))}.rc3d-booking-page .summary-box div{gap:8px}}
+@media(max-width:390px){.rc3d-booking-page .booking-layout{padding-inline:10px}.rc3d-booking-page .form-card,.rc3d-booking-page .success-card{padding-inline:13px}.rc3d-booking-page .booking-slot-grid{grid-template-columns:repeat(2,minmax(0,1fr))}.rc3d-booking-page .booking-live-head,.rc3d-booking-page .booking-selected-slot{flex-direction:column}.rc3d-booking-page .booking-selected-slot button{width:100%}}
+@media(prefers-reduced-motion:reduce){.rc3d-booking-page *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}

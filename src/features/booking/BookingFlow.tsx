@@ -2,10 +2,13 @@ import React, {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState
 } from 'react'
+import { useTranslation } from 'react-i18next'
 
 import { api } from '../../lib/api'
+import './booking-rc3d.css'
 
 type AvailabilityResponse = {
   professionalId:string
@@ -48,12 +51,15 @@ function BookingFlow({
   priceLabel,
   MiniCard
 }:any){
+  const {t,i18n}=useTranslation()
+  const stepHeadingRef=useRef<HTMLHeadingElement>(null)
+  const statusRef=useRef<HTMLDivElement>(null)
 
   const availableServices =
     Array.isArray(p?.services) &&
     p.services.length > 0
       ? p.services
-      : ['Επίσκεψη']
+      : [t('booking.defaultService')]
 
   const [step,setStep]=
     useState(1)
@@ -165,7 +171,7 @@ function BookingFlow({
 
           setSlotsError(
             e?.message ||
-            'Δεν ήταν δυνατή η φόρτωση των διαθέσιμων ωρών.'
+            t('booking.availability.errorFallback')
           )
 
           return []
@@ -174,7 +180,7 @@ function BookingFlow({
           setSlotsLoading(false)
         }
       },
-      [p?.id,token]
+      [p?.id,token,t]
     )
 
   useEffect(
@@ -199,7 +205,7 @@ function BookingFlow({
 
         try{
           return new Intl.DateTimeFormat(
-            'el-GR',
+            i18n.language==='en'?'en-GB':'el-GR',
             {
               weekday:'long',
               day:'numeric',
@@ -214,14 +220,22 @@ function BookingFlow({
           return form.date
         }
       },
-      [form.date]
+      [form.date,i18n.language]
     )
+
+  useEffect(()=>{
+    if(step===1 || step===2){
+      requestAnimationFrame(()=>stepHeadingRef.current?.focus())
+    }else if(step===3){
+      requestAnimationFrame(()=>statusRef.current?.focus())
+    }
+  },[step])
 
   async function submit(){
 
     if(!form.time){
       setToast(
-        'Επίλεξε διαθέσιμη ώρα.'
+        t('booking.validation.time')
       )
       return
     }
@@ -245,14 +259,14 @@ function BookingFlow({
       setStep(3)
 
       setToast(
-        'Το αίτημα κράτησης καταχωρήθηκε'
+        t('booking.toast.success')
       )
 
     }catch(e:any){
 
       const message=
         e?.message ||
-        'Δεν ήταν δυνατή η καταχώρηση.'
+        t('booking.toast.failure')
 
       setToast(message)
 
@@ -273,520 +287,79 @@ function BookingFlow({
     }
   }
 
-  if(
-    !['patient','professional']
-      .includes(user?.role)
-  ){
-    return (
-      <section className="page">
-
-        <div className="container narrow">
-
-          <Empty
-            title="Χρειάζεται λογαριασμός συνοδού/ασθενή"
-            text="Οι κρατήσεις δημιουργούνται από λογαριασμό χρήστη."
-          />
-
-          <button
-            className="btn btn-dark wide"
-            onClick={()=>setView('home')}
-          >
-            Επιστροφή
-          </button>
-
-        </div>
-
-      </section>
-    )
+  if(!['patient','professional'].includes(user?.role)){
+    return <section className="page rc3d-booking-page"><div className="container narrow">
+      <Empty title={t('booking.auth.title')} text={t('booking.auth.text')}/>
+      <button className="btn btn-dark wide" onClick={()=>setView('home')}>{t('booking.actions.back')}</button>
+    </div></section>
   }
 
-  return (
-    <section className="page">
-
-      <div className="container booking-layout">
-
-        <div className="booking-flow">
-
-          <button
-            className="back"
-            onClick={()=>setView('profile')}
-          >
-            ← {p.name}
-          </button>
-
-          <div className="booking-progress">
-            <span className={step>=1?'on':''}>1</span>
-            <i/>
-            <span className={step>=2?'on':''}>2</span>
-            <i/>
-            <span className={step>=3?'on':''}>3</span>
-          </div>
-
-
-          {step===1&&(
-
-            <div className="form-card">
-
-              <div className="eyebrow">
-                ΒΗΜΑ 1 ΑΠΟ 2
-              </div>
-
-              <h1>
-                Πότε χρειάζεσαι φροντίδα;
-              </h1>
-
-              <p className="booking-live-intro">
-                Επίλεξε ημερομηνία και θα εμφανιστούν
-                μόνο οι πραγματικά διαθέσιμες ώρες
-                του επαγγελματία.
-              </p>
-
-              <label>
-                Υπηρεσία
-
-                <select
-                  value={form.service}
-                  onChange={e=>
-                    setForm({
-                      ...form,
-                      service:e.target.value
-                    })
-                  }
-                >
-                  {availableServices.map(
-                    (x:string)=>(
-                      <option
-                        key={x}
-                        value={x}
-                      >
-                        {x}
-                      </option>
-                    )
-                  )}
-                </select>
-              </label>
-
-
-              <label>
-                Ημερομηνία
-
-                <input
-                  type="date"
-                  value={form.date}
-                  min={today()}
-                  onChange={e=>
-                    setForm(current=>({
-                      ...current,
-                      date:e.target.value,
-                      time:''
-                    }))
-                  }
-                />
-              </label>
-
-
-              <div className="booking-live-availability">
-
-                <div className="booking-live-head">
-
-                  <div>
-                    <span>
-                      ΔΙΑΘΕΣΙΜΕΣ ΩΡΕΣ
-                    </span>
-
-                    <strong>
-                      {selectedDateLabel}
-                    </strong>
-                  </div>
-
-                  {!slotsLoading&&(
-                    <small>
-                      {slots.length}
-                      {' '}
-                      διαθέσιμες
-                    </small>
-                  )}
-
-                </div>
-
-
-                {slotsLoading&&(
-
-                  <div className="booking-slots-loading">
-                    <span/>
-                    Έλεγχος πραγματικής διαθεσιμότητας…
-                  </div>
-
-                )}
-
-
-                {!slotsLoading&&slotsError&&(
-
-                  <div className="booking-slots-error">
-
-                    <strong>
-                      Δεν μπορέσαμε να ελέγξουμε
-                      τη διαθεσιμότητα.
-                    </strong>
-
-                    <p>
-                      {slotsError}
-                    </p>
-
-                    <button
-                      type="button"
-                      onClick={()=>
-                        loadAvailability(
-                          form.date,
-                          false
-                        )
-                      }
-                    >
-                      Προσπάθησε ξανά
-                    </button>
-
-                  </div>
-
-                )}
-
-
-                {!slotsLoading&&
-                 !slotsError&&
-                 slots.length===0&&(
-
-                  <div className="booking-no-slots">
-
-                    <span>○</span>
-
-                    <div>
-                      <strong>
-                        Δεν υπάρχει διαθέσιμη ώρα
-                        αυτή την ημέρα.
-                      </strong>
-
-                      <p>
-                        Επίλεξε άλλη ημερομηνία για
-                        να δεις το διαθέσιμο πρόγραμμα.
-                      </p>
-                    </div>
-
-                  </div>
-
-                )}
-
-
-                {!slotsLoading&&
-                 !slotsError&&
-                 slots.length>0&&(
-
-                  <div className="booking-slot-grid">
-
-                    {slots.map(time=>(
-
-                      <button
-                        type="button"
-                        key={time}
-                        className={
-                          form.time===time
-                            ? 'selected'
-                            : ''
-                        }
-                        onClick={()=>
-                          setForm(current=>({
-                            ...current,
-                            time
-                          }))
-                        }
-                      >
-                        {time}
-                      </button>
-
-                    ))}
-
-                  </div>
-
-                )}
-
-
-                {!slotsLoading&&
-                 availabilitySource&&(
-
-                  <small className="booking-live-note">
-                    Η διαθεσιμότητα ελέγχεται
-                    ζωντανά πριν την καταχώρηση.
-                  </small>
-
-                )}
-
-              </div>
-
-
-              <label>
-                Επανάληψη
-
-                <select
-                  value={form.repeat}
-                  onChange={e=>
-                    setForm({
-                      ...form,
-                      repeat:e.target.value
-                    })
-                  }
-                >
-                  <option value="once">
-                    Μία επίσκεψη
-                  </option>
-
-                  <option value="daily7">
-                    Καθημερινά για 7 ημέρες
-                  </option>
-
-                  <option value="twice7">
-                    Πρωί & βράδυ για 7 ημέρες
-                  </option>
-
-                </select>
-              </label>
-
-
-              <button
-                className="btn btn-dark wide"
-                disabled={
-                  slotsLoading ||
-                  !form.time
-                }
-                onClick={()=>setStep(2)}
-              >
-                Συνέχεια →
-              </button>
-
-            </div>
-          )}
-
-
-          {step===2&&(
-
-            <div className="form-card">
-
-              <div className="eyebrow">
-                ΒΗΜΑ 2 ΑΠΟ 2
-              </div>
-
-              <h1>
-                Στοιχεία επίσκεψης
-              </h1>
-
-              <div className="booking-selected-slot">
-
-                <span>
-                  ΕΠΙΛΕΓΜΕΝΗ ΩΡΑ
-                </span>
-
-                <strong>
-                  {selectedDateLabel}
-                  {' · '}
-                  {form.time}
-                </strong>
-
-                <button
-                  type="button"
-                  onClick={()=>setStep(1)}
-                >
-                  Αλλαγή
-                </button>
-
-              </div>
-
-
-              <label>
-                Διεύθυνση επίσκεψης
-
-                <input
-                  placeholder="Οδός, αριθμός, περιοχή"
-                  value={form.address}
-                  onChange={e=>
-                    setForm({
-                      ...form,
-                      address:e.target.value
-                    })
-                  }
-                />
-              </label>
-
-
-              <label>
-                Σημειώσεις
-
-                <textarea
-                  placeholder="Προαιρετικές πληροφορίες για τον επαγγελματία. Μην καταχωρείτε περισσότερα ευαίσθητα δεδομένα από όσα είναι απαραίτητα."
-                  value={form.notes}
-                  onChange={e=>
-                    setForm({
-                      ...form,
-                      notes:e.target.value
-                    })
-                  }
-                />
-              </label>
-
-
-              <div className="summary-box">
-
-                <div>
-                  <span>Υπηρεσία</span>
-                  <b>{form.service}</b>
-                </div>
-
-                <div>
-                  <span>Ημερομηνία</span>
-                  <b>
-                    {form.date} · {form.time}
-                  </b>
-                </div>
-
-                <div>
-                  <span>
-                    Βασικό κόστος επίσκεψης
-                  </span>
-                  <b>{priceLabel(p,true)}</b>
-                </div>
-
-                <div>
-                  <span>Τελικό κόστος</span>
-                  <b>
-                    Κατόπιν τηλεφωνικής συνεννόησης
-                  </b>
-                </div>
-
-              </div>
-
-
-              <label className="consent-row booking-consent">
-
-                <input
-                  type="checkbox"
-                  checked={contactConsent}
-                  onChange={e=>
-                    setContactConsent(
-                      e.target.checked
-                    )
-                  }
-                />
-
-                <span>
-                  Συμφωνώ να κοινοποιηθούν το email
-                  και το τηλέφωνό μου στον συγκεκριμένο
-                  επαγγελματία για τη διαχείριση αυτού
-                  του αιτήματος.
-                </span>
-
-              </label>
-
-
-              <button
-                className="btn btn-dark wide"
-                disabled={
-                  !form.address ||
-                  !contactConsent ||
-                  !form.time ||
-                  busy
-                }
-                onClick={submit}
-              >
-                {busy
-                  ? 'Καταχώρηση...'
-                  : 'Αποστολή αιτήματος'}
-              </button>
-
-
-              <button
-                className="text-btn"
-                onClick={()=>setStep(1)}
-              >
-                ← Αλλαγή ώρας
-              </button>
-
-            </div>
-          )}
-
-
-          {step===3&&(
-
-            <div className="success-card">
-
-              <div className="success-icon">
-                ✓
-              </div>
-
-              <div className="eyebrow">
-                ΤΟ ΑΙΤΗΜΑ ΣΤΑΛΘΗΚΕ
-              </div>
-
-              <h1>
-                Η κράτησή σου είναι σε αναμονή
-                επιβεβαίωσης.
-              </h1>
-
-              <p>
-                Ο επαγγελματίας θα δει το αίτημα
-                στο dashboard του. Η συγκεκριμένη
-                ώρα δεν προσφέρεται πλέον σε νέο
-                αίτημα όσο η κράτηση παραμένει ενεργή.
-              </p>
-
-              <button
-                className="btn btn-dark"
-                onClick={()=>
-                  setView(
-                    'patient-dashboard'
-                  )
-                }
-              >
-                Οι κρατήσεις μου
-              </button>
-
-            </div>
-          )}
-
+  return <section className="page rc3d-booking-page">
+    <div className="container booking-layout">
+      <div className="booking-flow">
+        <button className="back rc3d-booking-back" onClick={()=>setView('profile')}>← {p.name}</button>
+        <div className="booking-progress" aria-label={t('booking.progress.label')}>
+          <span className={step>=1?'on':''} aria-current={step===1?'step':undefined}>1</span><i aria-hidden="true"/>
+          <span className={step>=2?'on':''} aria-current={step===2?'step':undefined}>2</span><i aria-hidden="true"/>
+          <span className={step>=3?'on':''} aria-current={step===3?'step':undefined}>3</span>
         </div>
 
+        {step===1&&<div className="form-card rc3d-booking-card">
+          <div className="eyebrow">{t('booking.step1.eyebrow')}</div>
+          <h1 ref={stepHeadingRef} tabIndex={-1}>{t('booking.step1.title')}</h1>
+          <p className="booking-live-intro">{t('booking.step1.intro')}</p>
+          <label>{t('booking.fields.service')}<select value={form.service} onChange={e=>setForm({...form,service:e.target.value})}>
+            {availableServices.map((x:string)=><option key={x} value={x}>{x}</option>)}
+          </select></label>
+          <label>{t('booking.fields.date')}<input type="date" value={form.date} min={today()} onChange={e=>setForm(current=>({...current,date:e.target.value,time:''}))}/></label>
+          <div className="booking-live-availability" aria-busy={slotsLoading}>
+            <div className="booking-live-head"><div><span>{t('booking.availability.heading')}</span><strong>{selectedDateLabel}</strong></div>
+              {!slotsLoading&&<small>{t('booking.availability.count',{count:slots.length})}</small>}
+            </div>
+            <div className="rc3d-booking-live-region" role="status" aria-live="polite" aria-atomic="true">
+              {slotsLoading&&<div className="booking-slots-loading"><span aria-hidden="true"/>{t('booking.availability.loading')}</div>}
+              {!slotsLoading&&slotsError&&<div className="booking-slots-error" role="alert"><strong>{t('booking.availability.errorTitle')}</strong><p>{slotsError}</p><button type="button" onClick={()=>loadAvailability(form.date,false)}>{t('booking.actions.retry')}</button></div>}
+              {!slotsLoading&&!slotsError&&slots.length===0&&<div className="booking-no-slots"><span aria-hidden="true">○</span><div><strong>{t('booking.availability.emptyTitle')}</strong><p>{t('booking.availability.emptyText')}</p></div></div>}
+            </div>
+            {!slotsLoading&&!slotsError&&slots.length>0&&<div className="booking-slot-grid" role="group" aria-label={t('booking.availability.choose')}>
+              {slots.map(time=><button type="button" key={time} className={form.time===time?'selected':''} aria-pressed={form.time===time} onClick={()=>setForm(current=>({...current,time}))}>{time}</button>)}
+            </div>}
+            {!slotsLoading&&availabilitySource&&<small className="booking-live-note">{t('booking.availability.liveNote')}</small>}
+          </div>
+          <label>{t('booking.fields.repeat')}<select value={form.repeat} onChange={e=>setForm({...form,repeat:e.target.value})}>
+            <option value="once">{t('booking.repeat.once')}</option><option value="daily7">{t('booking.repeat.daily7')}</option><option value="twice7">{t('booking.repeat.twice7')}</option>
+          </select></label>
+          <button className="btn btn-dark wide" disabled={slotsLoading||!form.time} onClick={()=>setStep(2)}>{t('booking.actions.continue')} →</button>
+        </div>}
 
-        <aside className="booking-side">
+        {step===2&&<div className="form-card rc3d-booking-card">
+          <div className="eyebrow">{t('booking.step2.eyebrow')}</div>
+          <h1 ref={stepHeadingRef} tabIndex={-1}>{t('booking.step2.title')}</h1>
+          <div className="booking-selected-slot"><span>{t('booking.selected.heading')}</span><strong>{selectedDateLabel} · {form.time}</strong><button type="button" onClick={()=>setStep(1)}>{t('booking.actions.change')}</button></div>
+          <label>{t('booking.fields.address')}<input autoComplete="street-address" placeholder={t('booking.fields.addressPlaceholder')} value={form.address} aria-required="true" onChange={e=>setForm({...form,address:e.target.value})}/></label>
+          <label>{t('booking.fields.notes')}<textarea placeholder={t('booking.fields.notesPlaceholder')} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label>
+          <div className="summary-box" aria-label={t('booking.summary.label')}>
+            <div><span>{t('booking.summary.service')}</span><b>{form.service}</b></div>
+            <div><span>{t('booking.summary.date')}</span><b>{form.date} · {form.time}</b></div>
+            <div><span>{t('booking.summary.baseCost')}</span><b>{priceLabel(p,true)}</b></div>
+            <div><span>{t('booking.summary.finalCost')}</span><b>{t('booking.summary.byAgreement')}</b></div>
+          </div>
+          <label className="consent-row booking-consent"><input type="checkbox" checked={contactConsent} onChange={e=>setContactConsent(e.target.checked)}/><span>{t('booking.consent')}</span></label>
+          <button className="btn btn-dark wide" disabled={!form.address.trim()||!contactConsent||!form.time||busy} aria-busy={busy} onClick={submit}>{busy?t('booking.actions.submitting'):t('booking.actions.submit')}</button>
+          <button className="text-btn" onClick={()=>setStep(1)}>← {t('booking.actions.changeTime')}</button>
+        </div>}
 
-          <MiniCard p={p}/>
-
-          <hr/>
-
-          <p>
-            <b>Τι ακολουθεί;</b>
-          </p>
-
-          <ol>
-            <li>
-              Επιλέγεις πραγματικά διαθέσιμη ώρα.
-            </li>
-
-            <li>
-              Στέλνεις το αίτημα.
-            </li>
-
-            <li>
-              Ο επαγγελματίας επικοινωνεί μαζί σου
-              για ανάγκες και τελικό κόστος.
-            </li>
-
-            <li>
-              Μετά τη συμφωνία επιβεβαιώνεται
-              η επίσκεψη.
-            </li>
-          </ol>
-
-        </aside>
-
+        {step===3&&<div className="success-card rc3d-booking-success" ref={statusRef} tabIndex={-1} role="status" aria-live="polite">
+          <div className="success-icon" aria-hidden="true">✓</div><div className="eyebrow">{t('booking.success.eyebrow')}</div>
+          <h1>{t('booking.success.title')}</h1><p>{t('booking.success.text')}</p>
+          <button className="btn btn-dark" onClick={()=>setView('patient-dashboard')}>{t('booking.actions.myBookings')}</button>
+        </div>}
       </div>
-
-    </section>
-  )
+      <aside className="booking-side"><MiniCard p={p}/><hr/><p><b>{t('booking.side.title')}</b></p><ol>
+        <li>{t('booking.side.one')}</li><li>{t('booking.side.two')}</li><li>{t('booking.side.three')}</li><li>{t('booking.side.four')}</li>
+      </ol></aside>
+    </div>
+  </section>
 }
 
 export default BookingFlow

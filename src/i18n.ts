@@ -17,6 +17,24 @@ const resources={
         pricing:'Συνδρομές',
         professionals:'Για επαγγελματίες'
       },
+      booking:{
+        defaultService:'Επίσκεψη',
+        auth:{title:'Χρειάζεται λογαριασμός συνοδού/ασθενή',text:'Οι κρατήσεις δημιουργούνται από λογαριασμό χρήστη.'},
+        progress:{label:'Πρόοδος κράτησης'},
+        step1:{eyebrow:'ΒΗΜΑ 1 ΑΠΟ 2',title:'Πότε χρειάζεσαι φροντίδα;',intro:'Επίλεξε ημερομηνία και θα εμφανιστούν μόνο οι πραγματικά διαθέσιμες ώρες του επαγγελματία.'},
+        step2:{eyebrow:'ΒΗΜΑ 2 ΑΠΟ 2',title:'Στοιχεία επίσκεψης'},
+        fields:{service:'Υπηρεσία',date:'Ημερομηνία',repeat:'Επανάληψη',address:'Διεύθυνση επίσκεψης',addressPlaceholder:'Οδός, αριθμός, περιοχή',notes:'Σημειώσεις',notesPlaceholder:'Προαιρετικές πληροφορίες για τον επαγγελματία. Μην καταχωρείτε περισσότερα ευαίσθητα δεδομένα από όσα είναι απαραίτητα.'},
+        availability:{heading:'ΔΙΑΘΕΣΙΜΕΣ ΩΡΕΣ',count:'{{count}} διαθέσιμες',loading:'Έλεγχος πραγματικής διαθεσιμότητας…',errorTitle:'Δεν μπορέσαμε να ελέγξουμε τη διαθεσιμότητα.',errorFallback:'Δεν ήταν δυνατή η φόρτωση των διαθέσιμων ωρών.',emptyTitle:'Δεν υπάρχει διαθέσιμη ώρα αυτή την ημέρα.',emptyText:'Επίλεξε άλλη ημερομηνία για να δεις το διαθέσιμο πρόγραμμα.',choose:'Επιλογή διαθέσιμης ώρας',liveNote:'Η διαθεσιμότητα ελέγχεται ζωντανά πριν την καταχώρηση.'},
+        repeat:{once:'Μία επίσκεψη',daily7:'Καθημερινά για 7 ημέρες',twice7:'Πρωί & βράδυ για 7 ημέρες'},
+        selected:{heading:'ΕΠΙΛΕΓΜΕΝΗ ΩΡΑ'},
+        summary:{label:'Σύνοψη κράτησης',service:'Υπηρεσία',date:'Ημερομηνία',baseCost:'Βασικό κόστος επίσκεψης',finalCost:'Τελικό κόστος',byAgreement:'Κατόπιν τηλεφωνικής συνεννόησης'},
+        consent:'Συμφωνώ να κοινοποιηθούν το email και το τηλέφωνό μου στον συγκεκριμένο επαγγελματία για τη διαχείριση αυτού του αιτήματος.',
+        validation:{time:'Επίλεξε διαθέσιμη ώρα.'},
+        toast:{success:'Το αίτημα κράτησης καταχωρήθηκε',failure:'Δεν ήταν δυνατή η καταχώρηση.'},
+        actions:{back:'Επιστροφή',retry:'Προσπάθησε ξανά',continue:'Συνέχεια',change:'Αλλαγή',changeTime:'Αλλαγή ώρας',submitting:'Καταχώρηση...',submit:'Αποστολή αιτήματος',myBookings:'Οι κρατήσεις μου'},
+        success:{eyebrow:'ΤΟ ΑΙΤΗΜΑ ΣΤΑΛΘΗΚΕ',title:'Η κράτησή σου είναι σε αναμονή επιβεβαίωσης.',text:'Ο επαγγελματίας θα δει το αίτημα στο dashboard του. Η συγκεκριμένη ώρα δεν προσφέρεται πλέον σε νέο αίτημα όσο η κράτηση παραμένει ενεργή.'},
+        side:{title:'Τι ακολουθεί;',one:'Επιλέγεις πραγματικά διαθέσιμη ώρα.',two:'Στέλνεις το αίτημα.',three:'Ο επαγγελματίας επικοινωνεί μαζί σου για ανάγκες και τελικό κόστος.',four:'Μετά τη συμφωνία επιβεβαιώνεται η επίσκεψη.'}
+      },
       home:{
         language:{el:'ΕΛ',en:'EN',label:'Γλώσσα'},
         eyebrow:'ΦΡΟΝΤΙΔΑ ΜΕ ΕΜΠΙΣΤΟΣΥΝΗ',
@@ -150,6 +168,24 @@ const resources={
         now:'MELEO Now',
         pricing:'Plans',
         professionals:'For professionals'
+      },
+      booking:{
+        defaultService:'Visit',
+        auth:{title:'A patient/companion account is required',text:'Bookings are created from a user account.'},
+        progress:{label:'Booking progress'},
+        step1:{eyebrow:'STEP 1 OF 2',title:'When do you need care?',intro:'Choose a date to see only the professional’s genuinely available appointment times.'},
+        step2:{eyebrow:'STEP 2 OF 2',title:'Visit details'},
+        fields:{service:'Service',date:'Date',repeat:'Repeat',address:'Visit address',addressPlaceholder:'Street, number, area',notes:'Notes',notesPlaceholder:'Optional information for the professional. Do not enter more sensitive information than necessary.'},
+        availability:{heading:'AVAILABLE TIMES',count:'{{count}} available',loading:'Checking live availability…',errorTitle:'We could not check availability.',errorFallback:'Available times could not be loaded.',emptyTitle:'No time is available on this day.',emptyText:'Choose another date to view the available schedule.',choose:'Choose an available time',liveNote:'Availability is checked live before the request is submitted.'},
+        repeat:{once:'One visit',daily7:'Daily for 7 days',twice7:'Morning & evening for 7 days'},
+        selected:{heading:'SELECTED TIME'},
+        summary:{label:'Booking summary',service:'Service',date:'Date',baseCost:'Base visit cost',finalCost:'Final cost',byAgreement:'After direct consultation'},
+        consent:'I agree that my email and phone number may be shared with this professional to manage this request.',
+        validation:{time:'Choose an available time.'},
+        toast:{success:'Your booking request was submitted',failure:'The request could not be submitted.'},
+        actions:{back:'Back',retry:'Try again',continue:'Continue',change:'Change',changeTime:'Change time',submitting:'Submitting...',submit:'Send request',myBookings:'My bookings'},
+        success:{eyebrow:'REQUEST SENT',title:'Your booking is awaiting confirmation.',text:'The professional will see the request in their dashboard. This time is no longer offered for another request while the booking remains active.'},
+        side:{title:'What happens next?',one:'Choose a genuinely available time.',two:'Send your request.',three:'The professional contacts you about your needs and final cost.',four:'After you agree, the visit is confirmed.'}
       },
       home:{
         language:{el:'EL',en:'EN',label:'Language'},
