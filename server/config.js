@@ -85,6 +85,7 @@ export const config = {
     pricePremium: process.env.STRIPE_PRICE_PREMIUM || '',
     automaticTax: bool(process.env.STRIPE_AUTOMATIC_TAX, false),
     collectTaxId: bool(process.env.STRIPE_COLLECT_TAX_ID, true),
+    taxCode: String(process.env.STRIPE_TAX_CODE || '').trim(),
     portalEnabled: bool(process.env.STRIPE_PORTAL_ENABLED, true),
     reconcileIntervalSeconds: Math.max(
       300,
@@ -185,6 +186,9 @@ export function assertProductionReady() {
     if (config.stripe.keyMode !== 'live') fatal.push('STRIPE_SECRET_KEY: production απαιτεί αποκλειστικά sk_live_ Stripe key. Test/unknown keys απαγορεύονται.')
     if (!config.stripe.webhookSecret) fatal.push('STRIPE_WEBHOOK_SECRET: χωρίς επαλήθευση webhook οι συνδρομές δεν ενημερώνονται αξιόπιστα.')
     if (!config.stripe.priceBasic || !config.stripe.pricePremium) fatal.push('STRIPE_PRICE_BASIC / STRIPE_PRICE_PREMIUM: απαιτούνται και τα δύο σε production.')
+    if (!config.stripe.collectTaxId) fatal.push('STRIPE_COLLECT_TAX_ID=1: production subscriptions require Tax ID collection to be enabled.')
+    if (!config.stripe.automaticTax) fatal.push('STRIPE_AUTOMATIC_TAX=1: production subscriptions require Stripe Automatic Tax to be enabled.')
+    if (!config.stripe.taxCode) fatal.push('STRIPE_TAX_CODE: production requires the accountant-approved Stripe Tax Code for the MELEO subscription service.')
     if (!config.admin.password || config.admin.password.length < 12) fatal.push('ADMIN_PASSWORD: απαιτείται ισχυρός κωδικός (>= 12 χαρακτήρες) για τον λογαριασμό admin.')
     if (!config.admin.totpSecret || config.admin.totpSecret.length < 16) fatal.push('ADMIN_TOTP_SECRET: απαιτείται TOTP secret για 2FA του Admin.')
     if (!config.admin.ipAllowlist.length) warn.push('ADMIN_IP_ALLOWLIST: δεν έχει οριστεί. Το admin παραμένει προστατευμένο με TOTP + throttling, αλλά χωρίς IP restriction.')
@@ -194,7 +198,6 @@ export function assertProductionReady() {
     if (!config.observability.metricsToken) warn.push('OBSERVABILITY_TOKEN: /api/metrics θα παραμένει κλειστό σε production χωρίς token.')
     if (!config.mail.resendKey) warn.push('RESEND_API_KEY: δεν στέλνονται emails (επιβεβαίωση, reset κωδικού, ειδοποιήσεις).')
     if (!config.legal.company || !config.legal.vatNumber) warn.push('LEGAL_COMPANY_NAME / LEGAL_VAT_NUMBER: απαιτούνται στοιχεία παρόχου στους Όρους Χρήσης (ν. ηλεκτρονικού εμπορίου).')
-    if (!config.stripe.automaticTax) warn.push('STRIPE_AUTOMATIC_TAX=false: ο ΦΠΑ δεν υπολογίζεται αυτόματα. Επιβεβαίωσε τη φορολογική μεταχείριση με τον λογιστή σου.')
   }
 
 
