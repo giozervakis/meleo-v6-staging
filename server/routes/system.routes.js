@@ -261,51 +261,6 @@ export function registerSystemRoutes(
 
 
   // ------------------------------------------------------------
-  // Temporary RC3-C3 staging runtime error probe.
-  // Remove immediately after evidence capture.
-  // ------------------------------------------------------------
-
-  if (
-    config.env === 'staging' &&
-    config.observability.metricsToken
-  ) {
-    app.get(
-      '/api/internal/rc3-c3-error-probe',
-      (req, res, next) => {
-        const supplied =
-          String(
-            req.headers.authorization ||
-            ''
-          )
-            .replace(
-              /^Bearer\s+/i,
-              ''
-            )
-
-        if (
-          supplied !==
-          config.observability.metricsToken
-        ) {
-          return res
-            .status(404)
-            .end()
-        }
-
-        const err =
-          new Error(
-            'RC3_C3_PROBE_RAW_MESSAGE_DO_NOT_LOG'
-          )
-
-        err.code =
-          'RC3_C3_PROBE'
-
-        next(err)
-      }
-    )
-  }
-
-
-  // ------------------------------------------------------------
   // Commercial plans
   // ------------------------------------------------------------
 
