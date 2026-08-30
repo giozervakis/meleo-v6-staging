@@ -5,6 +5,7 @@ import React, {
 
 import { api } from '../../lib/api'
 import PatientMessages from './messages/PatientMessages'
+import './patient-rc3d.css'
 
 import type {
   Booking
@@ -518,7 +519,7 @@ const attentionMessage =
             : 'Ξεκίνα βρίσκοντας τον κατάλληλο επαγγελματία.'
 			
 return (
-  <section className="page patient-care-page">
+  <section className="page patient-care-page rc3d-patient-page">
     <div className="container">
 
       <VerifyEmailBanner
@@ -572,7 +573,7 @@ return (
       </div>
 
 
-      <div className="patient-care-metrics">
+      <div className="patient-care-metrics" aria-label="Personal care overview">
 
         <div className="patient-care-metric">
           <span>💬</span>
@@ -638,12 +639,12 @@ return (
         >
 
 
-          <section className="patient-command-panel next-care-panel">
+          <section className="patient-command-panel next-care-panel" aria-labelledby="rc3d-next-care-title">
 
             <div className="patient-panel-head">
               <div>
                 <small>NEXT CARE</small>
-                <h3>Η επόμενη φροντίδα σου</h3>
+                <h3 id="rc3d-next-care-title">Η επόμενη φροντίδα σου</h3>
               </div>
 
               {nextBooking&&
@@ -756,7 +757,7 @@ return (
 
 
           {needsAttention>0&&
-            <section className="patient-attention-panel">
+            <section className="patient-attention-panel" role="status" aria-live="polite">
 
               <div className="patient-attention-icon">
                 !
@@ -895,9 +896,11 @@ return (
             }
           >
 
-<div className="patient-section-tabs">
+<div className="patient-section-tabs" role="tablist" aria-label="Patient dashboard sections">
 
   <button
+    role="tab"
+    aria-selected={patientSection==='bookings'}
     className={
       patientSection==='bookings'
         ? 'active'
@@ -914,6 +917,8 @@ return (
 
 
   <button
+    role="tab"
+    aria-selected={patientSection==='messages'}
     className={
       patientSection==='messages'
         ? 'active'

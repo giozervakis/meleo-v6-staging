@@ -1,0 +1,12 @@
+.rc3d-patient-page{overflow-x:clip}
+.rc3d-patient-page .container,.rc3d-patient-page .patient-care-grid,.rc3d-patient-page .patient-care-main,.rc3d-patient-page .patient-command-panel,.rc3d-patient-page .patient-care-hero-copy,.rc3d-patient-page .patient-care-identity{min-width:0}
+.rc3d-patient-page .patient-care-hero,.rc3d-patient-page .patient-care-metric,.rc3d-patient-page .patient-command-panel,.rc3d-patient-page .patient-attention-panel,.rc3d-patient-page .next-care-info{overflow-wrap:anywhere}
+.rc3d-patient-page button,.rc3d-patient-page .btn,.rc3d-patient-page a.btn{min-height:44px;touch-action:manipulation}
+.rc3d-patient-page input,.rc3d-patient-page select,.rc3d-patient-page textarea{max-width:100%;font-size:16px}
+.rc3d-patient-page :focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.rc3d-patient-page .patient-section-tabs{overflow-x:auto;overscroll-behavior-inline:contain;scrollbar-width:thin}
+.rc3d-patient-page .patient-section-tabs button{min-width:max-content}
+@media(max-width:900px){.rc3d-patient-page .patient-care-grid,.rc3d-patient-page .patient-care-grid.messages-grid-mode{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-hero{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-identity{justify-self:stretch}.rc3d-patient-page .patient-care-metrics{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:600px){.rc3d-patient-page .container{padding-inline:14px}.rc3d-patient-page .patient-care-hero{padding-inline:16px}.rc3d-patient-page .patient-care-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rc3d-patient-page .next-care-content{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .next-care-date{width:100%}.rc3d-patient-page .next-care-actions,.rc3d-patient-page .patient-care-team-actions{display:grid;grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .next-care-actions .btn,.rc3d-patient-page .patient-care-team-actions .btn{width:100%}.rc3d-patient-page .patient-attention-panel{align-items:flex-start}}
+@media(max-width:390px){.rc3d-patient-page .container{padding-inline:10px}.rc3d-patient-page .patient-care-metrics{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-identity{align-items:flex-start}.rc3d-patient-page .patient-care-hero-status{align-items:flex-start;flex-direction:column}}
+@media(prefers-reduced-motion:reduce){.rc3d-patient-page *{scroll-behavior:auto!important;transition-duration:.01ms!important;animation-duration:.01ms!important}}
