@@ -6,6 +6,8 @@ import {
 } from 'react'
 
 import { api } from '../../lib/api'
+import { useTranslation } from 'react-i18next'
+import './home-rc3d.css'
 
 import {
   serviceMap,
@@ -18,17 +20,143 @@ import type {
 
 
 export function Home({pros,search,setSearch,loadPros,openPro,favorites,toggleFav,user,setView,SectionTitle,Step,MiniCard,ProCard}:any){
+  const {t,i18n}=useTranslation()
+
+  const switchLanguage=(language:'el'|'en')=>{
+    void i18n.changeLanguage(language)
+  }
+
+  return <div className="rc3d-home">
+    <section className="hero" aria-labelledby="home-hero-title">
+      <div className="container hero-grid">
+        <div className="hero-copy">
+          <div className="rc3d-language-switch" role="group" aria-label={t('home.language.label')}>
+            <span className="rc3d-language-switch-label">{t('home.language.label')}</span>
+            <button type="button" onClick={()=>switchLanguage('el')} aria-pressed={i18n.language==='el'}>{t('home.language.el')}</button>
+            <button type="button" onClick={()=>switchLanguage('en')} aria-pressed={i18n.language==='en'}>{t('home.language.en')}</button>
+          </div>
+          <div className="eyebrow"><span className="eyedot" aria-hidden="true"/> {t('home.eyebrow')}</div>
+          <h1 id="home-hero-title">{t('home.titleLead')}<br/><em>{t('home.titleEmphasis')}</em></h1>
+          <p>{t('home.intro')}</p>
+          <SearchBox search={search} setSearch={setSearch} onSearch={()=>{loadPros();setView('search')}}/>
+          <div className="trust-strip" aria-label={t('home.eyebrow')}>
+            <span>✓ {t('home.trustVerified')}</span>
+            <span>✓ {t('home.trustPricing')}</span>
+            <span>✓ {t('home.trustBooking')}</span>
+          </div>
+        </div>
+
+        <div className="hero-card-wrap" aria-hidden="true">
+          <div className="floating-chip topchip"><span className="pulse-dot"/> {t('home.availableToday')}</div>
+          <div className="phone-card">
+            <div className="phone-head"><span>9:41</span><span className="tiny-brand">MELEO Care</span></div>
+            <h3>{t('home.phoneTitle')}</h3>
+            <div className="phone-search">⌖ <div><b>{t('home.nearby')}</b><small>{t('home.gpsHelp')}</small></div></div>
+            <div className="chips"><span className="chip active">Νοσηλευτική</span><span className="chip">Φυσικοθεραπεία</span><span className="chip">Διατροφή</span></div>
+            <div className="phone-list">{pros.slice(0,3).map((p:Professional)=><MiniCard key={p.id} p={p}/>)}</div>
+          </div>
+          <div className="floating-chip bottomchip"><b>0€</b><span>{t('home.patientFree')}</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section className="care-modes">
+      <div className="container"><div className="care-mode-grid">
+        <button type="button" className="care-mode-card browse" onClick={()=>setView('search')}><span className="mode-kicker">{t('home.browseKicker')}</span><i aria-hidden="true">⌕</i><h3>{t('home.browseTitle')}</h3><p>{t('home.browseText')}</p><b>{t('home.browseCta')}</b></button>
+        <button type="button" className="care-mode-card smart" onClick={()=>setView('smart')}><span className="mode-kicker">{t('home.smartKicker')}</span><i aria-hidden="true">✦</i><h3>{t('home.smartTitle')}</h3><p>{t('home.smartText')}</p><b>{t('home.smartCta')}</b></button>
+        <button type="button" className="care-mode-card now" onClick={()=>setView('now')}><span className="mode-kicker">{t('home.nowKicker')}</span><i aria-hidden="true">⚡</i><h3>{t('home.nowTitle')}</h3><p>{t('home.nowText')}</p><b>{t('home.nowCta')}</b></button>
+      </div></div>
+    </section>
+
+    <section className="metric-band"><div className="container metrics">
+      <div><strong>{t('home.metricSteps')}</strong><span>{t('home.metricStepsText')}</span></div>
+      <div><strong>{t('home.metricCheck')}</strong><span>{t('home.metricCheckText')}</span></div>
+      <div><strong>24/7</strong><span>{t('home.metricOnline')}</span></div>
+      <div><strong>0€</strong><span>{t('home.metricFree')}</span></div>
+    </div></section>
+
+    <section className="section"><div className="container">
+      <SectionTitle over={t('home.featuredOver')} title={t('home.featuredTitle')} subtitle={t('home.featuredSubtitle')}/>
+      <div className="pro-grid">{pros.slice(0,3).map((p:Professional)=><ProCard key={p.id} p={p} open={()=>openPro(p)} favorite={favorites.includes(p.id)} toggle={()=>toggleFav(p.id)}/>)}</div>
+      <div className="center"><button type="button" className="btn btn-outline" onClick={()=>setView('search')}>{t('home.seeAll')}</button></div>
+    </div></section>
+
+    <section className="section soft"><div className="container">
+      <SectionTitle over={t('home.howOver')} title={t('home.howTitle')} subtitle={t('home.howSubtitle')}/>
+      <div className="steps">
+        <Step n="01" icon="⌕" title={t('home.step1Title')} text={t('home.step1Text')}/>
+        <Step n="02" icon="◇" title={t('home.step2Title')} text={t('home.step2Text')}/>
+        <Step n="03" icon="✓" title={t('home.step3Title')} text={t('home.step3Text')}/>
+      </div>
+    </div></section>
+
+    <section className="section pro-cta"><div className="container cta-grid">
+      <div><div className="eyebrow light">{t('home.proOver')}</div><h2>{t('home.proTitle1')}<br/>{t('home.proTitle2')}</h2><p>{t('home.proText')}</p><button type="button" className="btn btn-gold" onClick={()=>setView('become-pro')}>{t('home.proCta')}</button></div>
+      <div className="cta-panel"><div className="cta-stat"><span>BASIC</span><b>9,99€</b><small>{t('home.month')}</small></div><div className="cta-line"><span>✓</span> {t('home.proFeatureProfile')}</div><div className="cta-line"><span>✓</span> {t('home.proFeatureAlerts')}</div><div className="cta-line"><span>✓</span> {t('home.proFeatureAvailability')}</div><div className="cta-line"><span>✓</span> {t('home.proFeatureStats')}</div></div>
+    </div></section>
+  </div>
+}
+
+export function SearchBox({search,setSearch,onSearch}:any){
+  const {t}=useTranslation()
+  const services=search.specialty?serviceMap[search.specialty]||[]:[]
+  const [geoBusy,setGeoBusy]=useState(false)
+  const [geoError,setGeoError]=useState('')
+
+  async function nearMe(){
+    setGeoError('')
+    if(!navigator.geolocation){
+      setGeoError(t('search.unsupportedGeo'))
+      return
+    }
+    setGeoBusy(true)
+    navigator.geolocation.getCurrentPosition(async pos=>{
+      const lat=String(pos.coords.latitude),lon=String(pos.coords.longitude)
+      let label=t('search.currentLocation')
+      try{
+        const r=await api(`/location/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`)
+        label=r.label||label
+      }catch{}
+      setSearch({...search,lat,lon,locationQuery:'',locationLabel:label})
+      setGeoBusy(false)
+    },()=>{
+      setGeoError(t('search.deniedGeo'))
+      setGeoBusy(false)
+    },{enableHighAccuracy:true,timeout:10000,maximumAge:60000})
+  }
+
   return <>
-    <section className="hero"><div className="container hero-grid"><div className="hero-copy"><div className="eyebrow"><span className="eyedot"/> ΦΡΟΝΤΙΔΑ ΜΕ ΕΜΠΙΣΤΟΣΥΝΗ</div><h1>Η σωστή φροντίδα,<br/><em>κοντά σου.</em></h1><p>Βρες επαληθευμένους επαγγελματίες υγείας, φροντίδας και ευεξίας, σύγκρινε επιλογές και κλείσε την υπηρεσία που χρειάζεσαι.</p><SearchBox search={search} setSearch={setSearch} onSearch={()=>{loadPros();setView('search')}}/><div className="trust-strip"><span>✓ Επαληθευμένα προφίλ</span><span>✓ Ευέλικτη ενημέρωση κόστους</span><span>✓ Ασφαλής κράτηση</span></div></div><div className="hero-card-wrap"><div className="floating-chip topchip"><span className="pulse-dot"/> Διαθέσιμοι σήμερα</div><div className="phone-card"><div className="phone-head"><span>9:41</span><span className="tiny-brand">MELEO Care</span></div><h3>Βρες φροντίδα κοντά σου</h3><div className="phone-search">⌖ <div><b>Κοντά σου</b><small>GPS ή αναζήτηση οποιασδήποτε περιοχής</small></div></div><div className="chips"><span className="chip active">Νοσηλευτική</span><span className="chip">Φυσικοθεραπεία</span><span className="chip">Διατροφή</span></div><div className="phone-list">{pros.slice(0,3).map((p:Professional)=><MiniCard key={p.id} p={p}/>)}</div></div><div className="floating-chip bottomchip"><b>0€</b><span>για τον συνοδό/ασθενή</span></div></div></div></section>
-    <section className="care-modes"><div className="container"><div className="care-mode-grid"><button className="care-mode-card browse" onClick={()=>setView('search')}><span className="mode-kicker">BROWSE</span><i>⌕</i><h3>Ξέρω τι ψάχνω</h3><p>Ειδικότητα → προαιρετική υπηρεσία → τοποθεσία. Σύγκρινε επαγγελματίες και επίλεξε.</p><b>Αναζήτηση επαγγελματία →</b></button><button className="care-mode-card smart" onClick={()=>setView('smart')}><span className="mode-kicker">SMART REQUEST</span><i>✦</i><h3>Πες μας τι χρειάζεσαι</h3><p>Περιέγραψε την ανάγκη με απλά λόγια και η MELEO θα σε κατευθύνει στη σωστή κατηγορία.</p><b>Ξεκίνα Smart Request →</b></button><button className="care-mode-card now" onClick={()=>setView('now')}><span className="mode-kicker">MELEO NOW</span><i>⚡</i><h3>Το χρειάζομαι άμεσα</h3><p>Βρες διαθέσιμους επαγγελματίες που καλύπτουν την περιοχή σου σήμερα.</p><b>Βρες διαθέσιμο τώρα →</b></button></div></div></section>
-    <section className="metric-band"><div className="container metrics"><div><strong>3 βήματα</strong><span>μέχρι την κράτηση</span></div><div><strong>Έλεγχος</strong><span>επαγγελματικής ιδιότητας πριν τη δημοσίευση</span></div><div><strong>24/7</strong><span>online αναζήτηση</span></div><div><strong>0€</strong><span>κόστος πλατφόρμας για τον συνοδό/ασθενή</span></div></div></section>
-    <section className="section"><div className="container"><SectionTitle over="ΕΠΙΛΟΓΕΣ ΓΙΑ ΕΣΕΝΑ" title="Επαγγελματίες που ξεχωρίζουν" subtitle="Ανακάλυψε επαληθευμένους επαγγελματίες κοντά σου."/><div className="pro-grid">{pros.slice(0,3).map((p:Professional)=><ProCard key={p.id} p={p} open={()=>openPro(p)} favorite={favorites.includes(p.id)} toggle={()=>toggleFav(p.id)}/>)}</div><div className="center"><button className="btn btn-outline" onClick={()=>setView('search')}>Δες όλους τους επαγγελματίες →</button></div></div></section>
-    <section className="section soft"><div className="container"><SectionTitle over="ΠΩΣ ΛΕΙΤΟΥΡΓΕΙ" title="Απλό, ανθρώπινο, ξεκάθαρο" subtitle="Από την ανάγκη στη φροντίδα χωρίς περιττή ταλαιπωρία."/><div className="steps"><Step n="01" icon="⌕" title="Αναζήτησε" text="Διάλεξε ειδικότητα, προαιρετικά υπηρεσία και βρες επαγγελματίες κοντά σου ή σε άλλη περιοχή."/><Step n="02" icon="◇" title="Σύγκρινε" text="Δες επαλήθευση, εμπειρία, αξιολογήσεις, διαθεσιμότητα και τιμή."/><Step n="03" icon="✓" title="Κλείσε" text="Στείλε το αίτημα και παρακολούθησε την κράτηση από το dashboard σου."/></div></div></section>
-    <section className="section pro-cta"><div className="container cta-grid"><div><div className="eyebrow light">ΓΙΑ ΕΠΑΓΓΕΛΜΑΤΙΕΣ</div><h2>Η εμπειρία σου αξίζει<br/>να σε βρίσκει ο κόσμος.</h2><p>Δημιούργησε επαγγελματικό προφίλ, όρισε υπηρεσίες, τιμές και διαθεσιμότητα και δέξου νέα αιτήματα.</p><button className="btn btn-gold" onClick={()=>setView('become-pro')}>Γίνε Founding Professional</button></div><div className="cta-panel"><div className="cta-stat"><span>BASIC</span><b>9,99€</b><small>/ μήνα · PREMIUM 14,99€</small></div><div className="cta-line"><span>✓</span> Δικό σου επαγγελματικό προφίλ</div><div className="cta-line"><span>✓</span> Ειδοποιήσεις νέων αιτημάτων</div><div className="cta-line"><span>✓</span> Διαχείριση διαθεσιμότητας</div><div className="cta-line"><span>✓</span> Στατιστικά & ιστορικό</div></div></div></section>
+    <div className="searchbox searchbox-three location-search" role="search" aria-label={t('search.search')}>
+      <div className="searchfield">
+        <label htmlFor="home-specialty">{t('search.specialty')}</label>
+        <select id="home-specialty" name="specialty" value={search.specialty} onChange={e=>setSearch({...search,specialty:e.target.value,service:''})}>
+          <option value="">{t('search.chooseSpecialty')}</option>
+          {specialtyOptions.map(x=><option key={x}>{x}</option>)}
+        </select>
+      </div>
+      <div className="divider" aria-hidden="true"/>
+      <div className="searchfield">
+        <label htmlFor="home-service">{t('search.service')} <span className="optional">{t('search.optional')}</span></label>
+        <select id="home-service" name="service" value={search.service} disabled={!search.specialty} onChange={e=>setSearch({...search,service:e.target.value})}>
+          <option value="">{search.specialty?t('search.allServices'):t('search.firstSpecialty')}</option>
+          {services.map((x:string)=><option key={x}>{x}</option>)}
+        </select>
+      </div>
+      <div className="divider" aria-hidden="true"/>
+      <div className="searchfield location-field">
+        <label htmlFor="home-location">{t('search.location')}</label>
+        <div className="location-entry">
+          <input id="home-location" name="location" autoComplete="postal-code" placeholder={t('search.locationPlaceholder')} value={search.locationQuery} onChange={e=>setSearch({...search,locationQuery:e.target.value,locationLabel:'',lat:'',lon:''})}/>
+          <button type="button" className="locate-btn" onClick={nearMe} title={t('search.nearMeTitle')} aria-label={t('search.nearMeTitle')} disabled={geoBusy}>{geoBusy?'…':'⌖'}<span>{t('search.nearMe')}</span></button>
+        </div>
+        {search.locationLabel&&<small className="location-ok" aria-live="polite">⌖ {search.locationLabel}</small>}
+      </div>
+      <button type="button" className="search-btn" onClick={()=>onSearch(search)} disabled={!search.specialty}>⌕<span>{t('search.search')}</span></button>
+    </div>
+    {geoError&&<div className="location-error" role="alert">{geoError}</div>}
   </>
 }
 
-export function SearchBox({search,setSearch,onSearch}:any){const services=search.specialty?serviceMap[search.specialty]||[]:[];const [geoBusy,setGeoBusy]=useState(false);const [geoError,setGeoError]=useState('');async function nearMe(){setGeoError('');if(!navigator.geolocation){setGeoError('Η συσκευή δεν υποστηρίζει υπηρεσίες τοποθεσίας.');return}setGeoBusy(true);navigator.geolocation.getCurrentPosition(async pos=>{const lat=String(pos.coords.latitude),lon=String(pos.coords.longitude);let label='Η τρέχουσα τοποθεσία μου';try{const r=await api(`/location/reverse?lat=${encodeURIComponent(lat)}&lon=${encodeURIComponent(lon)}`);label=r.label||label}catch{}setSearch({...search,lat,lon,locationQuery:'',locationLabel:label});setGeoBusy(false)},()=>{setGeoError('Δεν δόθηκε πρόσβαση στην τοποθεσία. Μπορείς να πληκτρολογήσεις περιοχή χειροκίνητα.');setGeoBusy(false)},{enableHighAccuracy:true,timeout:10000,maximumAge:60000})}return <><div className="searchbox searchbox-three location-search"><div className="searchfield"><label>1 · Ειδικότητα</label><select value={search.specialty} onChange={e=>setSearch({...search,specialty:e.target.value,service:''})}><option value="">Επίλεξε ειδικότητα</option>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></div><div className="divider"/><div className="searchfield"><label>2 · Υπηρεσία <span className="optional">προαιρετικά</span></label><select value={search.service} disabled={!search.specialty} onChange={e=>setSearch({...search,service:e.target.value})}><option value="">{search.specialty?'Όλες οι υπηρεσίες':'Πρώτα επίλεξε ειδικότητα'}</option>{services.map((x:string)=><option key={x}>{x}</option>)}</select></div><div className="divider"/><div className="searchfield location-field"><label>3 · Τοποθεσία</label><div className="location-entry"><input placeholder="Πόλη, περιοχή ή ΤΚ" value={search.locationQuery} onChange={e=>setSearch({...search,locationQuery:e.target.value,locationLabel:'',lat:'',lon:''})}/><button type="button" className="locate-btn" onClick={nearMe} title="Χρήση τρέχουσας τοποθεσίας">{geoBusy?'…':'⌖'}<span>Κοντά μου</span></button></div>{search.locationLabel&&<small className="location-ok">⌖ {search.locationLabel}</small>}</div><button className="search-btn" onClick={()=>onSearch(search)} disabled={!search.specialty}>⌕<span>Αναζήτηση</span></button></div>{geoError&&<div className="location-error">{geoError}</div>}</>}
 export function SmartRequest({
   search,
   setSearch,

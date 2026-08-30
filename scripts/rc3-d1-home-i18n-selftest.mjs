@@ -1,0 +1,26 @@
+import fs from 'node:fs'
+const read=p=>fs.readFileSync(p,'utf8')
+const fail=m=>{console.error(`RC3-D1 home/i18n self-test: FAIL - ${m}`);process.exit(1)}
+
+const main=read('src/main.tsx')
+const i18n=read('src/i18n.ts')
+const home=read('src/features/home/HomeExperience.tsx')
+const css=read('src/features/home/home-rc3d.css')
+const pkg=JSON.parse(read('package.json'))
+
+if(!main.includes("import './i18n'"))fail('i18n bootstrap missing')
+if(!i18n.includes("fallbackLng:'el'"))fail('Greek fallback missing')
+if(!i18n.includes("localStorage.setItem(STORAGE_KEY"))fail('language persistence missing')
+if(!home.includes('useTranslation'))fail('home translation hook missing')
+if(!home.includes('rc3d-language-switch'))fail('language switch missing')
+if(!home.includes('aria-pressed'))fail('language switch accessibility missing')
+if(!home.includes('role="search"'))fail('search landmark missing')
+if(!home.includes('htmlFor="home-specialty"'))fail('specialty label association missing')
+if(!home.includes('role="alert"'))fail('geolocation alert semantics missing')
+if(!css.includes('@media (max-width: 390px)'))fail('390px mobile rule missing')
+if(!css.includes('min-height:44px'))fail('touch target baseline missing')
+if(!pkg.dependencies?.i18next)fail('i18next dependency missing')
+if(!pkg.dependencies?.['react-i18next'])fail('react-i18next dependency missing')
+if(pkg.scripts?.['rc3-d1-check']!=='node scripts/rc3-d1-home-i18n-selftest.mjs')fail('D1 script missing')
+if(!pkg.scripts?.['ci:gate']?.includes('rc3-d1-check'))fail('D1 CI gate missing')
+console.log('RC3-D1 home/i18n self-test: PASS')
