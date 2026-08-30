@@ -33,3 +33,12 @@
 .rc3d-patient-page .next-care-actions .btn,.rc3d-patient-page .next-care-empty .btn{min-height:44px}
 @media(max-width:600px){.rc3d-patient-page .patient-care-metrics{grid-template-columns:repeat(2,minmax(0,1fr))}.rc3d-patient-page .next-care-content{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .next-care-actions,.rc3d-patient-page .next-care-empty>div:last-child>div{display:grid;grid-template-columns:minmax(0,1fr);gap:10px}.rc3d-patient-page .next-care-actions .btn,.rc3d-patient-page .next-care-empty .btn{width:100%}}
 @media(max-width:390px){.rc3d-patient-page .patient-care-metrics{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-metric{text-align:left}}
+
+/* RC3-D5-F patient side rail */
+.rc3d-patient-page .patient-care-side,.rc3d-patient-page .care-status-list,.rc3d-patient-page .patient-activity-list,.rc3d-patient-page .patient-activity-item,.rc3d-patient-page .patient-quick-actions{min-width:0;max-width:100%}
+.rc3d-patient-page .patient-activity-item>div,.rc3d-patient-page .patient-quick-actions button>div{min-width:0}
+.rc3d-patient-page .patient-activity-item b,.rc3d-patient-page .patient-activity-item span,.rc3d-patient-page .patient-activity-item small,.rc3d-patient-page .patient-quick-actions b,.rc3d-patient-page .patient-quick-actions small,.rc3d-patient-page .patient-safety-card p{overflow-wrap:anywhere}
+.rc3d-patient-page .patient-quick-actions button{min-height:44px}
+.rc3d-patient-page .patient-quick-actions button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+@media(max-width:900px){.rc3d-patient-page .patient-care-side{width:100%}}
+@media(max-width:390px){.rc3d-patient-page .patient-quick-actions button{grid-template-columns:auto minmax(0,1fr) auto}.rc3d-patient-page .care-status-list>div{gap:8px}}

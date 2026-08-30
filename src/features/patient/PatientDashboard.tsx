@@ -1390,12 +1390,12 @@ onClick={e=>{
         <aside className="patient-care-side">
 
 
-          <section className="patient-command-panel care-status-panel">
+          <section className="patient-command-panel care-status-panel" aria-labelledby="rc3d-care-status-title">
 
             <div className="patient-panel-head">
               <div>
                 <small>CARE STATUS</small>
-                <h3>Η φροντίδα σου</h3>
+                <h3 id="rc3d-care-status-title">Η φροντίδα σου</h3>
               </div>
             </div>
 
@@ -1411,7 +1411,7 @@ onClick={e=>{
 
             </div>
 
-            <div className="care-status-list">
+            <div className="care-status-list" role="list" aria-label="Στοιχεία κατάστασης φροντίδας">
 
               <div>
                 <span>Ενεργά αιτήματα</span>
@@ -1439,20 +1439,21 @@ onClick={e=>{
 
 
           {careActivity.length>0&&
-            <section className="patient-command-panel" aria-labelledby="rc3d-care-team-title">
+            <section className="patient-command-panel" aria-labelledby="rc3d-care-activity-title">
 
               <div className="patient-panel-head">
                 <div>
                   <small>CARE ACTIVITY</small>
-                  <h3>Πρόσφατη δραστηριότητα</h3>
+                  <h3 id="rc3d-care-activity-title">Πρόσφατη δραστηριότητα</h3>
                 </div>
               </div>
 
-              <div className="patient-activity-list">
+              <div className="patient-activity-list" role="list">
 
                 {careActivity.map((b:any)=>
                   <div
                     className="patient-activity-item"
+                    role="listitem"
                     key={b.id}
                   >
 
@@ -1485,12 +1486,12 @@ onClick={e=>{
           }
 
 
-          <section className="patient-command-panel patient-quick-actions">
+          <section className="patient-command-panel patient-quick-actions" aria-labelledby="rc3d-quick-actions-title">
 
             <div className="patient-panel-head">
               <div>
                 <small>QUICK ACTIONS</small>
-                <h3>Τι θέλεις να κάνεις;</h3>
+                <h3 id="rc3d-quick-actions-title">Τι θέλεις να κάνεις;</h3>
               </div>
             </div>
 
@@ -1557,7 +1558,7 @@ onClick={e=>{
           </section>
 
 
-          <section className="patient-safety-card">
+          <section className="patient-safety-card" aria-labelledby="rc3d-safety-title">
 
             <b>
               Ασφάλεια πρώτα
