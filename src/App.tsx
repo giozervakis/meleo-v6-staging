@@ -1266,6 +1266,7 @@ function ProCard({p,open,favorite,toggle}:any){
         (smart?'discovery-smart ':'')+
         (premium?'discovery-premium ':'')
       }
+      aria-label={`${p.name} · ${displayTitle}`}
     >
       {smart&&
         <div className="discovery-match">

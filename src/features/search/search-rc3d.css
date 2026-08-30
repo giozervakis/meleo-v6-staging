@@ -1,0 +1,207 @@
+.rc3d-search-page{
+  --rc3d-search-gap:clamp(.8rem,2vw,1.2rem);
+}
+
+.rc3d-search-page .discovery-page-hero,
+.rc3d-search-page .discovery-toolbar,
+.rc3d-search-page .discovery-filter-bar,
+.rc3d-search-page .discovery-context-strip,
+.rc3d-search-page .discovery-ranking-note,
+.rc3d-search-page .discovery-explainer,
+.rc3d-search-page .discovery-results,
+.rc3d-search-page .discovery-results > *,
+.rc3d-search-page .discovery-card,
+.rc3d-search-page .discovery-card-header,
+.rc3d-search-page .discovery-identity,
+.rc3d-search-page .discovery-person,
+.rc3d-search-page .discovery-footer,
+.rc3d-search-page .discovery-price{
+  min-width:0;
+  max-width:100%;
+}
+
+.rc3d-search-page :where(button,select,input):focus-visible,
+.rc3d-search-page [tabindex="-1"]:focus-visible{
+  outline:3px solid currentColor;
+  outline-offset:3px;
+}
+
+.rc3d-search-page button,
+.rc3d-search-page select,
+.rc3d-search-page input{
+  min-height:44px;
+}
+
+.rc3d-search-page .discovery-results{
+  scroll-margin-top:96px;
+}
+
+.rc3d-search-page .discovery-card :where(h2,h3,p,small,span,b,strong){
+  overflow-wrap:anywhere;
+}
+
+.rc3d-search-page .discovery-services,
+.rc3d-search-page .discovery-active-filters,
+.rc3d-search-page .discovery-filter-bar{
+  flex-wrap:wrap;
+}
+
+.rc3d-search-page .discovery-open{
+  touch-action:manipulation;
+}
+
+@media (max-width: 900px){
+  .rc3d-search-page .discovery-page-hero,
+  .rc3d-search-page .discovery-toolbar,
+  .rc3d-search-page .discovery-context-strip,
+  .rc3d-search-page .discovery-footer{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .rc3d-search-page .discovery-page-hero{
+    gap:1rem;
+  }
+
+  .rc3d-search-page .discovery-toolbar{
+    align-items:stretch;
+    gap:var(--rc3d-search-gap);
+  }
+
+  .rc3d-search-page .discovery-sort{
+    width:100%;
+  }
+
+  .rc3d-search-page .discovery-sort label,
+  .rc3d-search-page .discovery-sort select{
+    width:100%;
+  }
+
+  .rc3d-search-page .discovery-context-strip{
+    gap:.75rem;
+  }
+
+  .rc3d-search-page .discovery-context-strip > button{
+    width:100%;
+  }
+
+  .rc3d-search-page .discovery-results{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .rc3d-search-page .discovery-card-header,
+  .rc3d-search-page .discovery-footer{
+    gap:.85rem;
+  }
+
+  .rc3d-search-page .discovery-footer{
+    align-items:stretch;
+  }
+
+  .rc3d-search-page .discovery-open{
+    width:100%;
+    justify-content:center;
+  }
+}
+
+@media (max-width: 600px){
+  .rc3d-search-page .discovery-page-hero h1{
+    font-size:clamp(2rem,11vw,3.1rem);
+    line-height:1.02;
+  }
+
+  .rc3d-search-page .discovery-page-hero-badge{
+    width:100%;
+  }
+
+  .rc3d-search-page .discovery-results-summary{
+    display:grid;
+    grid-template-columns:auto 1fr;
+    gap:.2rem .6rem;
+    align-items:baseline;
+  }
+
+  .rc3d-search-page .discovery-results-summary small,
+  .rc3d-search-page .discovery-results-summary b{
+    grid-column:1 / -1;
+  }
+
+  .rc3d-search-page .discovery-filter-bar{
+    display:grid;
+    grid-template-columns:minmax(0,1fr) minmax(0,1fr);
+    gap:.55rem;
+  }
+
+  .rc3d-search-page .discovery-filter-label{
+    grid-column:1 / -1;
+  }
+
+  .rc3d-search-page .discovery-filter-bar > button{
+    width:100%;
+    white-space:normal;
+  }
+
+  .rc3d-search-page .discovery-reset-filters{
+    grid-column:1 / -1;
+  }
+
+  .rc3d-search-page .discovery-active-filters{
+    gap:.45rem;
+  }
+
+  .rc3d-search-page .discovery-card-header{
+    align-items:flex-start;
+  }
+
+  .rc3d-search-page .discovery-name-row{
+    align-items:flex-start;
+    flex-wrap:wrap;
+  }
+
+  .rc3d-search-page .discovery-signals{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .rc3d-search-page .discovery-context{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .rc3d-search-page .discovery-why-head{
+    align-items:flex-start;
+    gap:.6rem;
+  }
+
+  .rc3d-search-page .discovery-price strong{
+    font-size:clamp(1.35rem,7vw,2rem);
+  }
+}
+
+@media (max-width: 390px){
+  .rc3d-search-page .discovery-filter-bar{
+    grid-template-columns:minmax(0,1fr);
+  }
+
+  .rc3d-search-page .discovery-filter-label,
+  .rc3d-search-page .discovery-reset-filters{
+    grid-column:1;
+  }
+
+  .rc3d-search-page .discovery-card{
+    border-radius:18px;
+  }
+
+  .rc3d-search-page .discovery-card-header{
+    gap:.65rem;
+  }
+
+  .rc3d-search-page .discovery-heart{
+    flex:0 0 44px;
+  }
+
+  .rc3d-search-page .discovery-match{
+    gap:.6rem;
+  }
+
+  .rc3d-search-page .discovery-match-score strong{
+    font-size:1.4rem;
+  }
+}

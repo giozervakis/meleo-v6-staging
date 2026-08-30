@@ -5,6 +5,7 @@ import React, {
 } from 'react'
 import { useTranslation } from 'react-i18next'
 import { catalogLabel } from '../../domain/catalog-i18n'
+import './search-rc3d.css'
 
 function SearchPage({
   pros,
@@ -156,7 +157,7 @@ function SearchPage({
   }
 
   return (
-    <section className="page discovery-page">
+    <section className="page discovery-page rc3d-search-page" aria-labelledby="meleo-search-title">
       <div className="container">
 
         <div className="discovery-page-hero">
@@ -165,7 +166,7 @@ function SearchPage({
               {t('searchPage.kicker')}
             </span>
 
-            <h1>
+            <h1 id="meleo-search-title">
               {t('searchPage.title1')}
               <br/>
               <em>{t('searchPage.title2')}</em>
@@ -184,7 +185,7 @@ function SearchPage({
           </div>
         </div>
 
-        <div className="discovery-search-shell">
+        <div className="discovery-search-shell" aria-label={t('search.search')}>
           <SearchBox
             search={search}
             setSearch={setSearch}
@@ -241,6 +242,8 @@ function SearchPage({
           id="meleo-search-results"
           className="discovery-toolbar"
           tabIndex={-1}
+          aria-live="polite"
+          aria-label={t('searchPage.results')}
         >
           <div className="discovery-results-summary">
             <small>{t('searchPage.results')}</small>
@@ -280,7 +283,7 @@ function SearchPage({
           </div>
         </div>
 
-        <div className="discovery-filter-bar">
+        <div className="discovery-filter-bar" aria-label={t('searchPage.filters')}>
           <div className="discovery-filter-label">
             <span>☷</span>
             <div>
@@ -291,6 +294,7 @@ function SearchPage({
 
           <button
             type="button"
+            aria-pressed={trustOnly}
             className={trustOnly?'active':''}
             onClick={()=>setTrustOnly(v=>!v)}
           >
@@ -299,6 +303,7 @@ function SearchPage({
 
           <button
             type="button"
+            aria-pressed={availableOnly}
             className={availableOnly?'active':''}
             onClick={()=>setAvailableOnly(v=>!v)}
           >
@@ -307,6 +312,7 @@ function SearchPage({
 
           <button
             type="button"
+            aria-pressed={nearOnly}
             className={nearOnly?'active':''}
             onClick={()=>setNearOnly(v=>!v)}
           >
@@ -315,6 +321,7 @@ function SearchPage({
 
           <button
             type="button"
+            aria-pressed={premiumOnly}
             className={
               premiumOnly
                 ? 'active premium-filter'
