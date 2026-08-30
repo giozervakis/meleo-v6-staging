@@ -31,3 +31,19 @@ Runtime acceptance still required on staging:
 - EL and EN both visually sound
 
 This is not a claim of full WCAG conformance or application-wide accessibility.
+
+## Pre-closure global language UX refinement
+
+Staging review identified that the language selector belongs in global navigation,
+not inside the Home hero.
+
+Implemented:
+- removed EL/EN switching from the Home hero
+- added one reusable premium LanguageSwitcher to global header actions
+- retained i18next persistence and document-language synchronization
+- added menu semantics, selected-language state, outside-click and Escape dismissal
+- added mobile-safe dropdown positioning
+- updated the D1 regression gate so it validates the language capability without
+  hard-coding the obsolete Home-hero placement
+
+D2 remains pending real-device staging acceptance after this refinement.

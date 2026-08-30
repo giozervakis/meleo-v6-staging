@@ -21,21 +21,12 @@ import type {
 
 
 export function Home({pros,search,setSearch,loadPros,openPro,favorites,toggleFav,user,setView,SectionTitle,Step,MiniCard,ProCard}:any){
-  const {t,i18n}=useTranslation()
-
-  const switchLanguage=(language:'el'|'en')=>{
-    void i18n.changeLanguage(language)
-  }
+  const {t}=useTranslation()
 
   return <div className="rc3d-home">
     <section className="hero" aria-labelledby="home-hero-title">
       <div className="container hero-grid">
         <div className="hero-copy">
-          <div className="rc3d-language-switch" role="group" aria-label={t('home.language.label')}>
-            <span className="rc3d-language-switch-label">{t('home.language.label')}</span>
-            <button type="button" onClick={()=>switchLanguage('el')} aria-pressed={i18n.language==='el'}>{t('home.language.el')}</button>
-            <button type="button" onClick={()=>switchLanguage('en')} aria-pressed={i18n.language==='en'}>{t('home.language.en')}</button>
-          </div>
           <div className="eyebrow"><span className="eyedot" aria-hidden="true"/> {t('home.eyebrow')}</div>
           <h1 id="home-hero-title">{t('home.titleLead')}<br/><em>{t('home.titleEmphasis')}</em></h1>
           <p>{t('home.intro')}</p>
