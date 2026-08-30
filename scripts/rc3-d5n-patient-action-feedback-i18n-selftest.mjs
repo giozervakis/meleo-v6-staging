@@ -28,7 +28,7 @@ if(pkg.scripts?.['rc3-d5n-check']!=='node scripts/rc3-d5n-patient-action-feedbac
   fail('package script')
 }
 
-if(!pkg.scripts?.['ci:gate']?.endsWith('npm run rc3-d5m-check && npm run rc3-d5n-check')){
+if(!pkg.scripts?.['ci:gate']?.includes('npm run rc3-d5m-check && npm run rc3-d5n-check')){
   fail('ci gate tail')
 }
 

@@ -758,18 +758,17 @@ return (
 
               <div className="patient-panel-head">
                 <div>
-                  <small>MY CARE TEAM</small>
-                  <h3 id="rc3d-care-team-title">Η Ομάδα Φροντίδας μου</h3>
+                  <small>{t('patient.careTeam.kicker')}</small>
+                  <h3 id="rc3d-care-team-title">{t('patient.careTeam.title')}</h3>
                 </div>
 
                 <span>
-                  {careTeam.length} επαγγελματίες
+                  {t('patient.careTeam.count',{count:careTeam.length})}
                 </span>
               </div>
 
               <p className="patient-panel-intro">
-                Οι άνθρωποι που ήδη γνωρίζεις και εμπιστεύεσαι.
-                Μπορείς να ζητήσεις ξανά φροντίδα χωρίς νέα αναζήτηση.
+                {t('patient.careTeam.intro')}
               </p>
 
               <div className="patient-care-team-grid" role="list">
@@ -799,10 +798,10 @@ return (
                       </div>
 
                       {p.trust?.eligible
-                        ? <strong className="patient-care-trust" aria-label={`Trust score ${p.trust.score}`}>
+                        ? <strong className="patient-care-trust" aria-label={t('patient.careTeam.trustAria',{score:p.trust.score})}>
                             {p.trust.score}
                           </strong>
-                        : <strong className="patient-care-trust new" aria-label="Νέος επαγγελματίας">
+                        : <strong className="patient-care-trust new" aria-label={t('patient.careTeam.newProfessional')}>
                             NEW
                           </strong>
                       }
@@ -812,15 +811,15 @@ return (
                     <div className="patient-care-team-meta">
 
                       <span>
-                        ★ {p.rating||'Νέο'}
+                        ★ {p.rating||t('patient.careTeam.newRating')}
                       </span>
 
                       {p.lastCompleted&&
                         <span>
-                          Τελευταία επίσκεψη ·{' '}
+                          {t('patient.careTeam.lastVisit')} ·{' '}
                           {new Date(
                             p.lastCompleted.date
-                          ).toLocaleDateString('el-GR')}
+                          ).toLocaleDateString(i18n.language==='en'?'en-US':'el-GR')}
                         </span>
                       }
 
@@ -843,14 +842,14 @@ return (
                           )
                         }
                       >
-                        Ζήτησε ξανά
+                        {t('patient.careTeam.requestAgain')}
                       </button>
 
                       <button
                         className="btn btn-outline"
                         onClick={()=>openPro(p)}
                       >
-                        Προφίλ
+                        {t('patient.careTeam.profile')}
                       </button>
 
                     </div>
