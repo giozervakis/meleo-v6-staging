@@ -1,0 +1,8 @@
+import fs from 'node:fs'
+const r=p=>fs.readFileSync(p,'utf8'),f=m=>{console.error('RC3-D5-J FAIL - '+m);process.exit(1)}
+const x=r('src/features/patient/PatientDashboard.tsx'),i=r('src/i18n.ts'),p=JSON.parse(r('package.json'))
+for(const q of ["patient.nextCare.kicker","patient.nextCare.title","patient.nextCare.professional","patient.nextCare.viewRequest","patient.nextCare.contact","patient.nextCare.emptyTitle","patient.nextCare.emptyText","patient.nextCare.searchProfessional","patient.attention.kicker","patient.attention.quotes","patient.attention.clarifications","patient.attention.reviews","patient.attention.help"])if(!x.includes(q))f(q)
+for(const q of ["nextCare:{kicker:'ΕΠΟΜΕΝΗ ΦΡΟΝΤΙΔΑ'","nextCare:{kicker:'NEXT CARE'","attention:{kicker:'ΧΡΕΙΑΖΕΤΑΙ ΕΝΕΡΓΕΙΑ'","attention:{kicker:'ACTION NEEDED'","quotes_one:","quotes_other:","clarifications_one:","reviews_other:"])if(!i.includes(q))f(q)
+for(const q of ["nextBooking.professionalName","nextBooking.service","nextBooking.address","`tel:${nextBooking.professionalPhone}`","onClick={()=>setView('search')}","onClick={()=>setView('smart')}","aria-labelledby=\"rc3d-next-care-title\"","aria-labelledby=\"rc3d-attention-title\""])if(!x.includes(q))f('preserved '+q)
+if(p.scripts?.['rc3-d5j-check']!=='node scripts/rc3-d5j-next-care-attention-i18n-selftest.mjs')f('package script')
+console.log('RC3-D5-J next-care/attention i18n self-test: PASS')

@@ -499,29 +499,16 @@ const careContinuity =
 
 const attentionMessage =
   quotedBookings.length>0
-    ? `Έχεις ${quotedBookings.length} ${
-        quotedBookings.length===1
-          ? 'πρόταση κόστους'
-          : 'προτάσεις κόστους'
-      } για έλεγχο.`
+    ? t('patient.attention.quotes',{count:quotedBookings.length})
     : clarificationBookings.length>0
-      ? `Υπάρχουν ${clarificationBookings.length} ${
-          clarificationBookings.length===1
-            ? 'αίτημα'
-            : 'αιτήματα'
-        } που χρειάζονται διευκρίνιση.`
+      ? t('patient.attention.clarifications',{count:clarificationBookings.length})
       : pendingReviews.length>0
-        ? `Έχεις ${pendingReviews.length} ${
-            pendingReviews.length===1
-              ? 'ολοκληρωμένη επίσκεψη'
-              : 'ολοκληρωμένες επισκέψεις'
-          } που περιμένουν αξιολόγηση.`
+        ? t('patient.attention.reviews',{count:pendingReviews.length})
         : activeRequests>0
-          ? 'Η MELEO παρακολουθεί τα ενεργά αιτήματά σου.'
+          ? t('patient.attention.active')
           : completedBookings.length>0
-            ? 'Η φροντίδα σου είναι ενημερωμένη.'
-            : 'Ξεκίνα βρίσκοντας τον κατάλληλο επαγγελματία.'
-			
+            ? t('patient.attention.updated')
+            : t('patient.attention.start')
 return (
   <section className="page patient-care-page rc3d-patient-page">
     <div className="container">
@@ -640,8 +627,8 @@ return (
 
             <div className="patient-panel-head">
               <div>
-                <small>NEXT CARE</small>
-                <h3 id="rc3d-next-care-title">Η επόμενη φροντίδα σου</h3>
+                <small>{t('patient.nextCare.kicker')}</small>
+                <h3 id="rc3d-next-care-title">{t('patient.nextCare.title')}</h3>
               </div>
 
               {nextBooking&&
@@ -674,7 +661,7 @@ return (
                   </div>
 
                   <div className="next-care-info">
-                    <small>ΕΠΑΓΓΕΛΜΑΤΙΑΣ</small>
+                    <small>{t('patient.nextCare.professional')}</small>
 
                     <h4>
                       {nextBooking.professionalName}
@@ -699,7 +686,7 @@ return (
     markConversationRead(nextBooking.id)
   }}
 >
-  Προβολή αιτήματος
+  {t('patient.nextCare.viewRequest')}
 </button>
 
                       {nextBooking.professionalPhone&&
@@ -707,7 +694,7 @@ return (
                           className="btn btn-outline"
                           href={`tel:${nextBooking.professionalPhone}`}
                         >
-                          ☎ Επικοινωνία
+                          ☎ {t('patient.nextCare.contact')}
                         </a>
                       }
 
@@ -722,20 +709,17 @@ return (
 
                   <div>
                     <h4>
-                      Δεν υπάρχει προγραμματισμένη φροντίδα
+                      {t('patient.nextCare.emptyTitle')}
                     </h4>
 
-                    <p>
-                      Βρες τον κατάλληλο επαγγελματία ή
-                      χρησιμοποίησε το Smart Request.
-                    </p>
+                    <p>{t('patient.nextCare.emptyText')}</p>
 
                     <div>
                       <button
                         className="btn btn-dark"
                         onClick={()=>setView('search')}
                       >
-                        Αναζήτηση επαγγελματία
+                        {t('patient.nextCare.searchProfessional')}
                       </button>
 
                       <button
@@ -761,13 +745,10 @@ return (
               </div>
 
               <div>
-                <small>ΧΡΕΙΑΖΕΤΑΙ ΕΝΕΡΓΕΙΑ</small>
+                <small>{t('patient.attention.kicker')}</small>
                 <h3 id="rc3d-attention-title">{attentionMessage}</h3>
 
-                <p>
-                  Άνοιξε τις κρατήσεις σου για να συνεχίσει
-                  ομαλά η διαδικασία φροντίδας.
-                </p>
+                <p>{t('patient.attention.help')}</p>
               </div>
 
             </section>
