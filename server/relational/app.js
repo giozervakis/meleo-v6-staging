@@ -1778,6 +1778,7 @@ registerLifecycleRoutes(
     one,
     redisPing,
     storageReady,
+    collectOperationalMetrics,
     APP_VERSION,
     log,
     getShuttingDown:()=>shuttingDown,

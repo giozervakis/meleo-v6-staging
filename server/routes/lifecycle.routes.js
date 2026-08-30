@@ -15,11 +15,25 @@ export function registerLifecycleRoutes(
     one,
     redisPing,
     storageReady,
+    collectOperationalMetrics,
     APP_VERSION,
     log,
     getShuttingDown,
     getShutdownStartedAt
   } = deps
+
+  app.get('/api/liveness',(_req,res)=>{
+    res.json({
+      ok:true,
+      service:'MELEO',
+      version:APP_VERSION,
+      state:'live',
+      instance:
+        process.env.INSTANCE_ID||
+        process.env.HOSTNAME||
+        'local'
+    })
+  })
 
   app.get('/api/ready',async(_req,res)=>{
     const shuttingDown =
@@ -39,49 +53,74 @@ export function registerLifecycleRoutes(
     }
 
     try{
-      await one('SELECT 1 ok')
+      const operational =
+        await collectOperationalMetrics()
 
-      let redis=true
-
-      if(config.redis.url){
-        try{
-          redis=await redisPing()
-        }catch{
-          redis=false
-        }
-      }
-
-      const objectStorage=
+      const objectStorage =
         await storageReady()
 
+      const workerRequired =
+        config.isHosted &&
+        Boolean(config.redis.url)
+
       const checks={
-        database:true,
-        redis,
+        database:
+          operational.postgres_operational_up===1,
+
+        redis:
+          !config.redis.url ||
+          operational.redis_up===1,
+
+        worker:
+          !workerRequired ||
+          operational.worker_up===1,
+
         objectStorage,
+
         payments:
-          config.isProd
-            ? config.stripeEnabled
-            : true,
+          !config.isProd ||
+          config.stripeEnabled,
+
         mail:
-          config.isProd
-            ? config.mailEnabled
-            : true,
+          !config.isProd ||
+          config.mailEnabled,
+
         admin2fa:
-          config.isProd
-            ? Boolean(config.admin.totpSecret)
-            : true
+          !config.isProd ||
+          Boolean(config.admin.totpSecret)
       }
 
-      if(
-        (config.redis.required&&!redis) ||
-        (config.isProd&&!objectStorage)
-      ){
+      const criticalFailures=[]
+
+      if(!checks.database)
+        criticalFailures.push('database')
+
+      if(config.redis.required&&!checks.redis)
+        criticalFailures.push('redis')
+
+      if(workerRequired&&!checks.worker)
+        criticalFailures.push('worker')
+
+      if(config.isProd&&!checks.objectStorage)
+        criticalFailures.push('objectStorage')
+
+      if(config.isProd&&!checks.payments)
+        criticalFailures.push('payments')
+
+      if(config.isProd&&!checks.mail)
+        criticalFailures.push('mail')
+
+      if(config.isProd&&!checks.admin2fa)
+        criticalFailures.push('admin2fa')
+
+      if(criticalFailures.length){
         return res.status(503).json({
           ok:false,
           service:'MELEO',
           version:APP_VERSION,
           state:'degraded',
-          checks
+          checks,
+          criticalFailures
         })
       }
 
@@ -94,7 +133,8 @@ export function registerLifecycleRoutes(
           process.env.HOSTNAME||
           'local',
         state:'ready',
-        checks
+        checks,
+        criticalFailures:[]
       })
     }catch(err){
       log.error(
@@ -110,7 +150,8 @@ export function registerLifecycleRoutes(
         ok:false,
         service:'MELEO',
         version:APP_VERSION,
-        state:'degraded'
+        state:'degraded',
+        criticalFailures:['readiness_probe']
       })
     }
   })

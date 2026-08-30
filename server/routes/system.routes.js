@@ -1,3 +1,5 @@
+import { evaluateOperationalAlerts } from '../operational-metrics.js'
+
 /**
  * MELEO v6.3.0
  *
@@ -235,6 +237,12 @@ export function registerSystemRoutes(
       const operational =
         await collectOperationalMetrics()
 
+      const alerts =
+        evaluateOperationalAlerts({
+          operational,
+          queue:q
+        })
+
 
       res
         .type(
@@ -260,7 +268,8 @@ export function registerSystemRoutes(
             postgres_pool_waiting:
               pool.waitingCount,
 
-            ...operational
+            ...operational,
+            ...alerts
           })
         )
     }

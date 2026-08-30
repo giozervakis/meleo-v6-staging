@@ -15,7 +15,7 @@ services:
     buildCommand: npm ci && npm run build
     startCommand: node scripts/render-staging-start.mjs
 
-    healthCheckPath: /api/health
+    healthCheckPath: /api/ready
     autoDeployTrigger: commit
 
     envVars:

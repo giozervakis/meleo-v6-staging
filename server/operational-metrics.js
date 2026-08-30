@@ -111,3 +111,53 @@ export async function collectOperationalMetrics() {
 }
 
 export { WORKER_HEARTBEAT_KEY, WORKER_HEARTBEAT_FRESH_SECONDS }
+
+export function evaluateOperationalAlerts({
+  operational = {},
+  queue = {}
+} = {}) {
+  const databaseDown =
+    Number(operational.postgres_operational_up) !== 1
+
+  const redisDown =
+    Number(operational.redis_configured) === 1 &&
+    Number(operational.redis_up) !== 1
+
+  const workerDown =
+    Number(operational.redis_configured) === 1 &&
+    Number(operational.worker_up) !== 1
+
+  const queueFailed =
+    Number(queue.failed || 0) > 0
+
+  const queueBacklog =
+    Number(operational.worker_oldest_pending_seconds || 0) > 300
+
+  const stripeReconcileFailed =
+    Number(operational.stripe_reconcile_failed || 0) > 0
+
+  const stripeReconcileStale =
+    Number(operational.stripe_configured) === 1 &&
+    Number(operational.stripe_reconcile_last_success_age_seconds || 0) > 7200
+
+  const active = [
+    databaseDown,
+    redisDown,
+    workerDown,
+    queueFailed,
+    queueBacklog,
+    stripeReconcileFailed,
+    stripeReconcileStale
+  ].filter(Boolean).length
+
+  return {
+    alert_database_down: databaseDown ? 1 : 0,
+    alert_redis_down: redisDown ? 1 : 0,
+    alert_worker_down: workerDown ? 1 : 0,
+    alert_queue_failed: queueFailed ? 1 : 0,
+    alert_queue_backlog: queueBacklog ? 1 : 0,
+    alert_stripe_reconcile_failed: stripeReconcileFailed ? 1 : 0,
+    alert_stripe_reconcile_stale: stripeReconcileStale ? 1 : 0,
+    alert_active_total: active
+  }
+}
