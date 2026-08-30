@@ -42,3 +42,11 @@
 .rc3d-patient-page .patient-quick-actions button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
 @media(max-width:900px){.rc3d-patient-page .patient-care-side{width:100%}}
 @media(max-width:390px){.rc3d-patient-page .patient-quick-actions button{grid-template-columns:auto minmax(0,1fr) auto}.rc3d-patient-page .care-status-list>div{gap:8px}}
+
+/* RC3-D5-G patient hero and verification */
+.rc3d-patient-page .verify-email-banner,.rc3d-patient-page .patient-care-hero,.rc3d-patient-page .patient-care-hero-copy,.rc3d-patient-page .patient-care-identity,.rc3d-patient-page .patient-care-identity>div{min-width:0;max-width:100%}
+.rc3d-patient-page .verify-email-banner span,.rc3d-patient-page .patient-care-hero-copy h1,.rc3d-patient-page .patient-care-hero-copy p,.rc3d-patient-page .patient-care-identity b,.rc3d-patient-page .patient-care-identity small{overflow-wrap:anywhere}
+.rc3d-patient-page .verify-email-banner button{min-height:44px}
+.rc3d-patient-page .verify-email-banner button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+@media(max-width:600px){.rc3d-patient-page .verify-email-banner{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.rc3d-patient-page .verify-email-banner button{width:100%}.rc3d-patient-page .patient-care-hero{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-identity{width:100%}}
+@media(max-width:390px){.rc3d-patient-page .patient-care-hero-status{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.rc3d-patient-page .patient-care-identity{align-items:flex-start}}

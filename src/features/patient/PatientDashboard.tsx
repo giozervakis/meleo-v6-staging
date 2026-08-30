@@ -64,7 +64,7 @@ function VerifyEmailBanner({user,token,cfg,setToast}:any){
   }
 
   return (
-    <div className="verify-email-banner">
+    <div className="verify-email-banner" role="status" aria-live="polite">
 
       <div>
         <b>Επιβεβαίωσε το email σου</b>
@@ -78,6 +78,7 @@ function VerifyEmailBanner({user,token,cfg,setToast}:any){
       <button
         onClick={resend}
         disabled={busy}
+        aria-busy={busy}
       >
         {busy
           ? 'Αποστολή…'
@@ -529,14 +530,14 @@ return (
         setToast={setToast}
       />
 
-      <div className="patient-care-hero">
+      <div className="patient-care-hero" aria-labelledby="rc3d-patient-hero-title">
 
         <div className="patient-care-hero-copy">
           <span className="patient-care-kicker">
             MELEO PERSONAL CARE
           </span>
 
-          <h1>
+          <h1 id="rc3d-patient-hero-title">
             Καλησπέρα, {user.name.split(' ')[0]}
           </h1>
 
@@ -545,7 +546,7 @@ return (
             σου σε ένα προσωπικό κέντρο.
           </p>
 
-          <div className="patient-care-hero-status">
+          <div className="patient-care-hero-status" role="status" aria-live="polite">
             <span>{patientJourneyLevel}</span>
 
             {needsAttention>0
@@ -555,7 +556,7 @@ return (
           </div>
         </div>
 
-        <div className="patient-care-identity">
+        <div className="patient-care-identity" aria-label="Στοιχεία μέλους MELEO">
           <IdentityAvatar
             name={user.name}
             photoUrl={user.profilePhotoUrl}
