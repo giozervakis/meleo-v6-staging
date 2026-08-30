@@ -279,10 +279,11 @@ export default function PatientMessages({
         </div>
 
 
-        <div className="meleo-messenger-filters">
+        <div className="meleo-messenger-filters" role="group" aria-label="Φίλτρα συνομιλιών">
 
           <button
             className={filter==='all'?'active':''}
+            aria-pressed={filter==='all'}
             onClick={()=>setFilter('all')}
           >
             Όλα
@@ -290,6 +291,7 @@ export default function PatientMessages({
 
           <button
             className={filter==='unread'?'active':''}
+            aria-pressed={filter==='unread'}
             onClick={()=>setFilter('unread')}
           >
             Μη αναγνωσμένα
@@ -304,7 +306,7 @@ export default function PatientMessages({
         </div>
 
 
-        <div className="meleo-conversation-list">
+        <div className="meleo-conversation-list" aria-live="polite">
 
           {conversations.length===0
             ?
@@ -516,6 +518,10 @@ export default function PatientMessages({
             <div
               className="meleo-thread-messages"
               ref={messagesRef}
+              role="log"
+              aria-live="polite"
+              aria-relevant="additions text"
+              aria-label="Μηνύματα συνομιλίας"
             >
 
               {(activeConversation.messages||[]).length===0
@@ -615,6 +621,7 @@ export default function PatientMessages({
               <div className="meleo-thread-input">
 
                 <textarea
+                  aria-label="Γράψε μήνυμα"
                   value={draft}
                   onChange={e=>setDraft(e.target.value)}
                   placeholder="Γράψε ένα μήνυμα…"
@@ -634,6 +641,7 @@ export default function PatientMessages({
 
                 <button
                   disabled={!draft.trim()||sending}
+                  aria-busy={sending}
                   onClick={sendMessage}
                   aria-label="Αποστολή μηνύματος"
                 >

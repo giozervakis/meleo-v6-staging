@@ -4270,3 +4270,11 @@ and (
   }
 
 }
+/* RC3-D5-C */
+.meleo-messenger,.meleo-messenger-sidebar,.meleo-thread,.meleo-thread-messages,.meleo-thread-composer{min-width:0;max-width:100%}
+.meleo-messenger button:focus-visible,.meleo-messenger input:focus-visible,.meleo-messenger textarea:focus-visible{outline:2px solid currentColor;outline-offset:3px}
+.meleo-messenger-filters button,.meleo-conversation-row,.meleo-thread-back,.meleo-thread-input button{min-height:44px}
+.meleo-messenger-search input,.meleo-thread-input textarea{font-size:16px}
+.meleo-message-bubble{overflow-wrap:anywhere}
+@media(max-width:700px){.meleo-messenger{max-width:100%}.meleo-messenger-filters{overflow-x:auto}.meleo-message-bubble{max-width:88%}.meleo-thread-input{grid-template-columns:minmax(0,1fr) 44px}.meleo-thread-input button{width:44px;height:44px}}
+@media(max-width:390px){.meleo-message-bubble{max-width:92%}.meleo-thread-head{padding-inline:7px}.meleo-thread-context{padding-inline:8px}}
