@@ -50,3 +50,11 @@
 .rc3d-patient-page .verify-email-banner button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
 @media(max-width:600px){.rc3d-patient-page .verify-email-banner{display:grid;grid-template-columns:minmax(0,1fr);gap:12px}.rc3d-patient-page .verify-email-banner button{width:100%}.rc3d-patient-page .patient-care-hero{grid-template-columns:minmax(0,1fr)}.rc3d-patient-page .patient-care-identity{width:100%}}
 @media(max-width:390px){.rc3d-patient-page .patient-care-hero-status{display:grid;grid-template-columns:minmax(0,1fr);gap:8px}.rc3d-patient-page .patient-care-identity{align-items:flex-start}}
+
+/* RC3-D5-H attention and patient workspace navigation */
+.rc3d-patient-page .patient-attention-panel,.rc3d-patient-page .patient-section-shell,.rc3d-patient-page [role="tabpanel"]{min-width:0;max-width:100%}
+.rc3d-patient-page .patient-attention-panel h3,.rc3d-patient-page .patient-attention-panel p{overflow-wrap:anywhere}
+.rc3d-patient-page .patient-section-tabs button{min-height:44px}
+.rc3d-patient-page .patient-section-tabs button:focus-visible{outline:3px solid currentColor;outline-offset:3px}
+@media(max-width:600px){.rc3d-patient-page .patient-section-tabs{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:100%}.rc3d-patient-page .patient-section-tabs button{min-width:0;width:100%;white-space:normal}}
+@media(max-width:390px){.rc3d-patient-page .patient-attention-panel{grid-template-columns:auto minmax(0,1fr)}.rc3d-patient-page .patient-section-tabs button{padding-inline:8px}}

@@ -758,7 +758,7 @@ return (
 
 
           {needsAttention>0&&
-            <section className="patient-attention-panel" role="status" aria-live="polite">
+            <section className="patient-attention-panel" role="status" aria-live="polite" aria-labelledby="rc3d-attention-title">
 
               <div className="patient-attention-icon">
                 !
@@ -766,7 +766,7 @@ return (
 
               <div>
                 <small>ΧΡΕΙΑΖΕΤΑΙ ΕΝΕΡΓΕΙΑ</small>
-                <h3>{attentionMessage}</h3>
+                <h3 id="rc3d-attention-title">{attentionMessage}</h3>
 
                 <p>
                   Άνοιξε τις κρατήσεις σου για να συνεχίσει
@@ -898,11 +898,13 @@ return (
             }
           >
 
-<div className="patient-section-tabs" role="tablist" aria-label="Patient dashboard sections">
+<div className="patient-section-tabs" role="tablist" aria-label="Patient dashboard sections" aria-orientation="horizontal">
 
   <button
     role="tab"
     aria-selected={patientSection==='bookings'}
+    aria-controls="rc3d-patient-bookings-panel"
+    id="rc3d-patient-bookings-tab"
     className={
       patientSection==='bookings'
         ? 'active'
@@ -921,6 +923,8 @@ return (
   <button
     role="tab"
     aria-selected={patientSection==='messages'}
+    aria-controls="rc3d-patient-messages-panel"
+    id="rc3d-patient-messages-tab"
     className={
       patientSection==='messages'
         ? 'active'
@@ -948,7 +952,7 @@ return (
 </div>
 
 {patientSection==='bookings'&&
-  <>
+  <div id="rc3d-patient-bookings-panel" role="tabpanel" aria-labelledby="rc3d-patient-bookings-tab">
             <div className="patient-panel-head">
               <div>
                 <small>MY REQUESTS</small>
@@ -1345,8 +1349,10 @@ onClick={e=>{
                   text="Η επόμενη φροντίδα σου απέχει λίγα clicks."
                 />
             }
- </>
-}{patientSection==='messages'&&
+ </div>
+}
+ {patientSection==='messages'&&
+  <div id="rc3d-patient-messages-panel" role="tabpanel" aria-labelledby="rc3d-patient-messages-tab">
   <PatientMessages
     bookings={patientMessageBookings}
     unreadByBooking={
@@ -1380,6 +1386,7 @@ onClick={e=>{
     statusLabel={statusLabel}
     money={money}
   />
+  </div>
 }
 
           </section>
