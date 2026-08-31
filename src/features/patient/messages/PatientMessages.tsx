@@ -5,6 +5,8 @@ import React, {
   useEffect
 } from 'react'
 
+import { useTranslation } from 'react-i18next'
+
 import './patient-messages.css'
 
 type Props = {
@@ -42,7 +44,10 @@ function lastActivityOf(booking:any){
   ).getTime()
 }
 
-function messageTime(value?:string){
+function messageTime(
+  value:string|undefined,
+  locale:string
+){
   if(!value)return ''
 
   const date=new Date(value)
@@ -54,7 +59,7 @@ function messageTime(value?:string){
     date.getDate()===today.getDate()
   ){
     return date.toLocaleTimeString(
-      'el-GR',
+      locale,
       {
         hour:'2-digit',
         minute:'2-digit'
@@ -63,7 +68,7 @@ function messageTime(value?:string){
   }
 
   return date.toLocaleDateString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'2-digit'
@@ -86,6 +91,13 @@ export default function PatientMessages({
   statusLabel,
   money
 }:Props){
+
+  const {t,i18n}=useTranslation()
+
+  const locale=
+    i18n.resolvedLanguage==='en'
+      ? 'en-GB'
+      : 'el-GR'
 
   const [filter,setFilter]=useState<InboxFilter>('all')
   const [query,setQuery]=useState('')
@@ -129,7 +141,10 @@ export default function PatientMessages({
 
   const conversations=useMemo(()=>{
 
-    const q=query.trim().toLocaleLowerCase('el-GR')
+    const q=
+      query
+        .trim()
+        .toLocaleLowerCase(locale)
 
     return [...bookings]
       .filter((booking:any)=>{
@@ -157,7 +172,7 @@ export default function PatientMessages({
         ]
           .filter(Boolean)
           .join(' ')
-          .toLocaleLowerCase('el-GR')
+          .toLocaleLowerCase(locale)
 
         return haystack.includes(q)
       })
@@ -185,7 +200,8 @@ export default function PatientMessages({
     bookings,
     unreadByBooking,
     filter,
-    query
+    query,
+    locale
   ])
 
   const activeConversation=
@@ -252,7 +268,7 @@ export default function PatientMessages({
 
           <div>
             <small>MELEO COMMUNICATION</small>
-            <h2>Μηνύματα</h2>
+            <h2>{t('patientMessages.title')}</h2>
           </div>
 
           {unreadTotal>0&&
@@ -272,21 +288,21 @@ export default function PatientMessages({
             type="search"
             value={query}
             onChange={e=>setQuery(e.target.value)}
-            placeholder="Αναζήτηση συνομιλιών…"
-            aria-label="Αναζήτηση συνομιλιών"
+            placeholder={t('patientMessages.search.placeholder')}
+            aria-label={t('patientMessages.search.aria')}
           />
 
         </div>
 
 
-        <div className="meleo-messenger-filters" role="group" aria-label="Φίλτρα συνομιλιών">
+        <div className="meleo-messenger-filters" role="group" aria-label={t('patientMessages.filters.aria')}>
 
           <button
             className={filter==='all'?'active':''}
             aria-pressed={filter==='all'}
             onClick={()=>setFilter('all')}
           >
-            Όλα
+            {t('patientMessages.filters.all')}
           </button>
 
           <button
@@ -294,7 +310,7 @@ export default function PatientMessages({
             aria-pressed={filter==='unread'}
             onClick={()=>setFilter('unread')}
           >
-            Μη αναγνωσμένα
+            {t('patientMessages.filters.unread')}
 
             {unreadTotal>0&&
               <b>
@@ -315,15 +331,15 @@ export default function PatientMessages({
 
               <b>
                 {filter==='unread'
-                  ? 'Δεν έχεις μη αναγνωσμένα'
-                  : 'Δεν υπάρχουν συνομιλίες'
+                  ? t('patientMessages.empty.noUnread')
+                  : t('patientMessages.empty.noConversations')
                 }
               </b>
 
               <p>
                 {query
-                  ? 'Δεν βρέθηκε συνομιλία που να ταιριάζει στην αναζήτηση.'
-                  : 'Οι συνομιλίες σου με επαγγελματίες θα εμφανίζονται εδώ.'
+                  ? t('patientMessages.empty.search')
+                  : t('patientMessages.empty.default')
                 }
               </p>
             </div>
@@ -355,7 +371,7 @@ export default function PatientMessages({
                   <div className="meleo-conversation-avatar">
                     {initials(
                       booking.professionalName||
-                      'Επαγγελματίας'
+                      t('patientMessages.fallback.professional')
                     )}
 
                     {isUnread&&
@@ -370,11 +386,11 @@ export default function PatientMessages({
 
                       <strong>
                         {booking.professionalName||
-                         'Επαγγελματίας MELEO'}
+                         t('patientMessages.fallback.meleoProfessional')}
                       </strong>
 
                       <time>
-                        {messageTime(last?.createdAt)}
+                        {messageTime(last?.createdAt,locale)}
                       </time>
 
                     </div>
@@ -383,7 +399,7 @@ export default function PatientMessages({
                     <span className="meleo-conversation-service">
                       {booking.service||
                        booking.specialty||
-                       'Αίτημα επίσκεψης'}
+                       t('patientMessages.fallback.visitRequest')}
                     </span>
 
 
@@ -392,7 +408,7 @@ export default function PatientMessages({
                       <p>
                         {last?.text||
                          last?.body||
-                         'Άνοιξε τη συνομιλία'}
+                         t('patientMessages.fallback.openConversation')}
                       </p>
 
                       {isUnread&&
@@ -436,7 +452,7 @@ export default function PatientMessages({
               <button
                 className="meleo-thread-back"
                 onClick={closeMobileThread}
-                aria-label="Πίσω στις συνομιλίες"
+                aria-label={t('patientMessages.thread.back')}
               >
                 ←
               </button>
@@ -445,7 +461,7 @@ export default function PatientMessages({
               <div className="meleo-thread-avatar">
                 {initials(
                   activeConversation.professionalName||
-                  'Επαγγελματίας'
+                  t('patientMessages.fallback.professional')
                 )}
               </div>
 
@@ -454,13 +470,13 @@ export default function PatientMessages({
 
                 <strong>
                   {activeConversation.professionalName||
-                   'Επαγγελματίας MELEO'}
+                   t('patientMessages.fallback.meleoProfessional')}
                 </strong>
 
                 <span>
                   {activeConversation.service||
                    activeConversation.specialty||
-                   'Επαγγελματίας MELEO'}
+                   t('patientMessages.fallback.meleoProfessional')}
                 </span>
 
               </div>
@@ -489,7 +505,7 @@ export default function PatientMessages({
                 <span className="meleo-context-main">
                   <b>
                     {activeConversation.service||
-                     'Αίτημα επίσκεψης'}
+                     t('patientMessages.fallback.visitRequest')}
                   </b>
 
                   <small>
@@ -505,8 +521,10 @@ export default function PatientMessages({
                     : activeConversation.proposedPrice
                       ? money(activeConversation.proposedPrice)
                       : activeConversation.price
-                        ? `Από ${money(activeConversation.price)}`
-                        : 'Σε αναμονή'
+                        ? t('patientMessages.context.fromPrice',{
+                            price:money(activeConversation.price)
+                          })
+                        : t('patientMessages.context.pending')
                   }
                 </strong>
 
@@ -521,7 +539,7 @@ export default function PatientMessages({
               role="log"
               aria-live="polite"
               aria-relevant="additions text"
-              aria-label="Μηνύματα συνομιλίας"
+              aria-label={t('patientMessages.thread.messagesAria')}
             >
 
               {(activeConversation.messages||[]).length===0
@@ -530,11 +548,10 @@ export default function PatientMessages({
 
                   <span>◇</span>
 
-                  <h3>Ξεκίνα τη συνομιλία</h3>
+                  <h3>{t('patientMessages.thread.emptyTitle')}</h3>
 
                   <p>
-                    Στείλε μήνυμα στον επαγγελματία
-                    σχετικά με το αίτημά σου.
+                    {t('patientMessages.thread.emptyText')}
                   </p>
 
                 </div>
@@ -572,7 +589,7 @@ export default function PatientMessages({
                               {message.fromName||
                                message.senderName||
                                activeConversation.professionalName||
-                               'Επαγγελματίας'}
+                               t('patientMessages.fallback.professional')}
                             </b>
                           }
 
@@ -587,7 +604,7 @@ export default function PatientMessages({
                               ? new Date(
                                   message.createdAt
                                 ).toLocaleTimeString(
-                                  'el-GR',
+                                  locale,
                                   {
                                     hour:'2-digit',
                                     minute:'2-digit'
@@ -621,10 +638,10 @@ export default function PatientMessages({
               <div className="meleo-thread-input">
 
                 <textarea
-                  aria-label="Γράψε μήνυμα"
+                  aria-label={t('patientMessages.composer.aria')}
                   value={draft}
                   onChange={e=>setDraft(e.target.value)}
-                  placeholder="Γράψε ένα μήνυμα…"
+                  placeholder={t('patientMessages.composer.placeholder')}
                   maxLength={1500}
                   onKeyDown={e=>{
 
@@ -643,7 +660,7 @@ export default function PatientMessages({
                   disabled={!draft.trim()||sending}
                   aria-busy={sending}
                   onClick={sendMessage}
-                  aria-label="Αποστολή μηνύματος"
+                  aria-label={t('patientMessages.composer.send')}
                 >
                   {sending?'…':'➤'}
                 </button>
@@ -651,7 +668,7 @@ export default function PatientMessages({
               </div>
 
               <small>
-                Enter για αποστολή · Shift + Enter για νέα γραμμή
+                {t('patientMessages.composer.hint')}
               </small>
 
             </footer>
@@ -664,10 +681,10 @@ export default function PatientMessages({
 
             <span>◇</span>
 
-            <h3>Τα μηνύματά σου</h3>
+            <h3>{t('patientMessages.noSelection.title')}</h3>
 
             <p>
-              Επίλεξε μια συνομιλία για να ανοίξει ο διάλογος.
+              {t('patientMessages.noSelection.text')}
             </p>
 
           </div>
