@@ -6,6 +6,8 @@
  * remain path-scoped in relational/app.js.
  */
 
+import Stripe from 'stripe'
+import { tx } from '../relational/pool.js'
 export function registerAdminMembersRoutes({
   app,
   one,
@@ -180,6 +182,505 @@ export function registerAdminMembersRoutes({
         readOnly:true,
         summary,
         items
+      })
+    }
+  )
+
+  /*
+   * TEMPORARY STAGING-ONLY destructive cleanup endpoint.
+   *
+   * Fixed allowlist:
+   *   exactly seven approved staging test accounts.
+   *
+   * Safety properties:
+   * - admin middleware inherited from /api/admin
+   * - NODE_ENV must be staging
+   * - explicit confirmation phrase required
+   * - fixed user-id/email allowlist
+   * - canonical demo accounts are blocked
+   * - Stripe LIVE keys are rejected
+   * - Stripe subscription/customer ownership is verified
+   * - all Stripe objects are preflighted before cancellation
+   * - already-cancelled subscriptions are retry-safe
+   * - database cleanup runs in one transaction
+   *
+   * Stripe customers themselves are intentionally retained.
+   *
+   * Remove this endpoint after cleanup verification.
+   */
+  app.post(
+    '/api/admin/staging/account-cleanup',
+    async(req,res)=>{
+      if(
+        String(process.env.NODE_ENV||'')
+          .trim()
+          .toLowerCase()!=='staging'
+      ){
+        return res.status(404).json({
+          error:'Not found'
+        })
+      }
+
+      if(
+        String(req.body?.confirm||'')!==
+        'DELETE_STAGING_ACCOUNTS_7'
+      ){
+        return res.status(400).json({
+          error:'Explicit staging cleanup confirmation required'
+        })
+      }
+
+      const targets=[
+        {
+          id:'usr_d82068fd-a236-4175-835f-445cd7916a58',
+          email:'eirprotogeraki@gmail.com'
+        },
+        {
+          id:'usr_5c93f235-9a5f-40df-9f84-444d5678e665',
+          email:'giozervakis@gmail.com'
+        },
+        {
+          id:'usr_4f9d64f8-5f8f-4328-a266-c757491f68f2',
+          email:'imblish@gmail.com'
+        },
+        {
+          id:'usr_14eb7f35-c7da-491d-a7f8-4ad1720c796e',
+          email:'rc2-a8-patient-f6d9da26ce48@example.invalid'
+        },
+        {
+          id:'usr_647e73ed-8796-4d6f-b071-069da42a07e7',
+          email:'rc2-a8-professional-f6d9da26ce48@example.invalid'
+        },
+        {
+          id:'usr_6fd8b6e4-34eb-4b6a-9eb4-11c0b642d416',
+          email:'kassmich@hotmail.com',
+          stripeCustomerId:'cus_VACYJrj3t0lGnG',
+          stripeSubscriptionId:'sub_1U9sXIKvEFUJ2hGu6ACXqWiy'
+        },
+        {
+          id:'usr_0f413bb1-a3dd-497b-b11e-19ded0ff4200',
+          email:'gzervakis1983@hotmail.com',
+          stripeCustomerId:'cus_VAFBUf48Qf8tPh',
+          stripeSubscriptionId:'sub_1U9uiGKvEFUJ2hGuTuVPcNVf'
+        }
+      ]
+
+      const canonicalIds=new Set([
+        'u_patient',
+        'u_nurse1',
+        'u_nurse2',
+        'u_admin'
+      ])
+
+      const canonicalEmails=new Set([
+        'patient@meleo.gr',
+        'maria@meleo.gr',
+        'nikos@meleo.gr',
+        'admin@meleo.gr'
+      ])
+
+      for(const target of targets){
+        const email=
+          String(target.email||'')
+            .trim()
+            .toLowerCase()
+
+        if(
+          canonicalIds.has(target.id) ||
+          canonicalEmails.has(email)
+        ){
+          return res.status(409).json({
+            error:'Canonical staging identity detected; cleanup refused'
+          })
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // Database identity preflight
+      // ------------------------------------------------------
+
+      const targetIds=targets.map(x=>x.id)
+
+      const dbRows=await many(`
+        SELECT
+          u.id,
+          lower(u.email) AS email,
+          u.stripe_customer_id AS "stripeCustomerId",
+          p.id AS "professionalId",
+          p.stripe_subscription_id AS "stripeSubscriptionId"
+
+        FROM users u
+
+        LEFT JOIN professionals p
+          ON p.user_id=u.id
+
+        WHERE u.id=ANY($1::text[])
+
+        ORDER BY u.id
+      `,[targetIds])
+
+      if(dbRows.length!==targets.length){
+        return res.status(409).json({
+          error:'Cleanup preflight failed: expected seven target users',
+          expected:targets.length,
+          found:dbRows.length
+        })
+      }
+
+      const dbById=new Map(
+        dbRows.map(row=>[row.id,row])
+      )
+
+      for(const target of targets){
+        const row=dbById.get(target.id)
+
+        if(!row){
+          return res.status(409).json({
+            error:'Cleanup target missing from database',
+            targetId:target.id
+          })
+        }
+
+        if(
+          String(row.email||'').trim().toLowerCase()!==
+          String(target.email).trim().toLowerCase()
+        ){
+          return res.status(409).json({
+            error:'Cleanup identity mismatch',
+            targetId:target.id
+          })
+        }
+
+        const expectedCustomer=
+          target.stripeCustomerId||null
+
+        const expectedSubscription=
+          target.stripeSubscriptionId||null
+
+        const actualCustomer=
+          row.stripeCustomerId||null
+
+        const actualSubscription=
+          row.stripeSubscriptionId||null
+
+        if(
+          actualCustomer!==expectedCustomer ||
+          actualSubscription!==expectedSubscription
+        ){
+          return res.status(409).json({
+            error:'Stripe reference mismatch; cleanup refused',
+            targetId:target.id
+          })
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // Stripe test-mode preflight
+      // ------------------------------------------------------
+
+      const stripeTargets=
+        targets.filter(x=>x.stripeSubscriptionId)
+
+      const stripeSecret=
+        String(process.env.STRIPE_SECRET_KEY||'').trim()
+
+      if(stripeTargets.length){
+        if(
+          stripeSecret.startsWith('sk_live_') ||
+          stripeSecret.startsWith('rk_live_')
+        ){
+          return res.status(409).json({
+            error:'LIVE Stripe credential detected; cleanup refused'
+          })
+        }
+
+        if(
+          !/^((sk|rk)_test_)/.test(stripeSecret)
+        ){
+          return res.status(409).json({
+            error:'Stripe TEST credential required for staging cleanup'
+          })
+        }
+      }
+
+      let stripe=null
+
+      if(stripeTargets.length){
+        stripe=new Stripe(
+          stripeSecret,
+          {
+            apiVersion:'2025-06-30.basil',
+            maxNetworkRetries:2,
+            timeout:20000
+          }
+        )
+      }
+
+      const stripePreflight=[]
+
+      for(const target of stripeTargets){
+        let subscription
+
+        try{
+          subscription=
+            await stripe.subscriptions.retrieve(
+              target.stripeSubscriptionId
+            )
+        }catch(err){
+          return res.status(409).json({
+            error:'Stripe subscription preflight failed',
+            targetId:target.id,
+            subscriptionId:target.stripeSubscriptionId,
+            stripeCode:err?.code||null
+          })
+        }
+
+        const customerId=
+          typeof subscription.customer==='string'
+            ? subscription.customer
+            : subscription.customer?.id
+
+        if(customerId!==target.stripeCustomerId){
+          return res.status(409).json({
+            error:'Stripe customer/subscription ownership mismatch',
+            targetId:target.id,
+            subscriptionId:target.stripeSubscriptionId
+          })
+        }
+
+        stripePreflight.push({
+          target,
+          status:subscription.status
+        })
+      }
+
+
+      // ------------------------------------------------------
+      // Cancel Stripe TEST subscriptions.
+      //
+      // This intentionally happens before DB deletion.
+      // If DB cleanup later fails, Stripe is safely cancelled
+      // and the DB transaction rolls back, allowing retry.
+      // ------------------------------------------------------
+
+      const stripeResults=[]
+
+      for(const item of stripePreflight){
+        const {
+          target,
+          status
+        }=item
+
+        if(status==='canceled'){
+          stripeResults.push({
+            subscriptionId:target.stripeSubscriptionId,
+            status:'already_canceled'
+          })
+
+          continue
+        }
+
+        try{
+          const cancelled=
+            await stripe.subscriptions.cancel(
+              target.stripeSubscriptionId
+            )
+
+          stripeResults.push({
+            subscriptionId:target.stripeSubscriptionId,
+            status:cancelled.status
+          })
+        }catch(err){
+          return res.status(502).json({
+            error:'Stripe TEST subscription cancellation failed',
+            targetId:target.id,
+            subscriptionId:target.stripeSubscriptionId,
+            stripeCode:err?.code||null,
+            alreadyProcessed:stripeResults
+          })
+        }
+      }
+
+
+      // ------------------------------------------------------
+      // Transactional PostgreSQL cleanup
+      // ------------------------------------------------------
+
+      const dbResult=await tx(async client=>{
+        const locked=await client.query(`
+          SELECT
+            u.id,
+            lower(u.email) AS email,
+            p.id AS professional_id
+
+          FROM users u
+
+          LEFT JOIN professionals p
+            ON p.user_id=u.id
+
+          WHERE u.id=ANY($1::text[])
+
+          ORDER BY u.id
+
+          FOR UPDATE OF u
+        `,[targetIds])
+
+        if(locked.rows.length!==targets.length){
+          throw new Error(
+            'STAGING_CLEANUP_TARGET_SET_CHANGED'
+          )
+        }
+
+        for(const target of targets){
+          const row=
+            locked.rows.find(x=>x.id===target.id)
+
+          if(
+            !row ||
+            row.email!==
+              String(target.email).trim().toLowerCase()
+          ){
+            throw new Error(
+              'STAGING_CLEANUP_IDENTITY_CHANGED'
+            )
+          }
+        }
+
+        const professionalIds=
+          locked.rows
+            .map(x=>x.professional_id)
+            .filter(Boolean)
+
+
+        // Users may have reviewed other professionals.
+        await client.query(`
+          UPDATE verification_requests
+          SET
+            reviewed_by=NULL,
+            reviewed_at=
+              CASE
+                WHEN reviewed_by=ANY($1::text[])
+                  THEN reviewed_at
+                ELSE reviewed_at
+              END
+          WHERE reviewed_by=ANY($1::text[])
+        `,[targetIds])
+
+
+        // Messages may belong to bookings/tickets that survive.
+        await client.query(`
+          DELETE FROM booking_messages
+          WHERE sender_user_id=ANY($1::text[])
+        `,[targetIds])
+
+        await client.query(`
+          DELETE FROM support_messages
+          WHERE sender_user_id=ANY($1::text[])
+        `,[targetIds])
+
+
+        // Reviews have non-cascade patient/professional FKs.
+        if(professionalIds.length){
+          await client.query(`
+            DELETE FROM reviews
+            WHERE
+              patient_id=ANY($1::text[])
+              OR professional_id=ANY($2::text[])
+          `,[targetIds,professionalIds])
+        }else{
+          await client.query(`
+            DELETE FROM reviews
+            WHERE patient_id=ANY($1::text[])
+          `,[targetIds])
+        }
+
+
+        // Bookings have non-cascade patient/professional FKs.
+        // booking_messages and reviews tied to deleted bookings
+        // cascade from booking_id.
+        if(professionalIds.length){
+          await client.query(`
+            DELETE FROM bookings
+            WHERE
+              patient_id=ANY($1::text[])
+              OR professional_id=ANY($2::text[])
+          `,[targetIds,professionalIds])
+        }else{
+          await client.query(`
+            DELETE FROM bookings
+            WHERE patient_id=ANY($1::text[])
+          `,[targetIds])
+        }
+
+
+        // Support tickets and their child messages.
+        await client.query(`
+          DELETE FROM support_tickets
+          WHERE user_id=ANY($1::text[])
+        `,[targetIds])
+
+
+        // User reports have a non-cascade FK.
+        await client.query(`
+          DELETE FROM reports
+          WHERE reporter_user_id=ANY($1::text[])
+        `,[targetIds])
+
+
+        // Do not keep detached test-payment records.
+        if(professionalIds.length){
+          await client.query(`
+            DELETE FROM payments
+            WHERE professional_id=ANY($1::text[])
+          `,[professionalIds])
+        }
+
+
+        // Final user deletion cascades:
+        // professionals -> subscriptions/verification/analytics/
+        // availability/favorites, plus sessions, tokens,
+        // notifications, identities and live events.
+        const deleted=await client.query(`
+          DELETE FROM users
+          WHERE id=ANY($1::text[])
+          RETURNING id
+        `,[targetIds])
+
+        if(deleted.rows.length!==targets.length){
+          throw new Error(
+            'STAGING_CLEANUP_DELETE_COUNT_MISMATCH'
+          )
+        }
+
+        return {
+          deletedUserIds:
+            deleted.rows.map(x=>x.id).sort(),
+
+          deletedUserCount:
+            deleted.rows.length,
+
+          professionalIds:
+            professionalIds.sort()
+        }
+      })
+
+
+      res.setHeader(
+        'Cache-Control',
+        'no-store'
+      )
+
+      return res.json({
+        ok:true,
+        environment:'staging',
+        destructive:true,
+        deletedUserCount:dbResult.deletedUserCount,
+        deletedUserIds:dbResult.deletedUserIds,
+        deletedProfessionalIds:dbResult.professionalIds,
+        stripeSubscriptions:stripeResults,
+        stripeCustomersDeleted:false
       })
     }
   )
