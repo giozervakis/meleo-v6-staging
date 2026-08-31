@@ -170,6 +170,9 @@ languageSwitcher:{
  changeAria:'Αλλαγή γλώσσας',
  menuAria:'Γλώσσα'
 },
+apiErrors:{
+ generic:'Κάτι πήγε στραβά'
+},
 supportPages:{
  notifications:{
   toast:{
@@ -1014,6 +1017,9 @@ languageSwitcher:{
  englishGreek:'English',
  changeAria:'Change language',
  menuAria:'Language'
+},
+apiErrors:{
+ generic:'Something went wrong'
 },
 supportPages:{
  notifications:{
