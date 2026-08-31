@@ -58,7 +58,7 @@ export function Home({pros,search,setSearch,loadPros,openPro,favorites,toggleFav
             <div className="phone-head"><span>9:41</span><span className="tiny-brand">MELEO Care</span></div>
             <h3>{t('home.phoneTitle')}</h3>
             <div className="phone-search">⌖ <div><b>{t('home.nearby')}</b><small>{t('home.gpsHelp')}</small></div></div>
-            <div className="chips"><span className="chip active">Νοσηλευτική</span><span className="chip">Φυσικοθεραπεία</span><span className="chip">Διατροφή</span></div>
+            <div className="chips"><span className="chip active">{t('homeExperience.phone.nursing')}</span><span className="chip">{t('homeExperience.phone.physiotherapy')}</span><span className="chip">{t('homeExperience.phone.nutrition')}</span></div>
             <div className="phone-list">{pros.slice(0,3).map((p:Professional)=><MiniCard key={p.id} p={p}/>)}</div>
           </div>
           <div className="floating-chip bottomchip"><b>0€</b><span>{t('home.patientFree')}</span></div>
@@ -169,6 +169,8 @@ export function SmartRequest({
   loadPros,
   setView
 }: any) {
+  const {t}=useTranslation()
+
   const [text, setText] = useState('')
   const [suggestion, setSuggestion] = useState<any>(null)
 
@@ -573,8 +575,8 @@ export function SmartRequest({
             service: learned.service || '',
             confidence:
               learned.score >= 80
-                ? 'Υψηλή'
-                : 'Μέτρια',
+                ? 'high'
+                : 'medium',
             score: learned.score,
             alternatives: [],
             matched: [],
@@ -626,12 +628,12 @@ export function SmartRequest({
      * 3. CONFIDENCE
      * ----------------------------------------------------------
      */
-    let confidence = 'Χαμηλή'
+    let confidence = 'low'
 
     if (best.score >= 18) {
-      confidence = 'Υψηλή'
+      confidence = 'high'
     } else if (best.score >= 10) {
-      confidence = 'Μέτρια'
+      confidence = 'medium'
     }
 
     /*
@@ -698,16 +700,21 @@ export function SmartRequest({
           </span>
 
           <h1>
-            Δεν χρειάζεται να ξέρεις
+            {t(
+              'homeExperience.smart.titleLead'
+            )}
             <br />
-            <em>πώς λέγεται η υπηρεσία.</em>
+            <em>
+              {t(
+                'homeExperience.smart.titleEmphasis'
+              )}
+            </em>
           </h1>
 
           <p>
-            Περιέγραψε με απλά λόγια τι χρειάζεσαι.
-            Η MELEO σε κατευθύνει σε κατάλληλη
-            κατηγορία επαγγελματία — χωρίς να κάνει
-            διάγνωση.
+            {t(
+              'homeExperience.smart.intro'
+            )}
           </p>
 
           <div className="smart-examples">
@@ -718,7 +725,9 @@ export function SmartRequest({
                 )
               }
             >
-              Μετά από επέμβαση ισχίου
+              {t(
+                'homeExperience.smart.examples.hip'
+              )}
             </button>
 
             <button
@@ -728,7 +737,9 @@ export function SmartRequest({
                 )
               }
             >
-              Αγωγή πρωί / βράδυ
+              {t(
+                'homeExperience.smart.examples.treatment'
+              )}
             </button>
 
             <button
@@ -738,14 +749,18 @@ export function SmartRequest({
                 )
               }
             >
-              Απώλεια βάρους
+              {t(
+                'homeExperience.smart.examples.weight'
+              )}
             </button>
           </div>
         </div>
 
         <div className="smart-card">
           <label>
-            Τι χρειάζεσαι;
+            {t(
+              'homeExperience.smart.form.label'
+            )}
           </label>
 
           <textarea
@@ -754,12 +769,15 @@ export function SmartRequest({
               setText(e.target.value)
               setSuggestion(null)
             }}
-            placeholder="π.χ. Θέλω να χάσω κιλά και χρειάζομαι βοήθεια με τη διατροφή μου…"
+            placeholder={t(
+              'homeExperience.smart.form.placeholder'
+            )}
           />
 
           <div className="smart-safety">
-            ✦ Δεν χρησιμοποιείται για διάγνωση ή
-            επείγον περιστατικό.
+            ✦ {t(
+              'homeExperience.smart.form.safety'
+            )}
           </div>
 
           <button
@@ -767,23 +785,29 @@ export function SmartRequest({
             disabled={text.trim().length < 8}
             onClick={analyze}
           >
-            Βρες τη σωστή κατεύθυνση
+            {t(
+              'homeExperience.smart.form.submit'
+            )}
           </button>
 
           {suggestion?.emergency && (
             <div className="smart-result emergency-result">
               <span>
-                ΕΠΕΙΓΟΥΣΑ ΕΝΔΕΙΞΗ
+                {t(
+                  'homeExperience.smart.emergency.eyebrow'
+                )}
               </span>
 
               <h3>
-                Η MELEO δεν είναι υπηρεσία επειγόντων.
+                {t(
+                  'homeExperience.smart.emergency.title'
+                )}
               </h3>
 
               <p>
-                Η περιγραφή περιέχει ένδειξη που μπορεί
-                να απαιτεί άμεση βοήθεια. Μην περιμένεις
-                απάντηση επαγγελματία μέσω marketplace.
+                {t(
+                  'homeExperience.smart.emergency.text'
+                )}
               </p>
 
               <button
@@ -792,7 +816,9 @@ export function SmartRequest({
                   window.location.href = 'tel:112'
                 }
               >
-                Κλήση 112
+                {t(
+                  'homeExperience.smart.emergency.call'
+                )}
               </button>
             </div>
           )}
@@ -800,27 +826,30 @@ export function SmartRequest({
           {suggestion?.unmatched && (
             <div className="smart-result">
               <span>
-                ΧΡΕΙΑΖΟΜΑΣΤΕ ΛΙΓΟ ΑΚΟΜΗ
+                {t(
+                  'homeExperience.smart.unmatched.eyebrow'
+                )}
               </span>
 
               <h3>
-                Δεν μπορέσαμε να προσδιορίσουμε με
-                ασφάλεια ειδικότητα.
+                {t(
+                  'homeExperience.smart.unmatched.title'
+                )}
               </h3>
 
               <p>
-                Περιέγραψε λίγο πιο συγκεκριμένα την
-                ανάγκη ή επίλεξε ειδικότητα χειροκίνητα.
-                Απόφυγε να καταχωρείς περισσότερα
-                προσωπικά ή ευαίσθητα δεδομένα από όσα
-                χρειάζονται.
+                {t(
+                  'homeExperience.smart.unmatched.text'
+                )}
               </p>
 
               <button
                 className="btn btn-outline wide"
                 onClick={() => setView('search')}
               >
-                Επιλογή ειδικότητας →
+                {t(
+                  'homeExperience.smart.unmatched.cta'
+                )} →
               </button>
             </div>
           )}
@@ -828,7 +857,9 @@ export function SmartRequest({
           {suggestion?.specialty && (
             <div className="smart-result">
               <span>
-                ΠΡΟΤΕΙΝΟΜΕΝΗ ΚΑΤΕΥΘΥΝΣΗ
+                {t(
+                  'homeExperience.smart.result.eyebrow'
+                )}
               </span>
 
               <h3>
@@ -837,21 +868,32 @@ export function SmartRequest({
 
               <p>
                 {suggestion.service ||
-                  'Δες όλους τους επαγγελματίες της ειδικότητας'}
+                  t(
+                    'homeExperience.smart.result.allProfessionals'
+                  )}
               </p>
 
               <small>
-                Βεβαιότητα αντιστοίχισης:{' '}
-                {suggestion.confidence}
+                {t(
+                  'homeExperience.smart.result.confidence'
+                )}:{' '}
+                {t(
+                  'homeExperience.smart.confidence.'+
+                  suggestion.confidence
+                )}
                 {' · '}
-                υποβοηθητική αντιστοίχιση, όχι διάγνωση
+                {t(
+                  'homeExperience.smart.result.disclaimer'
+                )}
               </small>
 
               <button
                 className="btn btn-gold wide"
                 onClick={() => continueSearch()}
               >
-                Δες επαγγελματίες →
+                {t(
+                  'homeExperience.smart.result.cta'
+                )} →
               </button>
 
               {suggestion.alternatives?.length > 0 && (
@@ -863,7 +905,9 @@ export function SmartRequest({
                   }}
                 >
                   <small>
-                    Ίσως να σε ενδιαφέρει επίσης:
+                    {t(
+                      'homeExperience.smart.result.alternatives'
+                    )}
                   </small>
 
                   {suggestion.alternatives.map(
@@ -900,6 +944,8 @@ export function NowRequest({
   setView,
   ProCard
 }: any) {
+  const {t,i18n}=useTranslation()
+
   const [specialty, setSpecialty] =
     useState(search.specialty || 'Νοσηλευτική')
 
@@ -926,16 +972,24 @@ export function NowRequest({
   ) {
     switch (error.code) {
       case error.PERMISSION_DENIED:
-        return 'Η πρόσβαση στην τοποθεσία δεν επιτράπηκε. Έλεγξε ότι η άδεια τοποθεσίας είναι ενεργή για τη MELEO.'
+        return t(
+          'homeExperience.now.errors.permission'
+        )
 
       case error.POSITION_UNAVAILABLE:
-        return 'Η συσκευή δεν μπόρεσε να προσδιορίσει την τοποθεσία σου. Δοκίμασε ξανά ή επίλεξε περιοχή χειροκίνητα.'
+        return t(
+          'homeExperience.now.errors.unavailable'
+        )
 
       case error.TIMEOUT:
-        return 'Ο εντοπισμός τοποθεσίας άργησε περισσότερο από το αναμενόμενο. Δοκίμασε ξανά.'
+        return t(
+          'homeExperience.now.errors.timeout'
+        )
 
       default:
-        return 'Δεν μπορέσαμε να εντοπίσουμε την τοποθεσία σου.'
+        return t(
+          'homeExperience.now.errors.default'
+        )
     }
   }
 
@@ -943,7 +997,9 @@ export function NowRequest({
     lat: string,
     lon: string
   ) {
-    let label = 'Η τρέχουσα τοποθεσία μου'
+    let label = t(
+      'homeExperience.now.currentLocation'
+    )
 
     try {
       const result = await api(
@@ -971,14 +1027,18 @@ export function NowRequest({
 
     if (!window.isSecureContext) {
       setGeoError(
-        'Η χρήση τοποθεσίας απαιτεί ασφαλή σύνδεση HTTPS.'
+        t(
+          'homeExperience.now.errors.https'
+        )
       )
       return
     }
 
     if (!navigator.geolocation) {
       setGeoError(
-        'Η συσκευή ή ο browser δεν υποστηρίζει υπηρεσίες τοποθεσίας.'
+        t(
+          'homeExperience.now.errors.unsupported'
+        )
       )
       return
     }
@@ -1096,7 +1156,9 @@ export function NowRequest({
         )
       } else {
         setGeoError(
-          'Η τοποθεσία εντοπίστηκε με πρόβλημα κατά την αναζήτηση. Δοκίμασε ξανά.'
+          t(
+            'homeExperience.now.errors.search'
+          )
         )
       }
     } finally {
@@ -1116,22 +1178,30 @@ export function NowRequest({
             </span>
 
             <h1>
-              Χρειάζεσαι φροντίδα
+              {t(
+                'homeExperience.now.titleLead'
+              )}
               <br />
-              <em>σήμερα;</em>
+              <em>
+                {t(
+                  'homeExperience.now.titleEmphasis'
+                )}
+              </em>
             </h1>
 
             <p>
-              Εντόπισε επαγγελματίες που δηλώνουν
-              διαθεσιμότητα και καλύπτουν τη
-              γεωγραφική σου περιοχή.
+              {t(
+                'homeExperience.now.intro'
+              )}
             </p>
           </div>
 
           <div className="now-control">
 
             <label>
-              Ειδικότητα
+              {t(
+                'homeExperience.now.specialty'
+              )}
 
               <select
                 value={specialty}
@@ -1141,8 +1211,14 @@ export function NowRequest({
                 }}
               >
                 {specialtyOptions.map(x => (
-                  <option key={x}>
-                    {x}
+                  <option
+                    key={x}
+                    value={x}
+                  >
+                    {catalogLabel(
+                      x,
+                      i18n.language
+                    )}
                   </option>
                 ))}
               </select>
@@ -1154,13 +1230,19 @@ export function NowRequest({
               disabled={busy}
             >
               {busy
-                ? '⌖ Εντοπισμός τοποθεσίας…'
-                : '⌖ Χρήση τοποθεσίας & εύρεση τώρα'}
+                ? '⌖ '+t(
+                    'homeExperience.now.locating'
+                  )
+                : '⌖ '+t(
+                    'homeExperience.now.locate'
+                  )}
             </button>
 
             {locationLabel && (
               <div className="location-ok">
-                ✓ Εντοπίστηκε: {locationLabel}
+                ✓ {t(
+                  'homeExperience.now.detected'
+                )}: {locationLabel}
 
                 {accuracy !== null && (
                   <small
@@ -1169,7 +1251,12 @@ export function NowRequest({
                       marginTop: 4
                     }}
                   >
-                    Ακρίβεια περίπου {accuracy} μ.
+                    {t(
+                      'homeExperience.now.accuracy',
+                      {
+                        accuracy
+                      }
+                    )}
                   </small>
                 )}
               </div>
@@ -1178,7 +1265,9 @@ export function NowRequest({
             {geoError && (
               <div className="location-error">
                 <strong>
-                  Δεν ολοκληρώθηκε ο εντοπισμός.
+                  {t(
+                    'homeExperience.now.failureTitle'
+                  )}
                 </strong>
 
                 <div>
@@ -1192,7 +1281,9 @@ export function NowRequest({
                   onClick={locate}
                   disabled={busy}
                 >
-                  Δοκιμή ξανά
+                  {t(
+                    'homeExperience.now.retry'
+                  )}
                 </button>
               </div>
             )}
@@ -1201,7 +1292,9 @@ export function NowRequest({
               className="btn btn-outline wide"
               onClick={() => setView('search')}
             >
-              Αναζήτηση άλλης περιοχής
+              {t(
+                'homeExperience.now.otherArea'
+              )}
             </button>
 
           </div>
@@ -1212,18 +1305,29 @@ export function NowRequest({
 
             <div className="section-title left">
               <div className="eyebrow">
-                ΔΙΑΘΕΣΙΜΟΙ ΚΟΝΤΑ ΣΟΥ
+                {t(
+                  'homeExperience.now.results.eyebrow'
+                )}
               </div>
 
               <h2>
                 {pros.length
-                  ? `${pros.length} επιλογές για εσένα`
-                  : 'Δεν βρέθηκαν άμεσα διαθέσιμοι'}
+                  ? t(
+                      'homeExperience.now.results.count',
+                      {
+                        count:pros.length
+                      }
+                    )
+                  : t(
+                      'homeExperience.now.results.empty'
+                    )}
               </h2>
 
               {locationLabel && (
                 <p>
-                  Περιοχή αναζήτησης:{' '}
+                  {t(
+                    'homeExperience.now.results.area'
+                  )}:{' '}
                   <strong>
                     {locationLabel}
                   </strong>
