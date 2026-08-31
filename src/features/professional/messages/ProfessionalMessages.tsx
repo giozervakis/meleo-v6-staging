@@ -7,6 +7,7 @@ import {
 
 import { api } from '../../../lib/api'
 import type { Booking } from '../../../domain/types'
+import {useTranslation} from 'react-i18next'
 
 import './professional-messages.css'
 
@@ -37,7 +38,10 @@ function initials(value:string){
     .join('')
 }
 
-function timestamp(value?:string){
+function timestamp(
+  value?:string,
+  locale='el-GR'
+){
   if(!value)return ''
 
   const date=new Date(value)
@@ -48,7 +52,7 @@ function timestamp(value?:string){
 
   if(date.toDateString()===now.toDateString()){
     return date.toLocaleTimeString(
-      'el-GR',
+      locale,
       {
         hour:'2-digit',
         minute:'2-digit'
@@ -57,7 +61,7 @@ function timestamp(value?:string){
   }
 
   return date.toLocaleDateString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'2-digit'
@@ -65,7 +69,10 @@ function timestamp(value?:string){
   )
 }
 
-function fullTimestamp(value?:string){
+function fullTimestamp(
+  value?:string,
+  locale='el-GR'
+){
   if(!value)return ''
 
   const date=new Date(value)
@@ -73,7 +80,7 @@ function fullTimestamp(value?:string){
   if(Number.isNaN(date.getTime()))return ''
 
   return date.toLocaleString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'2-digit',
@@ -84,17 +91,20 @@ function fullTimestamp(value?:string){
   )
 }
 
-function statusLabel(status?:string){
+function statusLabel(
+  status:string|undefined,
+  t:(key:string)=>string
+){
   const labels:Record<string,string>={
-    pending:'Νέο αίτημα',
-    clarification:'Διευκρινίσεις',
-    quoted:'Πρόταση κόστους',
-    accepted:'Επιβεβαιωμένη',
-    completed:'Ολοκληρωμένη',
-    cancelled:'Ακυρωμένη'
+    pending:t('proMessages.status.pending'),
+    clarification:t('proMessages.status.clarification'),
+    quoted:t('proMessages.status.quoted'),
+    accepted:t('proMessages.status.accepted'),
+    completed:t('proMessages.status.completed'),
+    cancelled:t('proMessages.status.cancelled')
   }
 
-  return labels[String(status||'')]||String(status||'Αίτημα')
+  return labels[String(status||'')]||String(status||t('proMessages.status.request'))
 }
 
 export default function ProfessionalMessages({
@@ -107,6 +117,9 @@ export default function ProfessionalMessages({
   onUnreadRefresh,
   setToast
 }:Props){
+
+  const {t,i18n}=useTranslation()
+  const locale=i18n.resolvedLanguage==='en'?'en-GB':'el-GR'
 
   const [selectedId,setSelectedId]=useState('')
   const [query,setQuery]=useState('')
@@ -172,7 +185,7 @@ export default function ProfessionalMessages({
 
   const visibleConversations=useMemo(()=>{
 
-    const needle=query.trim().toLocaleLowerCase('el-GR')
+    const needle=query.trim().toLocaleLowerCase(locale)
 
     return conversations.filter((booking:any)=>{
 
@@ -193,7 +206,7 @@ export default function ProfessionalMessages({
       ]
         .filter(Boolean)
         .join(' ')
-        .toLocaleLowerCase('el-GR')
+        .toLocaleLowerCase(locale)
 
       return haystack.includes(needle)
     })
@@ -202,7 +215,8 @@ export default function ProfessionalMessages({
     conversations,
     query,
     filter,
-    unreadByBooking
+    unreadByBooking,
+    locale
   ])
 
   const activeConversation=useMemo(()=>{
@@ -341,7 +355,7 @@ export default function ProfessionalMessages({
 
       setToast?.(
         error?.message||
-        'Δεν ήταν δυνατή η αποστολή του μηνύματος.'
+        t('proMessages.errors.send')
       )
 
     }
@@ -388,13 +402,16 @@ export default function ProfessionalMessages({
 
           <div>
             <span>MELEO MESSAGES</span>
-            <h2>Μηνύματα</h2>
+            <h2>{t('proMessages.header.title')}</h2>
           </div>
 
           {unreadTotal>0&&
             <strong
               className="professional-messenger-total-unread"
-              aria-label={`${unreadTotal} αδιάβαστα μηνύματα`}
+              aria-label={t(
+                'proMessages.header.unreadTotalAria',
+                {count:unreadTotal}
+              )}
             >
               {unreadTotal}
             </strong>
@@ -412,8 +429,8 @@ export default function ProfessionalMessages({
               type="search"
               value={query}
               onChange={event=>setQuery(event.target.value)}
-              placeholder="Αναζήτηση συνομιλιών"
-              aria-label="Αναζήτηση συνομιλιών"
+              placeholder={t('proMessages.search.placeholder')}
+              aria-label={t('proMessages.search.aria')}
             />
 
           </label>
@@ -421,7 +438,7 @@ export default function ProfessionalMessages({
           <div
             className="professional-messenger-filters"
             role="group"
-            aria-label="Φίλτρο συνομιλιών"
+            aria-label={t('proMessages.filters.aria')}
           >
 
             <button
@@ -429,7 +446,7 @@ export default function ProfessionalMessages({
               className={filter==='all'?'active':''}
               onClick={()=>setFilter('all')}
             >
-              Όλα
+              {t('proMessages.filters.all')}
             </button>
 
             <button
@@ -437,7 +454,7 @@ export default function ProfessionalMessages({
               className={filter==='unread'?'active':''}
               onClick={()=>setFilter('unread')}
             >
-              Μη αναγνωσμένα
+              {t('proMessages.filters.unread')}
               {unreadTotal>0&&<b>{unreadTotal}</b>}
             </button>
 
@@ -455,16 +472,16 @@ export default function ProfessionalMessages({
 
               <strong>
                 {filter==='unread'
-                  ? 'Δεν έχεις αδιάβαστα μηνύματα'
+                  ? t('proMessages.empty.unread')
                   : query
-                    ? 'Δεν βρέθηκε συνομιλία'
-                    : 'Δεν υπάρχουν συνομιλίες ακόμη'}
+                    ? t('proMessages.empty.search')
+                    : t('proMessages.empty.none')}
               </strong>
 
               <p>
                 {query
-                  ? 'Δοκίμασε διαφορετικό όνομα ή υπηρεσία.'
-                  : 'Τα μηνύματα από ασθενείς θα εμφανίζονται εδώ.'}
+                  ? t('proMessages.empty.searchText')
+                  : t('proMessages.empty.noneText')}
               </p>
 
             </div>
@@ -498,7 +515,7 @@ export default function ProfessionalMessages({
                   <div className="professional-conversation-avatar">
                     {initials(
                       booking.patientName||
-                      'Ασθενής'
+                      t('proMessages.fallback.patient')
                     )}
                   </div>
 
@@ -507,32 +524,35 @@ export default function ProfessionalMessages({
                     <div className="professional-conversation-row">
 
                       <strong>
-                        {booking.patientName||'Ασθενής'}
+                        {booking.patientName||t('proMessages.fallback.patient')}
                       </strong>
 
                       <time>
-                        {timestamp(last?.createdAt)}
+                        {timestamp(last?.createdAt,locale)}
                       </time>
 
                     </div>
 
                     <div className="professional-conversation-service">
-                      {booking.service||'Αίτημα φροντίδας'}
+                      {booking.service||t('proMessages.fallback.careRequest')}
                     </div>
 
                     <div className="professional-conversation-preview">
 
                       <span>
                         {last?.fromRole==='professional'
-                          ? 'Εσύ: '
+                          ? t('proMessages.preview.youPrefix')
                           : ''}
                         {last?.text||
-                         'Νέα συνομιλία'}
+                         t('proMessages.preview.newConversation')}
                       </span>
 
                       {unread>0&&
                         <b
-                          aria-label={`${unread} αδιάβαστα`}
+                          aria-label={t(
+                            'proMessages.preview.unreadAria',
+                            {count:unread}
+                          )}
                         >
                           {unread}
                         </b>
@@ -567,7 +587,7 @@ export default function ProfessionalMessages({
                 type="button"
                 className="professional-thread-back"
                 onClick={closeMobileThread}
-                aria-label="Επιστροφή στις συνομιλίες"
+                aria-label={t('proMessages.thread.backAria')}
               >
                 ←
               </button>
@@ -575,7 +595,7 @@ export default function ProfessionalMessages({
               <div className="professional-conversation-avatar large">
                 {initials(
                   activeConversation.patientName||
-                  'Ασθενής'
+                  t('proMessages.fallback.patient')
                 )}
               </div>
 
@@ -583,12 +603,12 @@ export default function ProfessionalMessages({
 
                 <strong>
                   {activeConversation.patientName||
-                   'Ασθενής'}
+                   t('proMessages.fallback.patient')}
                 </strong>
 
                 <span>
                   {activeConversation.service||
-                   'Αίτημα φροντίδας'}
+                   t('proMessages.fallback.careRequest')}
                 </span>
 
               </div>
@@ -599,7 +619,7 @@ export default function ProfessionalMessages({
                   String(activeConversation.status||'unknown')
                 }
               >
-                {statusLabel(activeConversation.status)}
+                {statusLabel(activeConversation.status,t)}
               </span>
 
             </header>
@@ -608,14 +628,14 @@ export default function ProfessionalMessages({
             <div className="professional-thread-context">
 
               <div>
-                <span>Υπηρεσία</span>
+                <span>{t('proMessages.context.service')}</span>
                 <strong>
                   {activeConversation.service||'—'}
                 </strong>
               </div>
 
               <div>
-                <span>Επίσκεψη</span>
+                <span>{t('proMessages.context.visit')}</span>
                 <strong>
                   {activeConversation.date||'—'}
                   {activeConversation.time
@@ -628,7 +648,7 @@ export default function ProfessionalMessages({
                 activeConversation.proposedPrice||
                 activeConversation.price)&&
                 <div>
-                  <span>Κόστος</span>
+                  <span>{t('proMessages.context.cost')}</span>
                   <strong>
                     {activeConversation.agreedPrice||
                      activeConversation.proposedPrice||
@@ -652,10 +672,10 @@ export default function ProfessionalMessages({
 
                   <span aria-hidden="true">✉</span>
 
-                  <strong>Ξεκίνα τη συνομιλία</strong>
+                  <strong>{t('proMessages.thread.startTitle')}</strong>
 
                   <p>
-                    Στείλε μήνυμα σχετικά με το συγκεκριμένο αίτημα.
+                    {t('proMessages.thread.startText')}
                   </p>
 
                 </div>
@@ -683,7 +703,7 @@ export default function ProfessionalMessages({
                             {message.fromName||
                              message.senderName||
                              activeConversation.patientName||
-                             'Ασθενής'}
+                             t('proMessages.fallback.patient')}
                           </b>
                         }
 
@@ -694,7 +714,7 @@ export default function ProfessionalMessages({
                         </p>
 
                         <time>
-                          {fullTimestamp(message.createdAt)}
+                          {fullTimestamp(message.createdAt,locale)}
                         </time>
 
                       </div>
@@ -714,9 +734,9 @@ export default function ProfessionalMessages({
                   value={draft}
                   onChange={event=>setDraft(event.target.value)}
                   onKeyDown={handleComposerKeyDown}
-                  placeholder="Γράψε μήνυμα…"
+                  placeholder={t('proMessages.composer.placeholder')}
                   rows={1}
-                  aria-label="Νέο μήνυμα"
+                  aria-label={t('proMessages.composer.newMessageAria')}
                 />
 
                 <button
@@ -728,7 +748,7 @@ export default function ProfessionalMessages({
                   onClick={()=>
                     void sendMessage()
                   }
-                  aria-label="Αποστολή μηνύματος"
+                  aria-label={t('proMessages.composer.sendAria')}
                 >
                   {sending?'…':'➜'}
                 </button>
@@ -745,12 +765,11 @@ export default function ProfessionalMessages({
             </div>
 
             <strong>
-              Επίλεξε μια συνομιλία
+              {t('proMessages.placeholder.title')}
             </strong>
 
             <p>
-              Τα μηνύματα και οι πληροφορίες του αιτήματος
-              θα εμφανιστούν εδώ.
+              {t('proMessages.placeholder.text')}
             </p>
 
           </div>
