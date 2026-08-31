@@ -27,7 +27,7 @@ const ProfilePage = lazy(
 const BookingFlowPage = lazy(
   () => import('./features/booking/BookingFlow')
 )
-function RouteFallback(){return <div className="route-loading" role="status" aria-live="polite"><span className="route-spinner"/>Φόρτωση MELEO…</div>}
+function RouteFallback(){const {t}=i18nGlobal();return <div className="route-loading" role="status" aria-live="polite"><span className="route-spinner"/>{t('global.loading')}</div>}
 
 
 function i18nGlobal(){return {t:i18n.t.bind(i18n)}}
@@ -39,12 +39,13 @@ function IdentityAvatar({
   size='md',
   className=''
 }:any){
+  const {t}=i18nGlobal()
   if(photoUrl){
     return (
       <div className={`identity-avatar ${size} ${className}`}>
         <img
           src={photoUrl}
-          alt={name||'MELEO profile'}
+          alt={name||t('global.identity.profileFallback')}
           loading="lazy"
         />
       </div>
@@ -55,7 +56,7 @@ function IdentityAvatar({
     return (
       <div
         className={`identity-avatar ${size} meleo-avatar ${avatarKey} ${className}`}
-        aria-label={name||'MELEO avatar'}
+        aria-label={name||t('global.identity.avatarFallback')}
       >
         <span/>
       </div>
@@ -407,7 +408,7 @@ function ProfileIdentityModal({
 function statusLabel(s:string){const {t}=i18nGlobal();return t('patient.bookingLabels.status.'+s,{defaultValue:s})}
 function professionalLifecycleLabel(s:string){return ({approved:'Verified',pending_verification:'Pending Verification',verification_rejected:'Verification Rejected',awaiting_subscription:'Αναμονή συνδρομής',profile_incomplete:'Ελλιπές προφίλ',verification_required:'Αναμονή υποβολής verification',deletion_pending:'Διαγραφή σε αναμονή'} as any)[s]||'—'}
 function professionalLifecycleClass(s:string){return s==='approved'?'yes':s==='pending_verification'?'pending':s==='verification_rejected'?'no':'neutral'}
-async function fileToBase64(file:File){return await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||'').split(',')[1]||'');r.onerror=()=>reject(new Error('Αδυναμία ανάγνωσης αρχείου'));r.readAsDataURL(file)})}
+async function fileToBase64(file:File){return await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||'').split(',')[1]||'');r.onerror=()=>reject(new Error(i18n.t('global.errors.fileRead')));r.readAsDataURL(file)})}
 async function cropImageToBase64(
   src:string,
   zoom:number,
@@ -427,7 +428,7 @@ async function cropImageToBase64(
       const ctx=canvas.getContext('2d')
 
       if(!ctx){
-        reject(new Error('Canvas unavailable'))
+        reject(new Error(i18n.t('global.errors.canvasUnavailable')))
         return
       }
 
@@ -465,7 +466,7 @@ async function cropImageToBase64(
     }
 
     img.onerror=()=>reject(
-      new Error('Η εικόνα δεν μπόρεσε να φορτωθεί.')
+      new Error(i18n.t('global.errors.imageLoad'))
     )
 
     img.src=src
