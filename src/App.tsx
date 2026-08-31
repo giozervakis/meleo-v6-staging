@@ -406,7 +406,7 @@ function ProfileIdentityModal({
   )
 }
 function statusLabel(s:string){const {t}=i18nGlobal();return t('patient.bookingLabels.status.'+s,{defaultValue:s})}
-function professionalLifecycleLabel(s:string){return ({approved:'Verified',pending_verification:'Pending Verification',verification_rejected:'Verification Rejected',awaiting_subscription:'Αναμονή συνδρομής',profile_incomplete:'Ελλιπές προφίλ',verification_required:'Αναμονή υποβολής verification',deletion_pending:'Διαγραφή σε αναμονή'} as any)[s]||'—'}
+function professionalLifecycleLabel(s:string){const {t}=i18nGlobal();return t('professional.lifecycle.'+s,{defaultValue:'\u2014'})}
 function professionalLifecycleClass(s:string){return s==='approved'?'yes':s==='pending_verification'?'pending':s==='verification_rejected'?'no':'neutral'}
 async function fileToBase64(file:File){return await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||'').split(',')[1]||'');r.onerror=()=>reject(new Error(i18n.t('global.errors.fileRead')));r.readAsDataURL(file)})}
 async function cropImageToBase64(
@@ -483,13 +483,13 @@ function trackProfessionalEvent(professionalId:string,type:'impression'|'profile
 }
 
 const FALLBACK_CONFIG:AppConfig={env:'production',demoAuth:false,googleOAuthEnabled:false,demoCheckout:false,paymentsEnabled:false,mailEnabled:false,portalEnabled:false,termsVersion:'—',emergencyNumber:'112',legal:{company:'',vatNumber:'',address:'',supportEmail:'support@meleo.gr',dpoEmail:'privacy@meleo.gr'},plans:[
-  {id:'basic',name:'BASIC',price:9.99,currency:'EUR',interval:'month',recommended:false,features:['Δημόσιο επαγγελματικό προφίλ','Αιτήματα και διαχείριση κρατήσεων','Περιοχή & ακτίνα εξυπηρέτησης','Βασικά στατιστικά']},
-  {id:'premium',name:'PREMIUM',price:14.99,currency:'EUR',interval:'month',recommended:true,features:['Όλα τα BASIC','Σήμανση «Προτεινόμενος»','Προτεραιότητα στην κατάταξη αποτελεσμάτων','Advanced profile analytics']}
+  {id:'basic',name:'BASIC',price:9.99,currency:'EUR',interval:'month',recommended:false,features:[i18n.t('professional.pricing.features.publicProfile'),i18n.t('professional.pricing.features.bookingManagement'),i18n.t('professional.pricing.features.serviceArea'),i18n.t('professional.pricing.features.basicStats')]},
+  {id:'premium',name:'PREMIUM',price:14.99,currency:'EUR',interval:'month',recommended:true,features:[i18n.t('professional.pricing.features.allBasic'),i18n.t('professional.pricing.features.recommendedBadge'),i18n.t('professional.pricing.features.rankingPriority'),i18n.t('professional.pricing.features.advancedAnalytics')]}
 ]}
 const money=(v:number)=>`${Number(v||0).toFixed(2).replace('.',',')}€`
 function Mark(){return <div className="brand"><span className="brand-glyph">M</span><span>MELEO</span></div>}
-function priceLabel(p:Professional, compact=false){if((p.pricingMode||'from')==='contact')return compact?'Κατόπιν επικοινωνίας':'Κατόπιν επικοινωνίας';return `Από ${p.price}€`}
-function priceNote(p:Professional){return (p.pricingMode||'from')==='contact'?'Το κόστος συμφωνείται απευθείας με τον επαγγελματία.':'Βασικό κόστος απλής επίσκεψης · η τελική χρέωση διαμορφώνεται ανάλογα με τις ανάγκες και συμφωνείται πριν την επίσκεψη.'}
+function priceLabel(p:Professional, compact=false){const {t}=i18nGlobal();if((p.pricingMode||'from')==='contact')return t('professional.pricing.contact');return t('professional.pricing.from',{price:p.price})}
+function priceNote(p:Professional){const {t}=i18nGlobal();return (p.pricingMode||'from')==='contact'?t('professional.pricing.contactNote'):t('professional.pricing.fromNote')}
 function Icon({children}:{children:React.ReactNode}){return <span className="iconbox">{children}</span>}
 function Toast({text,onClose}:{text:string,onClose:()=>void}){useEffect(()=>{const t=setTimeout(onClose,3200);return()=>clearTimeout(t)},[]);return <div className="toast">{text}</div>}
 
@@ -1898,34 +1898,35 @@ function Stat({label,value,note}:any){return <div className="stat-card"><span>{l
 function DashboardHead({eyebrow,title,subtitle}:any){return <div className="dashboard-head"><div className="eyebrow">{eyebrow}</div><h1>{title}</h1><p>{subtitle}</p></div>}
 
 function Pricing({user,token,professional,onRefresh,setView,setToast,cfg}:any){
+ const {t}=useTranslation()
  const plans:Plan[]=cfg?.plans?.length?cfg.plans:FALLBACK_CONFIG.plans
  const [busy,setBusy]=useState('')
  async function choose(plan:string){
    if(!user){sessionStorage.setItem('meleo_selected_plan',plan);setView('auth');return}
-   if(user.role==='patient'){sessionStorage.setItem('meleo_selected_plan',plan);setView('become-pro');return}if(user.role!=='professional'){setToast('Τα πακέτα αφορούν επαγγελματικούς λογαριασμούς.');return}
+   if(user.role==='patient'){sessionStorage.setItem('meleo_selected_plan',plan);setView('become-pro');return}if(user.role!=='professional'){setToast(t('professional.pricing.professionalOnly'));return}
    sessionStorage.setItem('meleo_selected_plan',plan)
    setBusy(plan)
    try{
      const r=await api('/professional/subscription/checkout',{method:'POST',body:JSON.stringify({plan})},token)
      if(r.mode==='stripe'&&r.url){window.location.href=r.url;return}
      await onRefresh();setView('pro-dashboard')
-     setToast(r.mode==='demo'?'Η συνδρομή ενεργοποιήθηκε (demo)':'Το πακέτο ενημερώθηκε')
+     setToast(r.mode==='demo'?t('professional.pricing.demoActivated'):t('professional.pricing.planUpdated'))
    }catch(e:any){setToast(e.message);setView('pro-dashboard')}finally{setBusy('')}
  }
  return <section className="pricing-page page"><div className="container">
-   <SectionTitle over="MELEO PROFESSIONAL" title="Απλές συνδρομές. Καθαρή αξία." subtitle="Δεν υπάρχει δωρεάν επαγγελματικό πακέτο. Επίλεξε BASIC ή PREMIUM ανάλογα με την προβολή και τα εργαλεία που χρειάζεσαι."/>
+   <SectionTitle over={t('professional.pricing.kicker')} title={t('professional.pricing.title')} subtitle={t('professional.pricing.subtitle')}/>
    <div className="pricing-grid">{plans.map(x=><div key={x.id} className={'pricing-card '+(x.id==='premium'?'premium':'')}>
-     <div className="pricing-head"><span>{x.recommended?'Προτεινόμενο':'Για επαγγελματική παρουσία'}</span><h2>{x.name}</h2><div><strong>{money(x.price)}</strong><small>/μήνα</small></div></div>
+     <div className="pricing-head"><span>{x.recommended?t('professional.pricing.recommended'):t('professional.pricing.presence')}</span><h2>{x.name}</h2><div><strong>{money(x.price)}</strong><small>{t('professional.pricing.perMonth')}</small></div></div>
      <ul>{x.features.map(f=><li key={f}>✓ {f}</li>)}</ul>
      <button className={'btn wide '+(x.id==='premium'?'btn-gold':'btn-dark')} disabled={busy===x.id} onClick={()=>choose(x.id)}>
-       {professional?.subscriptionPlan===x.id&&['active','past_due'].includes(professional?.subscriptionStatus)?'Ενεργό πακέτο':busy===x.id?'Μεταφορά στο checkout…':user?.role==='professional'?'Επιλογή '+x.name:'Ξεκίνα ως επαγγελματίας'}
+       {professional?.subscriptionPlan===x.id&&['active','past_due'].includes(professional?.subscriptionStatus)?t('professional.pricing.activePlan'):busy===x.id?t('professional.pricing.checkout'):user?.role==='professional'?t('professional.pricing.choosePlan',{name:x.name}):t('professional.pricing.startProfessional')}
      </button>
-     {x.id==='premium'&&<small className="pricing-note">Η ένδειξη «Προτεινόμενος» αφορά εμπορική προβολή. Το MELEO Verified αφορά ανεξάρτητα τον έλεγχο επαγγελματικών στοιχείων και δεν αγοράζεται.</small>}
+     {x.id==='premium'&&<small className="pricing-note">{t('professional.pricing.premiumNote')}</small>}
    </div>)}</div>
    <div className="pricing-legal">
-     <b>Τι περιλαμβάνει η χρέωση</b>
-     <p>Μηνιαία συνδρομή με αυτόματη ανανέωση, πληρωμή με κάρτα ή Google&nbsp;Pay μέσω του παρόχου πληρωμών. Οι τιμές αναφέρονται σε ευρώ. Ακύρωση οποτεδήποτε, με ισχύ στο τέλος της τρέχουσας περιόδου χρέωσης.</p>
-     <p>Η MELEO <b>δεν</b> λαμβάνει προμήθεια ή ποσοστό από το κόστος των επισκέψεων. Το ποσό της επίσκεψης συμφωνείται και εξοφλείται απευθείας μεταξύ επαγγελματία και χρήστη.</p>
+     <b>{t('professional.pricing.legalTitle')}</b>
+     <p>{t('professional.pricing.legalBilling')}</p>
+     <p>{t('professional.pricing.legalNoCommission')}</p>
    </div>
  </div></section>
 }
