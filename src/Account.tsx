@@ -1,12 +1,11 @@
 import React, { useState } from 'react'
+import { useTranslation } from 'react-i18next'
 
 /**
- * Ρυθμίσεις λογαριασμού + νομικά κείμενα.
+ * Account settings + legal documents.
  *
- * ΠΡΟΣΟΧΗ (νομικό): τα κείμενα Όρων / Απορρήτου / Cookies είναι δομημένα
- * σχέδια εργασίας, ΟΧΙ εγκεκριμένα νομικά κείμενα. Πρέπει να ελεγχθούν από
- * δικηγόρο πριν τη δημόσια λειτουργία — ειδικά τα σημεία για ευθύνη,
- * ρόλο της πλατφόρμας, δεδομένα υγείας και συνδρομές.
+ * Legal documents below remain draft text and must be reviewed by counsel
+ * before public launch.
  */
 function getPasswordChecks(password: string) {
   const value = String(password || '')
@@ -25,26 +24,27 @@ function isStrongPassword(password: string) {
 }
 
 function PasswordChecklist({password}:{password:string}) {
+  const {t}=useTranslation()
   const checks = getPasswordChecks(password)
 
   const items = [
-    ['length','Τουλάχιστον 8 χαρακτήρες'],
-    ['uppercase','Ένα κεφαλαίο γράμμα'],
-    ['lowercase','Ένα πεζό γράμμα'],
-    ['number','Έναν αριθμό'],
-    ['special','Έναν ειδικό χαρακτήρα']
+    ['length',t('auth.password.length')],
+    ['uppercase',t('auth.password.uppercase')],
+    ['lowercase',t('auth.password.lowercase')],
+    ['number',t('auth.password.number')],
+    ['special',t('auth.password.special')]
   ] as const
 
   return (
     <div className="password-checklist">
-      <strong>Ο νέος κωδικός πρέπει να περιλαμβάνει:</strong>
+      <strong>{t('accountSettings.password.checklistTitle')}</strong>
 
       {items.map(([key,label])=>(
         <div
           key={key}
           className={checks[key] ? 'password-rule ok' : 'password-rule'}
         >
-          <span>{checks[key] ? '✓' : '○'}</span>
+          <span>{checks[key] ? '\u2713' : '\u25cb'}</span>
           <span>{label}</span>
         </div>
       ))}
@@ -53,20 +53,21 @@ function PasswordChecklist({password}:{password:string}) {
 }
 
 function PasswordStrength({password}:{password:string}) {
+  const {t}=useTranslation()
   const checks = getPasswordChecks(password)
   const score = Object.values(checks).filter(Boolean).length
 
   const label =
-    score <= 1 ? 'Πολύ αδύναμος' :
-    score === 2 ? 'Αδύναμος' :
-    score === 3 ? 'Μέτριος' :
-    score === 4 ? 'Ισχυρός' :
-    'Πολύ ισχυρός'
+    score <= 1 ? t('auth.password.veryWeak') :
+    score === 2 ? t('auth.password.weak') :
+    score === 3 ? t('auth.password.medium') :
+    score === 4 ? t('auth.password.strong') :
+    t('auth.password.veryStrong')
 
   return (
     <div className="password-strength">
       <div className="password-strength-head">
-        <span>Ισχύς κωδικού</span>
+        <span>{t('auth.password.strength')}</span>
         <strong>{label}</strong>
       </div>
 
@@ -90,6 +91,7 @@ export function AccountSettings({
   api: ApiFn
   onEditIdentity?: () => void
 }) {
+  const {t}=useTranslation()
   const [pw, setPw] = useState({ current: '', next: '', confirm: '' })
   const [busy, setBusy] = useState('')
   const [passwordError, setPasswordError] = useState('')
@@ -105,21 +107,19 @@ async function changePassword(e: React.FormEvent) {
   setPasswordError('')
 
   if (!pw.current) {
-    setPasswordError('Συμπλήρωσε τον τρέχοντα κωδικό.')
+    setPasswordError(t('accountSettings.password.currentRequired'))
     return
   }
 
   const checks = getPasswordChecks(pw.next)
 
   if (!Object.values(checks).every(Boolean)) {
-    setPasswordError(
-      'Ο νέος κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει κεφαλαίο γράμμα, πεζό γράμμα, αριθμό και ειδικό χαρακτήρα.'
-    )
+    setPasswordError(t('auth.password.policy'))
     return
   }
 
   if (pw.next !== pw.confirm) {
-    setPasswordError('Οι νέοι κωδικοί δεν ταιριάζουν.')
+    setPasswordError(t('accountSettings.password.mismatch'))
     return
   }
 
@@ -144,7 +144,7 @@ async function changePassword(e: React.FormEvent) {
       confirm: ''
     })
 
-    setToast('Ο κωδικός άλλαξε επιτυχώς. Συνδέσου ξανά με τον νέο κωδικό.')
+    setToast(t('accountSettings.password.changed'))
     logout()
   } catch (err: any) {
     setPasswordError(err.message)
@@ -162,7 +162,7 @@ async function exportData() {
       const a = document.createElement('a')
       a.href = url; a.download = 'meleo-data-export.json'; a.click()
       URL.revokeObjectURL(url)
-      setToast('Τα δεδομένα σου κατέβηκαν.')
+      setToast(t('accountSettings.data.downloaded'))
     } catch (err: any) { setToast(err.message) } finally { setBusy('') }
   }
 
@@ -182,7 +182,7 @@ async function exportData() {
       token
     )
 
-    setToast('Ο λογαριασμός σου διαγράφηκε.')
+    setToast(t('accountSettings.delete.deleted'))
     logout()
   } catch (err: any) {
     setDeleteError(err.message)
@@ -192,16 +192,16 @@ async function exportData() {
 }
 
   return <section className="page"><div className="container narrow">
-    <div className="eyebrow">ΡΥΘΜΙΣΕΙΣ</div>
-    <h1>Ο λογαριασμός μου</h1>
+    <div className="eyebrow">{t('accountSettings.kicker')}</div>
+    <h1>{t('accountSettings.title')}</h1>
 
     <div className="content-card">
-      <h3>Στοιχεία</h3>
+      <h3>{t('accountSettings.details.title')}</h3>
       <div className="account-rows">
-        <div><span>Ονοματεπώνυμο</span><b>{user.name}</b></div>
-        <div><span>Email</span><b>{user.email} {user.emailVerified ? <em className="ok-tag">επιβεβαιωμένο</em> : <em className="warn-tag">μη επιβεβαιωμένο</em>}</b></div>
-        <div><span>Τηλέφωνο</span><b>{user.phone || '—'}</b></div>
-        <div><span>Τύπος λογαριασμού</span><b>{user.role === 'professional' ? 'Επαγγελματίας' : 'Συνοδός / Ασθενής'}</b></div>
+        <div><span>{t('accountSettings.details.name')}</span><b>{user.name}</b></div>
+        <div><span>Email</span><b>{user.email} {user.emailVerified ? <em className="ok-tag">{t('accountSettings.details.verified')}</em> : <em className="warn-tag">{t('accountSettings.details.unverified')}</em>}</b></div>
+        <div><span>{t('accountSettings.details.phone')}</span><b>{user.phone || '\u2014'}</b></div>
+        <div><span>{t('accountSettings.details.accountType')}</span><b>{user.role === 'professional' ? t('accountSettings.details.professional') : t('accountSettings.details.patient')}</b></div>
       </div>
     </div>
 
@@ -209,11 +209,10 @@ async function exportData() {
       <div className="profile-identity-setting">
 
         <div className="profile-identity-setting-copy">
-          <b>Εικόνα προφίλ</b>
+          <b>{t('accountSettings.identity.title')}</b>
 
           <span>
-            Πρόσθεσε προσωπική φωτογραφία ή επίλεξε ένα MELEO avatar.
-            Η επιλογή είναι προαιρετική.
+            {t('accountSettings.identity.help')}
           </span>
         </div>
 
@@ -222,19 +221,19 @@ async function exportData() {
           className="btn btn-outline"
           onClick={()=>onEditIdentity?.()}
         >
-          Αλλαγή εικόνας
+          {t('accountSettings.identity.change')}
         </button>
 
       </div>
     </div>
-	
+
 <div className="content-card">
-  <h3>Αλλαγή κωδικού</h3>
+  <h3>{t('accountSettings.password.title')}</h3>
 
   <form onSubmit={changePassword}>
 
     <label>
-      Τρέχων κωδικός
+      {t('accountSettings.password.current')}
       <input
         type={showCurrent ? 'text' : 'password'}
         required
@@ -246,12 +245,12 @@ async function exportData() {
         className="password-toggle"
         onClick={()=>setShowCurrent(v=>!v)}
       >
-        {showCurrent ? 'Απόκρυψη' : 'Εμφάνιση'}
+        {showCurrent ? t('auth.password.hide') : t('auth.password.show')}
       </button>
     </label>
 
     <label>
-      Νέος κωδικός
+      {t('auth.password.newPassword')}
       <input
         type={showNext ? 'text' : 'password'}
         minLength={8}
@@ -264,7 +263,7 @@ async function exportData() {
         className="password-toggle"
         onClick={()=>setShowNext(v=>!v)}
       >
-        {showNext ? 'Απόκρυψη' : 'Εμφάνιση'}
+        {showNext ? t('auth.password.hide') : t('auth.password.show')}
       </button>
     </label>
 
@@ -272,7 +271,7 @@ async function exportData() {
     <PasswordChecklist password={pw.next}/>
 
     <label>
-      Επιβεβαίωση
+      {t('auth.password.confirmPassword')}
       <input
         type={showConfirm ? 'text' : 'password'}
         minLength={8}
@@ -285,13 +284,13 @@ async function exportData() {
         className="password-toggle"
         onClick={()=>setShowConfirm(v=>!v)}
       >
-        {showConfirm ? 'Απόκρυψη' : 'Εμφάνιση'}
+        {showConfirm ? t('auth.password.hide') : t('auth.password.show')}
       </button>
     </label>
 
     {pw.confirm && pw.next !== pw.confirm && (
       <small className="field-hint">
-        Οι νέοι κωδικοί δεν ταιριάζουν.
+        {t('accountSettings.password.mismatch')}
       </small>
     )}
 
@@ -309,34 +308,34 @@ async function exportData() {
         pw.next !== pw.confirm
       }
     >
-      {busy === 'pw' ? 'Αποθήκευση…' : 'Αλλαγή κωδικού'}
+      {busy === 'pw' ? t('accountSettings.password.saving') : t('accountSettings.password.change')}
     </button>
 
   </form>
 </div>
 
     <div className="content-card">
-      <h3>Τα δεδομένα μου</h3>
-      <p>Σύμφωνα με τον GDPR έχεις δικαίωμα πρόσβασης, φορητότητας και διαγραφής των δεδομένων σου.</p>
-      <button className="btn btn-outline" disabled={busy === 'export'} onClick={exportData}>{busy === 'export' ? 'Προετοιμασία…' : 'Λήψη των δεδομένων μου (JSON)'}</button>
-      <p className="muted small-note">Για οποιοδήποτε αίτημα σχετικά με τα προσωπικά δεδομένα: {cfg?.legal?.dpoEmail}</p>
+      <h3>{t('accountSettings.data.title')}</h3>
+      <p>{t('accountSettings.data.gdpr')}</p>
+      <button className="btn btn-outline" disabled={busy === 'export'} onClick={exportData}>{busy === 'export' ? t('accountSettings.data.preparing') : t('accountSettings.data.download')}</button>
+      <p className="muted small-note">{t('accountSettings.data.contact')} {cfg?.legal?.dpoEmail}</p>
     </div>
 
     <div className="content-card danger-zone">
-      <h3>Διαγραφή λογαριασμού</h3>
-      <p>Η διαγραφή είναι οριστική. Τυχόν ενεργή συνδρομή ακυρώνεται αμέσως. Το ιστορικό κρατήσεων διατηρείται σε ανωνυμοποιημένη μορφή, επειδή αφορά και τον αντισυμβαλλόμενο και υπάρχουν λογιστικές υποχρεώσεις.</p>
+      <h3>{t('accountSettings.delete.title')}</h3>
+      <p>{t('accountSettings.delete.warning')}</p>
       {!confirmDelete
-        ? <button className="text-btn danger" onClick={() => setConfirmDelete(true)}>Θέλω να διαγράψω τον λογαριασμό μου</button>
+        ? <button className="text-btn danger" onClick={() => setConfirmDelete(true)}>{t('accountSettings.delete.start')}</button>
         : <>
-          <label>Επιβεβαίωσε τον κωδικό σου<input type="password" value={delPassword} onChange={e => setDelPassword(e.target.value)} /></label>
+          <label>{t('accountSettings.delete.confirmPassword')}<input type="password" value={delPassword} onChange={e => setDelPassword(e.target.value)} /></label>
           {deleteError && (
   <div className="error">
     {deleteError}
   </div>
 )}
           <div className="danger-actions">
-            <button className="btn btn-dark" onClick={() => { setConfirmDelete(false); setDelPassword(''); setDeleteError('') }}>Άκυρο</button>
-            <button className="text-btn danger" disabled={busy === 'delete' || !delPassword} onClick={deleteAccount}>{busy === 'delete' ? 'Διαγραφή…' : 'Οριστική διαγραφή'}</button>
+            <button className="btn btn-dark" onClick={() => { setConfirmDelete(false); setDelPassword(''); setDeleteError('') }}>{t('accountSettings.delete.cancel')}</button>
+            <button className="text-btn danger" disabled={busy === 'delete' || !delPassword} onClick={deleteAccount}>{busy === 'delete' ? t('accountSettings.delete.deleting') : t('accountSettings.delete.final')}</button>
           </div>
         </>}
     </div>
