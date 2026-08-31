@@ -962,32 +962,34 @@ function VerifyEmailBanner({user,token,cfg,setToast}:any){
 }
 
 function Footer({cfg,setView}:any){
+  const {t}=useTranslation()
+
   return <footer className="site-footer"><div className="container footer-grid">
     <div>
       <Mark/>
-      <p>Πλατφόρμα εύρεσης επαληθευμένων επαγγελματιών φροντίδας. Η MELEO δεν παρέχει ιατρικές υπηρεσίες και δεν αποτελεί υπηρεσία επείγουσας βοήθειας — σε επείγουσα ανάγκη κάλεσε <b>{cfg.emergencyNumber}</b>.</p>
-      {cfg.legal.company&&<small>{cfg.legal.company}{cfg.legal.vatNumber?` · ΑΦΜ ${cfg.legal.vatNumber}`:''}{cfg.legal.address?` · ${cfg.legal.address}`:''}</small>}
+      <p>{t('shell.footer.disclaimerBefore')} <b>{cfg.emergencyNumber}</b>.</p>
+      {cfg.legal.company&&<small>{cfg.legal.company}{cfg.legal.vatNumber?` \u00b7 ${t('shell.footer.vat')} ${cfg.legal.vatNumber}`:''}{cfg.legal.address?` \u00b7 ${cfg.legal.address}`:''}</small>}
     </div>
     <div className="footer-links">
-      <b>Πλατφόρμα</b>
-      <button onClick={()=>setView('search')}>Αναζήτηση</button>
-      <button onClick={()=>setView('pricing')}>Συνδρομές</button>
-      <button onClick={()=>setView('become-pro')}>Για επαγγελματίες</button><button onClick={()=>setView('help')}>Help Center</button>
+      <b>{t('shell.footer.platform')}</b>
+      <button onClick={()=>setView('search')}>{t('shell.nav.search')}</button>
+      <button onClick={()=>setView('pricing')}>{t('shell.nav.pricing')}</button>
+      <button onClick={()=>setView('become-pro')}>{t('shell.nav.professionals')}</button>
+      <button onClick={()=>setView('help')}>{t('shell.nav.help')}</button>
     </div>
     <div className="footer-links">
-      <b>Νομικά</b>
-      <button onClick={()=>setView('terms')}>Όροι Χρήσης</button>
-      <button onClick={()=>setView('privacy')}>Πολιτική Απορρήτου</button>
-      <button onClick={()=>setView('cookies')}>Cookies</button>
+      <b>{t('shell.footer.legal')}</b>
+      <button onClick={()=>setView('terms')}>{t('shell.footer.terms')}</button>
+      <button onClick={()=>setView('privacy')}>{t('shell.footer.privacy')}</button>
+      <button onClick={()=>setView('cookies')}>{t('shell.footer.cookies')}</button>
     </div>
     <div className="footer-links">
-      <b>Επικοινωνία</b>
+      <b>{t('shell.footer.contact')}</b>
       <a href={`mailto:${cfg.legal.supportEmail}`}>{cfg.legal.supportEmail}</a>
-      <a href={`mailto:${cfg.legal.dpoEmail}`}>Υπεύθυνος προστασίας δεδομένων</a>
+      <a href={`mailto:${cfg.legal.dpoEmail}`}>{t('shell.footer.dpo')}</a>
     </div>
-  </div><div className="container footer-base"><span>© {new Date().getFullYear()} MELEO</span><span>Έκδοση όρων: {cfg.termsVersion}</span></div></footer>
+  </div><div className="container footer-base"><span>{'\u00A9'} {new Date().getFullYear()} MELEO</span><span>{t('shell.footer.termsVersion',{version:cfg.termsVersion})}</span></div></footer>
 }
-
 function Header({
   user,
   professional,
@@ -1029,7 +1031,7 @@ function Header({
   const go=(v:string)=>{setView(v);setOpen(false);setAccountOpen(false);window.scrollTo({top:0,behavior:'smooth'})}
   const professionalReady=user?.role==='professional'&&professional?.verified===true&&['active','past_due'].includes(professional?.subscriptionStatus||'')&&professional?.onboardingStage==='approved'
   const accountView=user?.role==='admin'?'admin':user?.role==='professional'?'pro-dashboard':'patient-dashboard'
-  const accountLabel=user?.role==='admin'?'Admin Control Center':user?.role==='professional'?(professionalReady?'Professional Dashboard':'Ολοκλήρωση επαγγελματικής εγγραφής'):'Οι κρατήσεις μου'
+  const accountLabel=user?.role==='admin'?t('shell.header.adminCenter'):user?.role==='professional'?(professionalReady?t('shell.header.professionalDashboard'):t('shell.header.completeProfessional')):t('shell.header.myBookings')
   const unreadNotifications=
   Number(communicationUnread?.notifications||0)
 
@@ -1066,7 +1068,7 @@ const messageLabel=
   avatarKey={user.avatarKey}
   size="sm"
   className="header-avatar"
-/><div><b>{user.name}</b><small>{user.email}</small></div></div><button onClick={()=>go(accountView)}>⌂ <span>{accountLabel}</span></button>{user.role==='professional'&&<button onClick={()=>go('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button>}<button
+/><div><b>{user.name}</b><small>{user.email}</small></div></div><button onClick={()=>go(accountView)}>⌂ <span>{accountLabel}</span></button>{user.role==='professional'&&<button onClick={()=>go('patient-dashboard')}>♡ <span>{t('shell.header.personalBookings')}</span></button>}<button
   className={
     'account-notification-link '+
     (unreadTotal>0?'has-unread':'')
@@ -1084,12 +1086,12 @@ const messageLabel=
   </span>
 
   <span className="account-notification-copy">
-    <strong>Ειδοποιήσεις</strong>
+    <strong>{t('shell.header.notifications')}</strong>
 
     {unreadTotal>0
       ? <small>
           {unreadNotifications>0&&
-            `${notificationLabel} νέες ειδοποιήσεις`
+            t('shell.header.newNotifications',{count:notificationLabel})
           }
 
           {unreadNotifications>0&&unreadMessages>0
@@ -1098,11 +1100,11 @@ const messageLabel=
           }
 
           {unreadMessages>0&&
-            `${messageLabel} νέα μηνύματα`
+            t('shell.header.newMessages',{count:messageLabel})
           }
         </small>
       : <small>
-          Δεν υπάρχουν νέα
+          {t('shell.header.noNew')}
         </small>
     }
   </span>
@@ -1110,9 +1112,9 @@ const messageLabel=
   {unreadTotal>0&&
     <span className="account-live-dot"/>
   }
-</button><button onClick={()=>go('help')}>? <span>Help Center</span></button><button onClick={()=>go('account')}>⚙ <span>Ρυθμίσεις λογαριασμού</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>Αποσύνδεση</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>Σύνδεση</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label="Άνοιγμα μενού" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
-    {open&&<div className="mobile-menu-overlay" role="presentation" onClick={()=>setOpen(false)}><nav className="mobile-menu-panel" aria-label="Κύριο μενού" onClick={e=>e.stopPropagation()}>
-      <div className="mobile-menu-head"><button className="mobile-menu-brand" onClick={()=>go('home')}><Mark/></button><button className="mobile-menu-close" aria-label="Κλείσιμο μενού" onClick={()=>setOpen(false)}>×</button></div>
+</button><button onClick={()=>go('help')}>? <span>{t('shell.nav.help')}</span></button><button onClick={()=>go('account')}>⚙ <span>{t('shell.header.accountSettings')}</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>{t('shell.header.logout')}</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>{t('shell.header.login')}</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label="{t('shell.header.openMenu')}" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
+    {open&&<div className="mobile-menu-overlay" role="presentation" onClick={()=>setOpen(false)}><nav className="mobile-menu-panel" aria-label="{t('shell.header.mainMenu')}" onClick={e=>e.stopPropagation()}>
+      <div className="mobile-menu-head"><button className="mobile-menu-brand" onClick={()=>go('home')}><Mark/></button><button className="mobile-menu-close" aria-label="{t('shell.header.closeMenu')}" onClick={()=>setOpen(false)}>×</button></div>
       {user&&
   <div className="mobile-menu-user">
     <IdentityAvatar
@@ -1131,12 +1133,12 @@ const messageLabel=
 }
 
       <div className="mobile-menu-links">
-        <button className={view==='home'?'active':''} onClick={()=>go('home')}><span className="mobile-menu-icon">⌂</span><div><b>Αρχική</b><small>Επιστροφή στη MELEO</small></div><em>›</em></button>
-        <button className={view==='search'?'active':''} onClick={()=>go('search')}><span className="mobile-menu-icon">⌕</span><div><b>Αναζήτηση</b><small>Βρες τον κατάλληλο επαγγελματία</small></div><em>›</em></button>
-        <button className={view==='smart'?'active':''} onClick={()=>go('smart')}><span className="mobile-menu-icon">✦</span><div><b>Smart Request</b><small>Περιέγραψε τι χρειάζεσαι</small></div><em>›</em></button>
-        <button className={view==='now'?'active':''} onClick={()=>go('now')}><span className="mobile-menu-icon">⚡</span><div><b>MELEO Now</b><small>Βρες διαθέσιμο επαγγελματία τώρα</small></div><em>›</em></button>
-        <button className={view==='pricing'?'active':''} onClick={()=>go('pricing')}><span className="mobile-menu-icon">◇</span><div><b>Συνδρομές</b><small>BASIC & PREMIUM για επαγγελματίες</small></div><em>›</em></button>
-        <button className={view==='become-pro'?'active':''} onClick={()=>go('become-pro')}><span className="mobile-menu-icon">＋</span><div><b>Για επαγγελματίες</b><small>Γίνε μέλος του δικτύου MELEO</small></div><em>›</em></button>
+        <button className={view==='home'?'active':''} onClick={()=>go('home')}><span className="mobile-menu-icon">⌂</span><div><b>{t('shell.mobile.home')}</b><small>{t('shell.mobile.homeHelp')}</small></div><em>›</em></button>
+        <button className={view==='search'?'active':''} onClick={()=>go('search')}><span className="mobile-menu-icon">⌕</span><div><b>{t('shell.nav.search')}</b><small>{t('shell.mobile.searchHelp')}</small></div><em>›</em></button>
+        <button className={view==='smart'?'active':''} onClick={()=>go('smart')}><span className="mobile-menu-icon">✦</span><div><b>Smart Request</b><small>{t('shell.mobile.smartHelp')}</small></div><em>›</em></button>
+        <button className={view==='now'?'active':''} onClick={()=>go('now')}><span className="mobile-menu-icon">⚡</span><div><b>MELEO Now</b><small>{t('shell.mobile.nowHelp')}</small></div><em>›</em></button>
+        <button className={view==='pricing'?'active':''} onClick={()=>go('pricing')}><span className="mobile-menu-icon">◇</span><div><b>{t('shell.nav.pricing')}</b><small>{t('shell.mobile.pricingHelp')}</small></div><em>›</em></button>
+        <button className={view==='become-pro'?'active':''} onClick={()=>go('become-pro')}><span className="mobile-menu-icon">＋</span><div><b>{t('shell.nav.professionals')}</b><small>{t('shell.mobile.professionalsHelp')}</small></div><em>›</em></button>
       </div>
       <div className="mobile-menu-account">{user?<><button className="btn btn-dark wide" onClick={()=>go(accountView)}>{accountLabel}</button><button
   className={
@@ -1146,7 +1148,7 @@ const messageLabel=
   onClick={()=>go('notifications')}
 >
   <span>
-    🔔 Ειδοποιήσεις
+    🔔 {t('shell.header.notifications')}
   </span>
 
   {unreadTotal>0&&
@@ -1154,7 +1156,7 @@ const messageLabel=
       {unreadLabel}
     </b>
   }
-</button><button className="btn btn-outline wide" onClick={()=>go('help')}>Help Center</button><button className="btn btn-outline wide" onClick={()=>go('account')}>Ρυθμίσεις λογαριασμού</button><button className="btn btn-outline wide logout-mobile" onClick={async()=>{setOpen(false);await logout()}}>Αποσύνδεση</button></>:<><button className="btn btn-dark wide" onClick={()=>go('auth')}>Σύνδεση / Εγγραφή</button><small>Η αναζήτηση παραμένει διαθέσιμη χωρίς λογαριασμό.</small></>}</div>
+</button><button className="btn btn-outline wide" onClick={()=>go('help')}>{t('shell.nav.help')}</button><button className="btn btn-outline wide" onClick={()=>go('account')}>{t('shell.header.accountSettings')}</button><button className="btn btn-outline wide logout-mobile" onClick={async()=>{setOpen(false);await logout()}}>{t('shell.header.logout')}</button></>:<><button className="btn btn-dark wide" onClick={()=>go('auth')}>{t('shell.header.loginRegister')}</button><small>{t('shell.mobile.guestSearch')}</small></>}</div>
       <div className="mobile-menu-foot"><span>MELEO</span><small>Care that comes to you.</small></div>
     </nav></div>}
   </>
