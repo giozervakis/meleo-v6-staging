@@ -590,10 +590,10 @@ const platformOperational=
       <div className="admin-command-section-head">
 
         <div>
-          <small>SUBSCRIPTIONS</small>
+          <small>{t('adminSubscriptionHealth.kicker')}</small>
 
           <h3>
-            Subscription health
+            {t('adminSubscriptionHealth.title')}
           </h3>
         </div>
 
@@ -609,7 +609,7 @@ const platformOperational=
           </strong>
 
           <span>
-            active
+            {t('adminSubscriptionHealth.active')}
           </span>
 
         </div>
@@ -618,22 +618,22 @@ const platformOperational=
         <div className="admin-subscription-lines">
 
           <div>
-            <span>Basic</span>
+            <span>{t('adminSubscriptionHealth.basic')}</span>
             <b>{subscriptionHealth.basic||0}</b>
           </div>
 
           <div>
-            <span>Premium</span>
+            <span>{t('adminSubscriptionHealth.premium')}</span>
             <b>{subscriptionHealth.premium||0}</b>
           </div>
 
           <div>
-            <span>Past due</span>
+            <span>{t('adminSubscriptionHealth.pastDue')}</span>
             <b>{subscriptionHealth.pastDue||0}</b>
           </div>
 
           <div>
-            <span>Cancelled</span>
+            <span>{t('adminSubscriptionHealth.cancelled')}</span>
             <b>{subscriptionHealth.cancelled||0}</b>
           </div>
 
