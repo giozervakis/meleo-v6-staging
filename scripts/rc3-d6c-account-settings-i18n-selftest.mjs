@@ -18,7 +18,7 @@ for(const token of [
 ]) need(account.includes(token),`missing Account token: ${token}`)
 
 const start=account.indexOf('export function AccountSettings(')
-const end=account.indexOf('const DRAFT_WARNING',start)
+const end=account.indexOf('export function Legal(',start)
 need(start>=0&&end>start,'AccountSettings boundaries missing')
 if(start>=0&&end>start){
   const scope=account.slice(start,end)

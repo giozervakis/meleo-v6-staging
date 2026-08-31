@@ -342,23 +342,22 @@ async function exportData() {
   </div></section>
 }
 
-const DRAFT_WARNING = 'Σχέδιο κειμένου: πρέπει να ελεγχθεί και να εγκριθεί από δικηγόρο πριν τη δημόσια λειτουργία της πλατφόρμας.'
-
 export function Legal({ doc, cfg, setView }: any) {
-  const provider = cfg?.legal?.company || '[ΕΠΩΝΥΜΙΑ ΦΟΡΕΑ ΕΚΜΕΤΑΛΛΕΥΣΗΣ]'
-  const vat = cfg?.legal?.vatNumber || '[ΑΦΜ]'
-  const address = cfg?.legal?.address || '[ΕΔΡΑ]'
+  const {t}=useTranslation()
+  const provider = cfg?.legal?.company || t('legalUi.placeholders.provider')
+  const vat = cfg?.legal?.vatNumber || t('legalUi.placeholders.vat')
+  const address = cfg?.legal?.address || t('legalUi.placeholders.address')
   const support = cfg?.legal?.supportEmail
   const dpo = cfg?.legal?.dpoEmail
   const missing = !cfg?.legal?.company || !cfg?.legal?.vatNumber
 
   return <section className="page legal-page"><div className="container narrow">
-    <button className="back" onClick={() => setView('home')}>← Πίσω</button>
-    {missing && <div className="notice"><b>Εκκρεμεί:</b> {DRAFT_WARNING} Συμπλήρωσε επίσης τα στοιχεία του παρόχου (LEGAL_COMPANY_NAME, LEGAL_VAT_NUMBER, LEGAL_ADDRESS) — είναι υποχρεωτικά κατά τη νομοθεσία ηλεκτρονικού εμπορίου.</div>}
+    <button className="back" onClick={() => setView('home')}>← {t('legalUi.back')}</button>
+    {missing && <div className="notice"><b>{t('legalUi.pending')}</b> {t('legalUi.draftWarning')} {t('legalUi.providerRequired')}</div>}
 
     {doc === 'terms' && <>
-      <div className="eyebrow">ΝΟΜΙΚΑ</div><h1>Όροι Χρήσης</h1>
-      <p className="muted">Έκδοση {cfg?.termsVersion}</p>
+      <div className="eyebrow">{t('legalUi.kicker')}</div><h1>{t('legalUi.termsTitle')}</h1>
+      <p className="muted">{t('legalUi.version')} {cfg?.termsVersion}</p>
       <div className="content-card legal-body">
         <h3>1. Ποιοι είμαστε και τι κάνουμε</h3>
         <p>Η πλατφόρμα MELEO λειτουργεί από τον/την {provider}, ΑΦΜ {vat}, έδρα {address}. Η MELEO είναι <b>πλατφόρμα διαμεσολάβησης</b>: συνδέει χρήστες που αναζητούν υπηρεσίες φροντίδας με ανεξάρτητους επαγγελματίες. Η MELEO <b>δεν παρέχει</b> ιατρικές, νοσηλευτικές ή θεραπευτικές υπηρεσίες, δεν απασχολεί τους επαγγελματίες και δεν αποτελεί υπηρεσία επείγουσας βοήθειας.</p>
@@ -382,7 +381,7 @@ export function Legal({ doc, cfg, setView }: any) {
     </>}
 
     {doc === 'privacy' && <>
-      <div className="eyebrow">ΝΟΜΙΚΑ</div><h1>Πολιτική Απορρήτου</h1>
+      <div className="eyebrow">{t('legalUi.kicker')}</div><h1>{t('legalUi.privacyTitle')}</h1>
       <div className="content-card legal-body">
         <h3>Υπεύθυνος επεξεργασίας</h3>
         <p>{provider}, ΑΦΜ {vat}, {address}. Επικοινωνία για θέματα προσωπικών δεδομένων: {dpo}.</p>
@@ -404,7 +403,7 @@ export function Legal({ doc, cfg, setView }: any) {
     </>}
 
     {doc === 'cookies' && <>
-      <div className="eyebrow">ΝΟΜΙΚΑ</div><h1>Cookies & τοπική αποθήκευση</h1>
+      <div className="eyebrow">{t('legalUi.kicker')}</div><h1>{t('legalUi.cookiesTitle')}</h1>
       <div className="content-card legal-body">
         <h3>Τι χρησιμοποιούμε</h3>
         <p>Η MELEO χρησιμοποιεί <b>μόνο απολύτως αναγκαία</b> τοπική αποθήκευση: ένα token συνεδρίας στον browser σου, ώστε να παραμένεις συνδεδεμένος. Δεν χρησιμοποιούμε cookies διαφήμισης ή παρακολούθησης και δεν μοιραζόμαστε δεδομένα με διαφημιστικά δίκτυα.</p>
