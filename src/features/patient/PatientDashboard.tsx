@@ -1192,18 +1192,15 @@ onClick={e=>{
 
                             <div className="recovery-head">
                               <span>
-                                MELEO SMART RECOVERY
+                                {t('patient.recovery.kicker')}
                               </span>
 
                               <h4>
-                                Η φροντίδα σου μπορεί να συνεχιστεί
-                                χωρίς νέα αναζήτηση.
+                                {t('patient.recovery.title')}
                               </h4>
 
                               <p>
-                                Η MELEO μπορεί να προτείνει έως 3
-                                άλλους κατάλληλους επαγγελματίες
-                                για την ίδια υπηρεσία.
+                                {t('patient.recovery.text')}
                               </p>
                             </div>
 
@@ -1219,16 +1216,15 @@ onClick={e=>{
                                 }
                               >
                                 {recoveryBusy===b.id
-                                  ? 'Αναζήτηση…'
-                                  : 'Βρες νέους επαγγελματίες'
+                                  ? t('patient.recovery.searching')
+                                  : t('patient.recovery.findProfessionals')
                                 }
                               </button>
                             }
 
                             {recovery[b.id]?.length===0&&
                               <p className="muted">
-                                Δεν βρέθηκαν αυτή τη στιγμή
-                                άλλοι συμβατοί επαγγελματίες.
+                                {t('patient.recovery.empty')}
                               </p>
                             }
 
@@ -1251,7 +1247,7 @@ onClick={e=>{
                                     {p.title} · {p.city}
                                   </span>
                                   <small>
-                                    ★ {p.rating||'Νέο'} · {priceLabel(p,true)}
+                                    ★ {p.rating||t('patient.recovery.newRating')} · {priceLabel(p,true)}
                                   </small>
                                 </div>
 
@@ -1264,7 +1260,7 @@ onClick={e=>{
                                     recover(b.id,p.id)
                                   }
                                 >
-                                  Αποστολή ίδιου αιτήματος
+                                  {t('patient.recovery.sendSameRequest')}
                                 </button>
 
                               </div>
