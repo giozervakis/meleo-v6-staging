@@ -6,6 +6,7 @@ import {
 } from 'react'
 
 import {api} from '../../../lib/api'
+import {useTranslation} from 'react-i18next'
 
 import './professional-verification.css'
 
@@ -55,7 +56,7 @@ function fileToBase64(
 
       reader.onerror=()=>reject(
         new Error(
-          'Δεν ήταν δυνατή η ανάγνωση του αρχείου.'
+          'VERIFICATION_FILE_READ_ERROR'
         )
       )
 
@@ -86,7 +87,10 @@ function formatSize(value:any){
 }
 
 
-function dateLabel(value?:string){
+function dateLabel(
+  value?:string,
+  locale='el-GR'
+){
 
   if(!value){
     return ''
@@ -100,7 +104,7 @@ function dateLabel(value?:string){
   }
 
   return date.toLocaleDateString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'short',
@@ -144,6 +148,13 @@ export default function ProfessionalVerification({
   onRefresh,
   setToast
 }:Props){
+
+  const {t,i18n}=useTranslation()
+
+  const locale=
+    i18n.resolvedLanguage==='en'
+      ? 'en-GB'
+      : 'el-GR'
 
   const [documents,setDocuments]=
     useState<VerificationDocument[]>([])
@@ -194,14 +205,14 @@ export default function ProfessionalVerification({
 
           setError(
             e?.message ||
-            'Δεν ήταν δυνατή η φόρτωση των δικαιολογητικών.'
+            t('proVerification.errors.loadDocuments')
           )
         }
         finally{
           setLoading(false)
         }
       },
-      [token]
+      [token,t]
     )
 
 
@@ -272,45 +283,78 @@ export default function ProfessionalVerification({
         if(verified){
           return {
             key:'approved',
-            label:'MELEO Verified',
-            eyebrow:'ΕΠΑΛΗΘΕΥΜΕΝΟΣ ΕΠΑΓΓΕΛΜΑΤΙΑΣ',
-            title:'Η επαγγελματική σου ταυτότητα έχει επαληθευτεί.',
-            text:'Το προφίλ σου έχει ολοκληρώσει τη διαδικασία επαλήθευσης MELEO.'
+            label:t(
+              'proVerification.status.approved.label'
+            ),
+            eyebrow:t(
+              'proVerification.status.approved.eyebrow'
+            ),
+            title:t(
+              'proVerification.status.approved.title'
+            ),
+            text:t(
+              'proVerification.status.approved.text'
+            )
           }
         }
 
         if(pending){
           return {
             key:'pending',
-            label:'Σε έλεγχο',
-            eyebrow:'VERIFICATION IN REVIEW',
-            title:'Η αίτησή σου βρίσκεται σε έλεγχο.',
-            text:'Η υποβολή έχει καταχωρηθεί και αναμένει απόφαση από την ομάδα διαχείρισης.'
+            label:t(
+              'proVerification.status.pending.label'
+            ),
+            eyebrow:t(
+              'proVerification.status.pending.eyebrow'
+            ),
+            title:t(
+              'proVerification.status.pending.title'
+            ),
+            text:t(
+              'proVerification.status.pending.text'
+            )
           }
         }
 
         if(rejected){
           return {
             key:'rejected',
-            label:'Χρειάζεται ενέργεια',
-            eyebrow:'VERIFICATION ACTION REQUIRED',
-            title:'Η προηγούμενη αίτηση δεν εγκρίθηκε.',
-            text:'Μπορείς να ελέγξεις τα στοιχεία και τα δικαιολογητικά σου και να υποβάλεις νέα αίτηση.'
+            label:t(
+              'proVerification.status.rejected.label'
+            ),
+            eyebrow:t(
+              'proVerification.status.rejected.eyebrow'
+            ),
+            title:t(
+              'proVerification.status.rejected.title'
+            ),
+            text:t(
+              'proVerification.status.rejected.text'
+            )
           }
         }
 
         return {
           key:'required',
-          label:'Απαιτείται επαλήθευση',
-          eyebrow:'MELEO PROFESSIONAL VERIFICATION',
-          title:'Ολοκλήρωσε την επαγγελματική σου επαλήθευση.',
-          text:'Η επαλήθευση είναι ανεξάρτητη από το εμπορικό πακέτο της συνδρομής σου.'
+          label:t(
+            'proVerification.status.required.label'
+          ),
+          eyebrow:t(
+            'proVerification.status.required.eyebrow'
+          ),
+          title:t(
+            'proVerification.status.required.title'
+          ),
+          text:t(
+            'proVerification.status.required.text'
+          )
         }
       },
       [
         verified,
         pending,
-        rejected
+        rejected,
+        t
       ]
     )
 
@@ -340,7 +384,7 @@ export default function ProfessionalVerification({
       !allowed.includes(file.type)
     ){
       setError(
-        'Επιτρέπονται μόνο PDF, JPG, PNG ή WEBP.'
+        t('proVerification.errors.fileType')
       )
 
       return
@@ -352,7 +396,7 @@ export default function ProfessionalVerification({
       5*1024*1024
     ){
       setError(
-        'Το αρχείο πρέπει να είναι έως 5MB.'
+        t('proVerification.errors.fileSize')
       )
 
       return
@@ -396,14 +440,16 @@ export default function ProfessionalVerification({
 
 
       setToast(
-        'Το δικαιολογητικό αποθηκεύτηκε με ασφάλεια.'
+        t('proVerification.toast.documentSaved')
       )
     }
     catch(e:any){
 
       setError(
-        e?.message ||
-        'Το αρχείο δεν ανέβηκε.'
+        e?.message==='VERIFICATION_FILE_READ_ERROR'
+          ? t('proVerification.errors.fileRead')
+          : e?.message ||
+            t('proVerification.errors.upload')
       )
     }
     finally{
@@ -424,7 +470,7 @@ export default function ProfessionalVerification({
     if(!licenseNumber.trim()){
 
       setError(
-        'Συμπλήρωσε αριθμό άδειας ή επαγγελματικού μητρώου.'
+        t('proVerification.errors.licenseRequired')
       )
 
       return
@@ -434,7 +480,7 @@ export default function ProfessionalVerification({
     if(awaitingSubscription){
 
       setError(
-        'Απαιτείται πρώτα ενεργή συνδρομή.'
+        t('proVerification.errors.subscriptionRequired')
       )
 
       return
@@ -444,7 +490,7 @@ export default function ProfessionalVerification({
     if(!profileComplete){
 
       setError(
-        'Ολοκλήρωσε πρώτα τον επαγγελματικό τίτλο, την ειδικότητα και την πόλη σου.'
+        t('proVerification.errors.profileRequired')
       )
 
       return
@@ -474,14 +520,14 @@ export default function ProfessionalVerification({
       await onRefresh()
 
       setToast(
-        'Η αίτηση επαλήθευσης υποβλήθηκε.'
+        t('proVerification.toast.submitted')
       )
     }
     catch(e:any){
 
       setError(
         e?.message ||
-        'Η αίτηση δεν υποβλήθηκε.'
+        t('proVerification.errors.submit')
       )
     }
     finally{
@@ -578,14 +624,15 @@ export default function ProfessionalVerification({
 
           <div>
             <strong>
-              Χρειάζεται νέα υποβολή
+              {t(
+                'proVerification.alerts.rejected.title'
+              )}
             </strong>
 
             <p>
-              Η τρέχουσα API έκδοση δεν επιστρέφει
-              στον επαγγελματία το εσωτερικό σχόλιο
-              απόφασης. Έλεγξε τα στοιχεία και τα
-              δικαιολογητικά σου πριν από νέα υποβολή.
+              {t(
+                'proVerification.alerts.rejected.text'
+              )}
             </p>
           </div>
 
@@ -602,13 +649,15 @@ export default function ProfessionalVerification({
 
           <div>
             <strong>
-              Η αίτηση έχει καταχωρηθεί
+              {t(
+                'proVerification.alerts.pending.title'
+              )}
             </strong>
 
             <p>
-              Δεν χρειάζεται νέα υποβολή όσο η
-              διαδικασία βρίσκεται σε κατάσταση
-              ελέγχου.
+              {t(
+                'proVerification.alerts.pending.text'
+              )}
             </p>
           </div>
 
@@ -638,7 +687,9 @@ export default function ProfessionalVerification({
 
           <div>
             <small>
-              ΛΟΓΑΡΙΑΣΜΟΣ
+              {t(
+                'proVerification.readiness.account.eyebrow'
+              )}
             </small>
 
             <strong>
@@ -647,8 +698,12 @@ export default function ProfessionalVerification({
 
             <p>
               {emailReady
-                ? 'Επιβεβαιωμένο'
-                : 'Απαιτείται επιβεβαίωση'}
+                ? t(
+                    'proVerification.readiness.account.complete'
+                  )
+                : t(
+                    'proVerification.readiness.account.required'
+                  )}
             </p>
           </div>
         </article>
@@ -673,16 +728,23 @@ export default function ProfessionalVerification({
             </small>
 
             <strong>
-              Συνδρομή
+              {t(
+                'proVerification.readiness.membership.title'
+              )}
             </strong>
 
             <p>
               {awaitingSubscription
-                ? 'Απαιτείται ενεργή συνδρομή'
+                ? t(
+                    'proVerification.readiness.membership.required'
+                  )
                 : String(
                     professional?.subscriptionPlan ||
                     ''
-                  ).toUpperCase() || 'Ενεργή'}
+                  ).toUpperCase() ||
+                  t(
+                    'proVerification.readiness.membership.active'
+                  )}
             </p>
           </div>
         </article>
@@ -707,13 +769,19 @@ export default function ProfessionalVerification({
             </small>
 
             <strong>
-              Επαγγελματικά στοιχεία
+              {t(
+                'proVerification.readiness.profile.title'
+              )}
             </strong>
 
             <p>
               {profileComplete
-                ? 'Βασικά στοιχεία ολοκληρωμένα'
-                : 'Απαιτούνται τίτλος, ειδικότητα και πόλη'}
+                ? t(
+                    'proVerification.readiness.profile.complete'
+                  )
+                : t(
+                    'proVerification.readiness.profile.required'
+                  )}
             </p>
           </div>
         </article>
@@ -742,15 +810,23 @@ export default function ProfessionalVerification({
             </small>
 
             <strong>
-              Έλεγχος MELEO
+              {t(
+                'proVerification.readiness.verification.title'
+              )}
             </strong>
 
             <p>
               {verified
-                ? 'Ολοκληρώθηκε'
+                ? t(
+                    'proVerification.readiness.verification.complete'
+                  )
                 : pending
-                  ? 'Σε εξέλιξη'
-                  : 'Αναμονή υποβολής'}
+                  ? t(
+                      'proVerification.readiness.verification.pending'
+                    )
+                  : t(
+                      'proVerification.readiness.verification.required'
+                    )}
             </p>
           </div>
         </article>
@@ -771,14 +847,17 @@ export default function ProfessionalVerification({
               </span>
 
               <h3>
-                Στοιχεία επαλήθευσης
+                {t(
+                  'proVerification.form.title'
+                )}
               </h3>
             </div>
 
             {!verified&&!pending&&
               <p>
-                Τα στοιχεία αποστέλλονται αποκλειστικά
-                στη διαδικασία επαγγελματικού ελέγχου.
+                {t(
+                  'proVerification.form.intro'
+                )}
               </p>
             }
 
@@ -794,13 +873,15 @@ export default function ProfessionalVerification({
 
                 <div>
                   <strong>
-                    Verification complete
+                    {t(
+                      'proVerification.form.complete.title'
+                    )}
                   </strong>
 
                   <p>
-                    Δεν απαιτείται νέα αίτηση όσο
-                    ο λογαριασμός παραμένει
-                    επαληθευμένος.
+                    {t(
+                      'proVerification.form.complete.text'
+                    )}
                   </p>
                 </div>
 
@@ -816,13 +897,15 @@ export default function ProfessionalVerification({
 
                   <div>
                     <strong>
-                      Η αίτηση βρίσκεται σε αξιολόγηση
+                      {t(
+                        'proVerification.form.pending.title'
+                      )}
                     </strong>
 
                     <p>
-                      Τα ήδη αποθηκευμένα δικαιολογητικά
-                      παραμένουν διαθέσιμα στη ροή
-                      επαλήθευσης.
+                      {t(
+                        'proVerification.form.pending.text'
+                      )}
                     </p>
                   </div>
 
@@ -833,7 +916,9 @@ export default function ProfessionalVerification({
                   <label className="pro-verification-field">
 
                     <span>
-                      Αριθμός άδειας / επαγγελματικού μητρώου
+                      {t(
+                        'proVerification.form.license.label'
+                      )}
                     </span>
 
                     <input
@@ -845,7 +930,9 @@ export default function ProfessionalVerification({
                             event.target.value
                           )
                       }
-                      placeholder="Συμπλήρωσε τον αριθμό άδειας ή μητρώου"
+                      placeholder={t(
+                        'proVerification.form.license.placeholder'
+                      )}
                     />
 
                   </label>
@@ -854,7 +941,9 @@ export default function ProfessionalVerification({
                   <label className="pro-verification-field">
 
                     <span>
-                      Σημειώσεις προς την ομάδα ελέγχου
+                      {t(
+                        'proVerification.form.notes.label'
+                      )}
                     </span>
 
                     <textarea
@@ -866,7 +955,9 @@ export default function ProfessionalVerification({
                             event.target.value
                           )
                       }
-                      placeholder="Προαιρετικές πληροφορίες που βοηθούν στην επαλήθευση…"
+                      placeholder={t(
+                        'proVerification.form.notes.placeholder'
+                      )}
                     />
 
                     <small>
@@ -886,10 +977,16 @@ export default function ProfessionalVerification({
                     onClick={submit}
                   >
                     {submitBusy
-                      ? 'Υποβολή…'
+                      ? t(
+                          'proVerification.form.submit.busy'
+                        )
                       : rejected
-                        ? 'Νέα υποβολή για έλεγχο'
-                        : 'Υποβολή για έλεγχο'}
+                        ? t(
+                            'proVerification.form.submit.resubmit'
+                          )
+                        : t(
+                            'proVerification.form.submit.submit'
+                          )}
                   </button>
 
                 </>
@@ -901,11 +998,15 @@ export default function ProfessionalVerification({
         <aside className="pro-verification-guide">
 
           <span>
-            ΤΙ ΕΛΕΓΧΕΤΑΙ
+            {t(
+              'proVerification.guide.eyebrow'
+            )}
           </span>
 
           <h3>
-            Επαγγελματική ταυτότητα
+            {t(
+              'proVerification.guide.title'
+            )}
           </h3>
 
           <div className="pro-verification-guide-list">
@@ -914,8 +1015,9 @@ export default function ProfessionalVerification({
               <i>01</i>
 
               <p>
-                Τα στοιχεία του επαγγελματικού
-                προφίλ που έχεις δηλώσει.
+                {t(
+                  'proVerification.guide.profile'
+                )}
               </p>
             </div>
 
@@ -923,8 +1025,9 @@ export default function ProfessionalVerification({
               <i>02</i>
 
               <p>
-                Ο αριθμός επαγγελματικής άδειας
-                ή μητρώου που υποβάλλεις.
+                {t(
+                  'proVerification.guide.license'
+                )}
               </p>
             </div>
 
@@ -932,8 +1035,9 @@ export default function ProfessionalVerification({
               <i>03</i>
 
               <p>
-                Τα δικαιολογητικά που ανεβάζεις
-                στη συγκεκριμένη ροή.
+                {t(
+                  'proVerification.guide.documents'
+                )}
               </p>
             </div>
 
@@ -945,10 +1049,9 @@ export default function ProfessionalVerification({
             </span>
 
             <p>
-              Τα αρχεία verification αποθηκεύονται
-              μέσω του secure document storage
-              της MELEO και δεν αποτελούν δημόσιο
-              περιεχόμενο προφίλ.
+              {t(
+                'proVerification.guide.security'
+              )}
             </p>
           </div>
 
@@ -967,13 +1070,16 @@ export default function ProfessionalVerification({
             </span>
 
             <h3>
-              Δικαιολογητικά
+              {t(
+                'proVerification.documents.title'
+              )}
             </h3>
           </div>
 
           <p>
-            PDF, JPG, PNG ή WEBP · έως 5MB
-            ανά αρχείο από το interface.
+            {t(
+              'proVerification.documents.requirements'
+            )}
           </p>
 
         </div>
@@ -1008,18 +1114,25 @@ export default function ProfessionalVerification({
             <div>
               <strong>
                 {uploadBusy
-                  ? 'Μεταφόρτωση…'
-                  : 'Πρόσθεσε δικαιολογητικό'}
+                  ? t(
+                      'proVerification.documents.upload.busy'
+                    )
+                  : t(
+                      'proVerification.documents.upload.add'
+                    )}
               </strong>
 
               <p>
-                Το αρχείο ελέγχεται ως προς τον
-                πραγματικό τύπο του πριν αποθηκευτεί.
+                {t(
+                  'proVerification.documents.upload.text'
+                )}
               </p>
             </div>
 
             <b>
-              Επιλογή αρχείου
+              {t(
+                'proVerification.documents.upload.select'
+              )}
             </b>
 
           </label>
@@ -1029,7 +1142,9 @@ export default function ProfessionalVerification({
         {loading
 
           ? <div className="pro-verification-doc-empty">
-              Φόρτωση δικαιολογητικών…
+              {t(
+                'proVerification.documents.loading'
+              )}
             </div>
 
           : documents.length
@@ -1060,13 +1175,18 @@ export default function ProfessionalVerification({
                           )}
 
                           {document.createdAt
-                            ? ` · ${dateLabel(document.createdAt)}`
+                            ? ` · ${dateLabel(
+                                document.createdAt,
+                                locale
+                              )}`
                             : ''}
                         </small>
                       </div>
 
                       <span className="pro-verification-doc-secure">
-                        ✓ Αποθηκευμένο
+                        ✓ {t(
+                          'proVerification.documents.saved'
+                        )}
                       </span>
 
                     </article>
@@ -1081,12 +1201,15 @@ export default function ProfessionalVerification({
                 </span>
 
                 <strong>
-                  Δεν έχουν αποθηκευτεί δικαιολογητικά
+                  {t(
+                    'proVerification.documents.empty.title'
+                  )}
                 </strong>
 
                 <p>
-                  Τα αρχεία που ανεβάζεις για verification
-                  θα εμφανίζονται εδώ.
+                  {t(
+                    'proVerification.documents.empty.text'
+                  )}
                 </p>
 
               </div>
@@ -1102,10 +1225,9 @@ export default function ProfessionalVerification({
         </span>
 
         <p>
-          Η αγορά BASIC ή PREMIUM δεν συνεπάγεται
-          αυτόματη επαγγελματική επαλήθευση.
-          Το MELEO Verified αποτελεί ξεχωριστή
-          διαδικασία ελέγχου.
+          {t(
+            'proVerification.footer'
+          )}
         </p>
 
       </footer>
