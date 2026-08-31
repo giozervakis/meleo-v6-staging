@@ -2,7 +2,7 @@ import fs from 'node:fs'
 const packageInfo=JSON.parse(fs.readFileSync('package.json','utf8'))
 const maxAgeH=Number(process.env.RELEASE_EVIDENCE_MAX_AGE_HOURS||72)
 const items=[
- ['production preflight','reports/release-preflight.json'],['TLS/domain','reports/tls-readiness.json'],['infrastructure','reports/infrastructure-readiness.json'],['Stripe','reports/stripe-readiness.json'],['database backup','reports/backup-latest.json'],['restore drill','reports/restore-drill.json'],['critical E2E','reports/e2e-critical-latest.json']
+ ['production preflight','reports/release-preflight.json'],['TLS/domain','reports/tls-readiness.json'],['infrastructure','reports/infrastructure-readiness.json'],['Stripe','reports/stripe-readiness.json'],['database backup','reports/backup-latest.json'],['restore drill','reports/restore-drill-latest.json'],['critical E2E','reports/e2e-critical-latest.json']
 ]
 const results=[]
 for(const [name,file] of items){

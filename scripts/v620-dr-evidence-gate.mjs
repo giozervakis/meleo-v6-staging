@@ -682,6 +682,7 @@ if (
 // ============================================================
 
 const offsite =
+  backup?.backup?.offsite ||
   backup?.offsite ||
   null
 

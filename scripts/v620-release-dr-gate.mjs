@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+const packageInfo=JSON.parse(fs.readFileSync('package.json','utf8'))
 import { spawnSync } from 'node:child_process'
 
 const production =
@@ -66,7 +67,7 @@ console.log(
 )
 
 console.log(
-  ' MELEO v6.2.0 RELEASE DR GATE'
+  ` MELEO v${packageInfo.version} RELEASE DR GATE`
 )
 
 console.log(

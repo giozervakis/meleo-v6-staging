@@ -515,7 +515,7 @@ fs.mkdirSync(
 
 
 fs.writeFileSync(
-  'reports/restore-drill.json',
+  'reports/restore-drill-latest.json',
   JSON.stringify(
     report,
     null,
