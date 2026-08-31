@@ -405,12 +405,12 @@ export function Legal({ doc, cfg, setView }: any) {
     {doc === 'cookies' && <>
       <div className="eyebrow">{t('legalUi.kicker')}</div><h1>{t('legalUi.cookiesTitle')}</h1>
       <div className="content-card legal-body">
-        <h3>Τι χρησιμοποιούμε</h3>
-        <p>Η MELEO χρησιμοποιεί <b>μόνο απολύτως αναγκαία</b> τοπική αποθήκευση: ένα token συνεδρίας στον browser σου, ώστε να παραμένεις συνδεδεμένος. Δεν χρησιμοποιούμε cookies διαφήμισης ή παρακολούθησης και δεν μοιραζόμαστε δεδομένα με διαφημιστικά δίκτυα.</p>
-        <h3>Τοποθεσία</h3>
-        <p>Η πρόσβαση στην τοποθεσία σου ζητείται μόνο όταν πατήσεις «Κοντά μου» και χρησιμοποιείται αποκλειστικά για την τρέχουσα αναζήτηση.</p>
-        <h3>Αν προσθέσετε analytics</h3>
-        <p>Οποιοδήποτε εργαλείο στατιστικών ή marketing απαιτεί <b>προηγούμενη συγκατάθεση</b> με banner συγκατάθεσης πριν την τοποθέτηση των cookies. Μέχρι τότε, δεν εμφανίζεται banner επειδή δεν χρησιμοποιούνται μη αναγκαία cookies.</p>
+        <h3>{t('legalCookies.s1.title')}</h3>
+        <p>{t('legalCookies.s1.body')}</p>
+        <h3>{t('legalCookies.s2.title')}</h3>
+        <p>{t('legalCookies.s2.body')}</p>
+        <h3>{t('legalCookies.s3.title')}</h3>
+        <p>{t('legalCookies.s3.body')}</p>
       </div>
     </>}
   </div></section>
