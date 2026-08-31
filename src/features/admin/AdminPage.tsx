@@ -223,15 +223,14 @@ const platformOperational=
     <div className="admin-executive-main">
 
       <div>
-        <small>MELEO EXECUTIVE OVERVIEW</small>
+        <small>{t('adminOverview.hero.kicker')}</small>
 
         <h2>
-          Η πλατφόρμα σε μία εικόνα
+          {t('adminOverview.hero.title')}
         </h2>
 
         <p>
-          Έσοδα, ανάπτυξη, marketplace health και
-          λειτουργικές εκκρεμότητες σε πραγματικό χρόνο.
+          {t('adminOverview.hero.subtitle')}
         </p>
       </div>
 
@@ -248,13 +247,13 @@ const platformOperational=
 
         <div>
           <small>
-            PLATFORM STATUS
+            {t('adminOverview.hero.platformStatus')}
           </small>
 
           <b>
             {platformOperational
-              ? 'Operational'
-              : 'Needs attention'
+              ? t('adminOverview.hero.operational')
+              : t('adminOverview.hero.needsAttention')
             }
           </b>
         </div>
@@ -287,7 +286,7 @@ const platformOperational=
 
         <small>
           {executive.activeSubscriptions||0}
-          {' '}ενεργές συνδρομές
+          {' '}{t('adminOverview.kpi.activeSubscriptions')}
         </small>
       </div>
 
@@ -301,7 +300,7 @@ const platformOperational=
 
         <small>
           {growth.bookingsGrowth>=0?'+':''}
-          {growth.bookingsGrowth||0}% vs προηγ. 30d
+          {growth.bookingsGrowth||0}% {t('adminOverview.kpi.vsPrevious30d')}
         </small>
       </div>
 
@@ -328,7 +327,7 @@ const platformOperational=
         </strong>
 
         <small>
-          marketplace volume
+          {t('adminOverview.kpi.marketplaceVolume')}
         </small>
       </div>
 
@@ -361,12 +360,12 @@ const platformOperational=
         <small>OPERATIONS</small>
 
         <h3>
-          Χρειάζονται προσοχή
+          {t('adminOverview.attention.title')}
         </h3>
       </div>
 
       <span>
-        {totalAttention} συνολικά
+        {totalAttention} {t('adminOverview.attention.total')}
       </span>
 
     </div>
@@ -422,12 +421,11 @@ const platformOperational=
 
           <div>
             <b>
-              Δεν υπάρχουν κρίσιμες εκκρεμότητες
+              {t('adminOverview.attention.clearTitle')}
             </b>
 
             <p>
-              Τα βασικά operational signals της
-              πλατφόρμας είναι καθαρά.
+              {t('adminOverview.attention.clearText')}
             </p>
           </div>
 
