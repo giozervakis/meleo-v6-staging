@@ -1276,16 +1276,15 @@ onClick={e=>{
 
                               <div>
                                 <span>
-                                  ΓΝΩΡΙΜΗ ΦΡΟΝΤΙΔΑ
+                                  {t('patient.repeatCare.kicker')}
                                 </span>
 
                                 <b>
-                                  Χρειάζεσαι ξανά τον ίδιο επαγγελματία;
+                                  {t('patient.repeatCare.title')}
                                 </b>
 
                                 <small>
-                                  Η υπηρεσία και η διεύθυνση
-                                  θα συμπληρωθούν αυτόματα.
+                                  {t('patient.repeatCare.text')}
                                 </small>
                               </div>
 
@@ -1293,7 +1292,7 @@ onClick={e=>{
                                 className="btn btn-dark"
                                 onClick={()=>bookAgain(b)}
                               >
-                                Ζήτησε ξανά επίσκεψη
+                                {t('patient.repeatCare.cta')}
                               </button>
 
                             </div>
