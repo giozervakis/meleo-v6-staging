@@ -1640,6 +1640,8 @@ function ProfessionalRequestsWorkspace({
     'completed'|
     'all'
 
+  const {t}=useTranslation()
+
   const [filter,setFilter]=
     useState<RequestFilter>('action')
 
@@ -1757,12 +1759,12 @@ function ProfessionalRequestsWorkspace({
 
   const filterLabel=
     filter==='action'
-      ? 'Αιτήματα που χρειάζονται ενέργεια'
+      ? t('professionalRequests.filters.action')
       : filter==='confirmed'
-        ? 'Επιβεβαιωμένες επισκέψεις'
+        ? t('professionalRequests.filters.confirmed')
         : filter==='completed'
-          ? 'Ολοκληρωμένες συνεργασίες'
-          : 'Όλα τα αιτήματα'
+          ? t('professionalRequests.filters.completed')
+          : t('professionalRequests.filters.all')
 
   return(
 
@@ -1777,21 +1779,19 @@ function ProfessionalRequestsWorkspace({
           </span>
 
           <h2>
-            Διαχείριση αιτημάτων
-            <em> χωρίς χαμένη ευκαιρία.</em>
+            {t('professionalRequests.hero.title')}
+            <em>{t('professionalRequests.hero.titleEm')}</em>
           </h2>
 
           <p>
-            Τα νέα αιτήματα, οι διευκρινίσεις,
-            οι προτάσεις κόστους και οι επιβεβαιωμένες
-            επισκέψεις συγκεντρωμένα σε μία ροή εργασίας.
+{t('professionalRequests.hero.intro')}
           </p>
 
         </div>
 
         <div className="pro-requests-focus">
 
-          <small>ΧΡΕΙΑΖΟΝΤΑΙ ΕΝΕΡΓΕΙΑ</small>
+          <small>{t('professionalRequests.hero.attention')}</small>
 
           <strong>
             {needsAction.length}
@@ -1799,8 +1799,8 @@ function ProfessionalRequestsWorkspace({
 
           <span>
             {needsAction.length===1
-              ? 'ενεργό αίτημα'
-              : 'ενεργά αιτήματα'}
+              ? t('professionalRequests.hero.activeOne')
+              : t('professionalRequests.hero.activeMany')}
           </span>
 
         </div>
@@ -1822,11 +1822,11 @@ function ProfessionalRequestsWorkspace({
           <span>●</span>
 
           <div>
-            <small>ΧΡΕΙΑΖΟΝΤΑΙ ΕΝΕΡΓΕΙΑ</small>
+            <small>{t('professionalRequests.kpi.attention')}</small>
             <strong>{needsAction.length}</strong>
           </div>
 
-          <em>Νέα / διάλογος</em>
+          <em>{t('professionalRequests.kpi.attentionSub')}</em>
         </button>
 
 
@@ -1842,11 +1842,11 @@ function ProfessionalRequestsWorkspace({
           <span>✓</span>
 
           <div>
-            <small>ΕΠΙΒΕΒΑΙΩΜΕΝΕΣ</small>
+            <small>{t('professionalRequests.kpi.confirmed')}</small>
             <strong>{confirmed.length}</strong>
           </div>
 
-          <em>Προσεχείς επισκέψεις</em>
+          <em>{t('professionalRequests.kpi.confirmedSub')}</em>
         </button>
 
 
@@ -1862,11 +1862,11 @@ function ProfessionalRequestsWorkspace({
           <span>◎</span>
 
           <div>
-            <small>ΟΛΟΚΛΗΡΩΜΕΝΕΣ</small>
+            <small>{t('professionalRequests.kpi.completed')}</small>
             <strong>{completed.length}</strong>
           </div>
 
-          <em>Ιστορικό συνεργασιών</em>
+          <em>{t('professionalRequests.kpi.completedSub')}</em>
         </button>
 
 
@@ -1882,14 +1882,14 @@ function ProfessionalRequestsWorkspace({
           <span>≡</span>
 
           <div>
-            <small>ΣΥΝΟΛΟ</small>
+            <small>{t('professionalRequests.kpi.total')}</small>
             <strong>{list.length}</strong>
           </div>
 
           <em>
             {cancelled.length
-              ? `${cancelled.length} ακυρωμένα`
-              : 'Όλη η δραστηριότητα'}
+              ? t('professionalRequests.kpi.cancelled',{count:cancelled.length})
+              : t('professionalRequests.kpi.activity')}
           </em>
         </button>
 
@@ -1921,7 +1921,7 @@ function ProfessionalRequestsWorkspace({
             }
             onClick={()=>setFilter('action')}
           >
-            Ενέργεια
+            {t('professionalRequests.tabs.action')}
 
             {needsAction.length>0&&
               <i>
@@ -1940,7 +1940,7 @@ function ProfessionalRequestsWorkspace({
             }
             onClick={()=>setFilter('confirmed')}
           >
-            Επιβεβαιωμένα
+            {t('professionalRequests.tabs.confirmed')}
           </button>
 
           <button
@@ -1952,7 +1952,7 @@ function ProfessionalRequestsWorkspace({
             }
             onClick={()=>setFilter('completed')}
           >
-            Ολοκληρωμένα
+            {t('professionalRequests.tabs.completed')}
           </button>
 
           <button
@@ -1964,7 +1964,7 @@ function ProfessionalRequestsWorkspace({
             }
             onClick={()=>setFilter('all')}
           >
-            Όλα
+            {t('professionalRequests.tabs.all')}
           </button>
 
         </div>
@@ -1998,14 +1998,14 @@ function ProfessionalRequestsWorkspace({
 
               <h3>
                 {filter==='action'
-                  ? 'Δεν υπάρχει κάτι που χρειάζεται άμεση ενέργεια'
-                  : 'Δεν υπάρχουν αιτήματα σε αυτή την κατηγορία'}
+                  ? t('professionalRequests.empty.actionTitle')
+                  : t('professionalRequests.empty.otherTitle')}
               </h3>
 
               <p>
                 {filter==='action'
-                  ? 'Όταν φτάσει νέο αίτημα ή χρειαστεί συνέχεια σε έναν διάλογο, θα εμφανιστεί πρώτο εδώ.'
-                  : 'Μπορείς να επιλέξεις διαφορετική κατηγορία από τα φίλτρα παραπάνω.'}
+                  ? t('professionalRequests.empty.actionText')
+                  : t('professionalRequests.empty.otherText')}
               </p>
 
             </div>
