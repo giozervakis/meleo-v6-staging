@@ -74,6 +74,7 @@ function ProfileIdentityModal({
   onUpdated,
   setToast
 }:any){
+  const {t}=useTranslation()
   const avatars=[
     'care-01','care-02','care-03','care-04',
     'care-05','care-06','care-07','care-08',
@@ -108,7 +109,7 @@ function ProfileIdentityModal({
       onUpdated?.(r.user)
 
       setToast(
-        'Το avatar ενημερώθηκε.'
+        t('patient.profileIdentity.avatarUpdated')
       )
     }
     catch(e:any){
@@ -128,14 +129,14 @@ function ProfileIdentityModal({
       'image/webp'
     ].includes(file.type)){
       setToast(
-        'Επίλεξε JPG, PNG ή WEBP.'
+        t('patient.profileIdentity.invalidType')
       )
       return
     }
 
     if(file.size>6_000_000){
       setToast(
-        'Η αρχική εικόνα είναι πολύ μεγάλη.'
+        t('patient.profileIdentity.tooLarge')
       )
       return
     }
@@ -182,7 +183,7 @@ function ProfileIdentityModal({
       onUpdated?.(r.user)
 
       setToast(
-        'Η φωτογραφία προφίλ αποθηκεύτηκε.'
+        t('patient.profileIdentity.photoSaved')
       )
 
       setImageSrc('')
@@ -209,7 +210,7 @@ function ProfileIdentityModal({
       onUpdated?.(r.user)
 
       setToast(
-        'Η φωτογραφία αφαιρέθηκε.'
+        t('patient.profileIdentity.photoRemoved')
       )
     }
     catch(e:any){
@@ -232,17 +233,17 @@ function ProfileIdentityModal({
 
         <div className="identity-modal-head">
           <div>
-            <small>MELEO PROFILE IDENTITY</small>
-            <h2>Η εικόνα προφίλ μου</h2>
+            <small>{t('patient.profileIdentity.kicker')}</small>
+            <h2>{t('patient.profileIdentity.title')}</h2>
             <p>
-              Πρόσθεσε φωτογραφία ή επίλεξε ένα MELEO avatar.
+              {t('patient.profileIdentity.intro')}
             </p>
           </div>
 
           <button
             className="identity-close"
             onClick={onClose}
-            aria-label="Κλείσιμο"
+            aria-label={t('patient.profileIdentity.close')}
           >
             ×
           </button>
@@ -260,14 +261,14 @@ function ProfileIdentityModal({
           <div>
             <b>{user?.name}</b>
             <small>
-              Η φωτογραφία είναι προαιρετική.
+              {t('patient.profileIdentity.optional')}
             </small>
           </div>
 
         </div>
 
         <div className="identity-section">
-          <h3>Επίλεξε avatar</h3>
+          <h3>{t('patient.profileIdentity.chooseAvatar')}</h3>
 
           <div className="identity-avatar-grid">
             {avatars.map(key=>
@@ -281,6 +282,7 @@ function ProfileIdentityModal({
                 }
                 onClick={()=>chooseAvatar(key)}
                 disabled={busy}
+                aria-label={t('patient.profileIdentity.avatarAria',{key})}
               >
                 <IdentityAvatar
                   name={user?.name}
@@ -293,14 +295,14 @@ function ProfileIdentityModal({
         </div>
 
         <div className="identity-divider">
-          <span>ή</span>
+          <span>{t('patient.profileIdentity.or')}</span>
         </div>
 
         <div className="identity-section">
-          <h3>Ανέβασε φωτογραφία</h3>
+          <h3>{t('patient.profileIdentity.uploadTitle')}</h3>
 
           <label className="identity-upload-btn">
-            Επιλογή φωτογραφίας
+            {t('patient.profileIdentity.choosePhoto')}
 
             <input
               type="file"
@@ -331,7 +333,7 @@ function ProfileIdentityModal({
               </div>
 
               <label>
-                Zoom
+                {t('patient.profileIdentity.zoom')}
                 <input
                   type="range"
                   min="1"
@@ -349,24 +351,28 @@ function ProfileIdentityModal({
               <div className="identity-position-controls">
                 <button
                   onClick={()=>setOffsetY(v=>v-10)}
+                  aria-label={t('patient.profileIdentity.moveUp')}
                 >
                   ↑
                 </button>
 
                 <button
                   onClick={()=>setOffsetX(v=>v-10)}
+                  aria-label={t('patient.profileIdentity.moveLeft')}
                 >
                   ←
                 </button>
 
                 <button
                   onClick={()=>setOffsetX(v=>v+10)}
+                  aria-label={t('patient.profileIdentity.moveRight')}
                 >
                   →
                 </button>
 
                 <button
                   onClick={()=>setOffsetY(v=>v+10)}
+                  aria-label={t('patient.profileIdentity.moveDown')}
                 >
                   ↓
                 </button>
@@ -377,10 +383,7 @@ function ProfileIdentityModal({
                 onClick={savePhoto}
                 disabled={busy}
               >
-                {busy
-                  ? 'Αποθήκευση…'
-                  : 'Αποθήκευση φωτογραφίας'
-                }
+                {busy ? t('patient.profileIdentity.saving') : t('patient.profileIdentity.savePhoto')}
               </button>
 
             </div>
@@ -392,7 +395,7 @@ function ProfileIdentityModal({
               onClick={removePhoto}
               disabled={busy}
             >
-              Αφαίρεση φωτογραφίας
+              {t('patient.profileIdentity.removePhoto')}
             </button>
           }
         </div>
