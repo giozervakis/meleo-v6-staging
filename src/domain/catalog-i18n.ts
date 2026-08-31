@@ -1,3 +1,5 @@
+import i18n from '../i18n'
+
 const en:Record<string,string>={
   'Ιατροί':'Doctors',
   'Ιατρική επίσκεψη κατ’ οίκον':'Home medical visit',
@@ -108,28 +110,33 @@ export function localizedPriceLabel(
   professional:any,
   language:string
 ){
-  if(language!=='en'){
-    return (professional?.pricingMode||'from')==='contact'
-      ? 'Κατόπιν επικοινωνίας'
-      : `Από ${professional?.price}€`
-  }
+  const mode=
+    (professional?.pricingMode||'from')==='contact'
+      ? 'contact'
+      : 'from'
 
-  return (professional?.pricingMode||'from')==='contact'
-    ? 'Contact for price'
-    : `From €${professional?.price}`
+  return i18n.t(
+    'catalogPricing.label.'+mode,
+    {
+      lng:language,
+      price:professional?.price
+    }
+  )
 }
 
 export function localizedPriceNote(
   professional:any,
   language:string
 ){
-  if(language!=='en'){
-    return (professional?.pricingMode||'from')==='contact'
-      ? 'Το κόστος συμφωνείται απευθείας με τον επαγγελματία.'
-      : 'Βασικό κόστος απλής επίσκεψης · η τελική χρέωση διαμορφώνεται ανάλογα με τις ανάγκες και συμφωνείται πριν την επίσκεψη.'
-  }
+  const mode=
+    (professional?.pricingMode||'from')==='contact'
+      ? 'contact'
+      : 'from'
 
-  return (professional?.pricingMode||'from')==='contact'
-    ? 'The price is agreed directly with the professional.'
-    : 'Base price for a standard visit · the final charge depends on the requested care and is agreed before the visit.'
+  return i18n.t(
+    'catalogPricing.note.'+mode,
+    {
+      lng:language
+    }
+  )
 }
