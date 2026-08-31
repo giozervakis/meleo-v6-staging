@@ -1724,11 +1724,48 @@ function Pricing({user,token,professional,onRefresh,setView,setToast,cfg}:any){
  </div></section>
 }
 function BecomeProfessional({onLogged,user,professional,token,onRefresh,setView,setToast,cfg}:any){
+ const {t}=useTranslation()
  const [busy,setBusy]=useState(false)
- async function enableExisting(){setBusy(true);try{await api('/me/enable-professional',{method:'POST'},token);await onRefresh();setToast('Η επαγγελματική λειτουργία ενεργοποιήθηκε. Επίλεξε πακέτο για να συνεχίσεις.');setView('pro-dashboard')}catch(e:any){setToast(e.message)}finally{setBusy(false)}}
- if(user?.role==='professional'){const ready=professional?.verified===true&&['active','past_due'].includes(professional?.subscriptionStatus||'')&&professional?.onboardingStage==='approved';return <section className="page"><div className="container narrow"><div className="success-card"><div className="success-icon">{ready?'✓':'…'}</div><h1>{ready?'Ο επαγγελματικός σου λογαριασμός είναι ενεργός.':'Η επαγγελματική εγγραφή σου είναι σε εξέλιξη.'}</h1><p>{ready?'Μπορείς να διαχειρίζεσαι το επαγγελματικό σου προφίλ και παράλληλα να ζητάς υπηρεσίες από άλλους επαγγελματίες.':'Ο λογαριασμός σου παραμένει διαθέσιμος για προσωπική χρήση. Για να ενεργοποιηθεί το Professional Dashboard πρέπει να ολοκληρωθούν συνδρομή, πληρωμή, στοιχεία προφίλ και επαλήθευση από τη MELEO.'}</p><button className="btn btn-dark" onClick={()=>setView('pro-dashboard')}>{ready?'Άνοιγμα Professional Dashboard':'Συνέχεια επαγγελματικής εγγραφής'}</button><button className="btn btn-outline" onClick={()=>setView('patient-dashboard')}>Οι προσωπικές μου κρατήσεις</button></div></div></section>}
- if(user?.role==='patient')return <section className="join-page"><div className="container join-grid"><div><div className="eyebrow light">MELEO PROFESSIONAL</div><h1>Ένας λογαριασμός.<br/><em>Δύο τρόποι χρήσης.</em></h1><p>Ο υπάρχων λογαριασμός σου παραμένει ενεργός για προσωπικές κρατήσεις. Προσθέτουμε επαγγελματική λειτουργία χωρίς δεύτερο email ή δεύτερο λογαριασμό.</p><div className="join-benefits"><div>01 <span><b>Δεν χάνεις τις προσωπικές σου κρατήσεις</b><small>Συνεχίζεις να αναζητάς, να κλείνεις και να αξιολογείς άλλους επαγγελματίες.</small></span></div><div>02 <span><b>Υποχρεωτική ενεργή συνδρομή</b><small>Επιλέγεις BASIC ή PREMIUM και ολοκληρώνεις την πληρωμή πριν το επαγγελματικό προφίλ και το verification.</small></span></div><div>03 <span><b>Ξεχωριστό Professional Space</b><small>Αιτήματα πελατών, διαθεσιμότητα, συνδρομή, verification και analytics παραμένουν διακριτά.</small></span></div></div></div><div className="join-form"><h2>Ενεργοποίηση επαγγελματικής λειτουργίας</h2><p>Μετά την ενεργοποίηση θα οδηγηθείς υποχρεωτικά στη ροή <b>Πακέτο → Checkout → Προφίλ → Verification</b>.</p><button className="btn btn-gold wide" disabled={busy} onClick={enableExisting}>{busy?'Ενεργοποίηση…':'Συνέχεια στην επιλογή συνδρομής'}</button><small className="terms">Δεν δημιουργείται δεύτερος λογαριασμός. Το ίδιο email και user ID χρησιμοποιούνται για προσωπική και επαγγελματική χρήση.</small></div></div></section>
- return <section className="join-page"><div className="container join-grid"><div><div className="eyebrow light">MELEO PROFESSIONAL</div><h1>Χτίσε την παρουσία σου.<br/><em>Με τους δικούς σου όρους.</em></h1><p>Επίλεξε BASIC ή PREMIUM, όρισε πότε και πού θέλεις να εργάζεσαι και διαχειρίσου αιτήματα από ένα premium επαγγελματικό dashboard.</p><div className="join-benefits"><div>01 <span><b>Εσύ ορίζεις τις υπηρεσίες σου</b><small>Επιλέγεις αν θα εμφανίζεται βασικό κόστος «Από Χ€» και ορίζεις την περιοχή εξυπηρέτησης.</small></span></div><div>02 <span><b>Verified, όχι pay-to-trust</b><small>Η επαλήθευση δεν αγοράζεται.</small></span></div><div>03 <span><b>Δύο καθαρά πακέτα</b><small>BASIC 9,99€/μήνα ή PREMIUM 14,99€/μήνα με προτεινόμενη προβολή.</small></span></div></div></div><div className="join-form"><h2>Ξεκίνα σε 2 λεπτά</h2><p>Αν έχεις ήδη λογαριασμό MELEO, συνδέσου πρώτα — δεν χρειάζεται δεύτερη εγγραφή.</p><InlineRegister onLogged={onLogged} setView={setView}/></div></div></section>
+ async function enableExisting(){setBusy(true);try{await api('/me/enable-professional',{method:'POST'},token);await onRefresh();setToast(t('professionalJoin.enabledToast'));setView('pro-dashboard')}catch(e:any){setToast(e.message)}finally{setBusy(false)}}
+ if(user?.role==='professional'){
+   const ready=professional?.verified===true&&['active','past_due'].includes(professional?.subscriptionStatus||'')&&professional?.onboardingStage==='approved'
+   return <section className="page"><div className="container narrow"><div className="success-card">
+     <div className="success-icon">{ready?'✓':'…'}</div>
+     <h1>{ready?t('professionalJoin.existing.readyTitle'):t('professionalJoin.existing.pendingTitle')}</h1>
+     <p>{ready?t('professionalJoin.existing.readyBody'):t('professionalJoin.existing.pendingBody')}</p>
+     <button className="btn btn-dark" onClick={()=>setView('pro-dashboard')}>{ready?t('professionalJoin.existing.openDashboard'):t('professionalJoin.existing.continueOnboarding')}</button>
+     <button className="btn btn-outline" onClick={()=>setView('patient-dashboard')}>{t('professionalJoin.existing.personalBookings')}</button>
+   </div></div></section>
+ }
+ if(user?.role==='patient')return <section className="join-page"><div className="container join-grid"><div>
+   <div className="eyebrow light">MELEO PROFESSIONAL</div>
+   <h1>{t('professionalJoin.patient.title')}<br/><em>{t('professionalJoin.patient.titleEm')}</em></h1>
+   <p>{t('professionalJoin.patient.body')}</p>
+   <div className="join-benefits">
+     <div>01 <span><b>{t('professionalJoin.patient.b1Title')}</b><small>{t('professionalJoin.patient.b1Body')}</small></span></div>
+     <div>02 <span><b>{t('professionalJoin.patient.b2Title')}</b><small>{t('professionalJoin.patient.b2Body')}</small></span></div>
+     <div>03 <span><b>{t('professionalJoin.patient.b3Title')}</b><small>{t('professionalJoin.patient.b3Body')}</small></span></div>
+   </div>
+ </div><div className="join-form">
+   <h2>{t('professionalJoin.patient.formTitle')}</h2>
+   <p>{t('professionalJoin.patient.formBodyBefore')} <b>{t('professionalJoin.patient.flow')}</b>.</p>
+   <button className="btn btn-gold wide" disabled={busy} onClick={enableExisting}>{busy?t('professionalJoin.patient.enabling'):t('professionalJoin.patient.continue')}</button>
+   <small className="terms">{t('professionalJoin.patient.accountNote')}</small>
+ </div></div></section>
+ return <section className="join-page"><div className="container join-grid"><div>
+   <div className="eyebrow light">MELEO PROFESSIONAL</div>
+   <h1>{t('professionalJoin.guest.title')}<br/><em>{t('professionalJoin.guest.titleEm')}</em></h1>
+   <p>{t('professionalJoin.guest.body')}</p>
+   <div className="join-benefits">
+     <div>01 <span><b>{t('professionalJoin.guest.b1Title')}</b><small>{t('professionalJoin.guest.b1Body')}</small></span></div>
+     <div>02 <span><b>{t('professionalJoin.guest.b2Title')}</b><small>{t('professionalJoin.guest.b2Body')}</small></span></div>
+     <div>03 <span><b>{t('professionalJoin.guest.b3Title')}</b><small>{t('professionalJoin.guest.b3Body')}</small></span></div>
+   </div>
+ </div><div className="join-form">
+   <h2>{t('professionalJoin.guest.formTitle')}</h2>
+   <p>{t('professionalJoin.guest.formBody')}</p>
+   <InlineRegister onLogged={onLogged} setView={setView}/>
+ </div></div></section>
 }
 function InlineRegister({onLogged,setView}:any){const [f,setF]=useState({name:'',email:'',phone:'',password:''});const [accepted,setAccepted]=useState(false);const [error,setError]=useState('');const [busy,setBusy]=useState(false);async function submit(e:any){e.preventDefault();setError('');setBusy(true);try{const r=await api('/auth/register',{method:'POST',body:JSON.stringify({...f,role:'professional',acceptedTerms:accepted})});onLogged('cookie',r.user)}catch(e:any){setError(e.message)}finally{setBusy(false)}}return <form onSubmit={submit}><label>Ονοματεπώνυμο<input required value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></label><label>Email<input type="email" required value={f.email} onChange={e=>setF({...f,email:e.target.value})}/></label><label>Τηλέφωνο<input required value={f.phone} onChange={e=>setF({...f,phone:e.target.value})}/></label><label>Κωδικός<input type="password" minLength={8} required value={f.password} onChange={e=>setF({...f,password:e.target.value})}/><small className="field-hint">Τουλάχιστον 8 χαρακτήρες.</small></label><label className="consent-row"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>Αποδέχομαι τους <button type="button" className="inline-link" onClick={()=>setView('terms')}>Όρους Χρήσης</button> και την <button type="button" className="inline-link" onClick={()=>setView('privacy')}>Πολιτική Απορρήτου</button>.</span></label>{error&&<div className="error">{error}</div>}<button className="btn btn-gold wide" disabled={busy||!accepted}>{busy?'Παρακαλώ…':'Δημιουργία επαγγελματικού λογαριασμού'}</button><small className="terms">Μετά τη δημιουργία λογαριασμού επιλέγεις υποχρεωτικά BASIC ή PREMIUM και ολοκληρώνεις την πληρωμή. Μόνο μετά ενεργοποιείται η διαδικασία επαγγελματικής επαλήθευσης.</small></form>}
 
