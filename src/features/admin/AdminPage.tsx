@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../../lib/api'
 import { APP_VERSION } from '../../version'
 
@@ -16,33 +17,34 @@ function Empty({title,text}:any){return <div className="empty"><div>◇</div><h3
 function Euro({value}:any){return <>{Number(value||0).toLocaleString('el-GR',{style:'currency',currency:'EUR',minimumFractionDigits:2})}</>}
 function MiniBars({items,labelKey='date',valueKey='count'}:any){const max=Math.max(1,...items.map((x:any)=>Number(x[valueKey]||0)));return <div className="mini-bars">{items.map((x:any,i:number)=><div className="mini-bar" key={i} title={`${x[labelKey]} · ${x[valueKey]}`}><i style={{height:`${Math.max(7,Number(x[valueKey]||0)/max*100)}%`}}></i><small>{i%3===0?String(x[labelKey]).slice(5):''}</small></div>)}</div>}
 function AdminSubscriptions({token,setToast}:any){
+ const {t,i18n}=useTranslation()
  const [data,setData]=useState<any>(null),[busy,setBusy]=useState('')
- async function refresh(){try{setData(await api('/admin/subscriptions',{},token))}catch(e:any){setToast(e.message||'Σφάλμα φόρτωσης')}}
+ async function refresh(){try{setData(await api('/admin/subscriptions',{},token))}catch(e:any){setToast(e.message||t('adminSubscriptions.toast.loadError'))}}
  useEffect(()=>{refresh()},[])
- async function sync(professionalId:string){setBusy(professionalId);try{await api('/admin/professionals/'+professionalId+'/sync-subscription',{method:'POST'},token);await refresh();setToast('Η συνδρομή συγχρονίστηκε από το Stripe')}catch(e:any){setToast(e.message||'Ο συγχρονισμός απέτυχε')}finally{setBusy('')}}
- if(!data)return <div className="panel">Φόρτωση συνδρομών…</div>
+ async function sync(professionalId:string){setBusy(professionalId);try{await api('/admin/professionals/'+professionalId+'/sync-subscription',{method:'POST'},token);await refresh();setToast(t('adminSubscriptions.toast.synced'))}catch(e:any){setToast(e.message||t('adminSubscriptions.toast.syncFailed'))}finally{setBusy('')}}
+ if(!data)return <div className="panel">{t('adminSubscriptions.loading')}</div>
  const subs=data.subscriptions||[],pays=data.payments||[]
- const label:any={active:'Ενεργή',past_due:'Εκκρεμεί πληρωμή',cancelled:'Ακυρωμένη',none:'Καμία'}
+ const label:any={active:t('adminSubscriptions.status.active'),past_due:t('adminSubscriptions.status.pastDue'),cancelled:t('adminSubscriptions.status.cancelled'),none:t('adminSubscriptions.status.none')}
  return <>
-  <div className="panel admin-table-panel"><div className="table-toolbar"><div><h3>Συνδρομές επαγγελματιών</h3><span>Η μοναδική πηγή εσόδων της πλατφόρμας</span></div><button className="btn ghost small" onClick={refresh}>Ανανέωση</button></div>
-   {subs.length?<table className="admin-table"><thead><tr><th>Επαγγελματίας</th><th>Πακέτο</th><th>Κατάσταση</th><th>Επόμενη ανανέωση</th><th>Τρόπος</th><th/></tr></thead>
+  <div className="panel admin-table-panel"><div className="table-toolbar"><div><h3>{t('adminSubscriptions.subscriptions.title')}</h3><span>{t('adminSubscriptions.subscriptions.subtitle')}</span></div><button className="btn ghost small" onClick={refresh}>{t('adminSubscriptions.actions.refresh')}</button></div>
+   {subs.length?<table className="admin-table"><thead><tr><th>{t('adminSubscriptions.subscriptions.columns.professional')}</th><th>{t('adminSubscriptions.subscriptions.columns.plan')}</th><th>{t('adminSubscriptions.subscriptions.columns.status')}</th><th>{t('adminSubscriptions.subscriptions.columns.nextRenewal')}</th><th>{t('adminSubscriptions.subscriptions.columns.method')}</th><th/></tr></thead>
     <tbody>{subs.map((s:any)=><tr key={s.id}>
      <td><b>{s.professionalName||'—'}</b><span className="muted small-note">{s.email}</span></td>
      <td>{String(s.plan||'—').toUpperCase()} · {money(s.price||0)}</td>
-     <td><span className={s.status==='active'?'ok-tag':(s.status==='past_due'?'warn-tag':'muted')}>{label[s.status]||s.status}{s.cancelAtPeriodEnd?' · λήγει στο τέλος περιόδου':''}</span></td>
-     <td>{s.currentPeriodEnd?new Date(s.currentPeriodEnd).toLocaleDateString('el-GR'):<span className="muted">—</span>}</td>
+     <td><span className={s.status==='active'?'ok-tag':(s.status==='past_due'?'warn-tag':'muted')}>{label[s.status]||s.status}{s.cancelAtPeriodEnd?t('adminSubscriptions.status.endsAtPeriodEnd'):''}</span></td>
+     <td>{s.currentPeriodEnd?new Date(s.currentPeriodEnd).toLocaleDateString(i18n.resolvedLanguage==='en'?'en-GB':'el-GR'):<span className="muted">—</span>}</td>
      <td>{s.billingMode==='stripe'?'Stripe':(s.billingMode||'—')}</td>
      <td>{s.billingMode==='stripe'?<button className="btn ghost small" disabled={busy===s.professionalId} onClick={()=>sync(s.professionalId)}>{busy===s.professionalId?'…':'Sync'}</button>:null}</td>
-    </tr>)}</tbody></table>:<p className="muted">Δεν υπάρχει καμία συνδρομή ακόμη. Μόλις ένας επαγγελματίας ολοκληρώσει την εγγραφή του, θα εμφανιστεί εδώ.</p>}
+    </tr>)}</tbody></table>:<p className="muted">{t('adminSubscriptions.subscriptions.empty')}</p>}
   </div>
-  <div className="panel admin-table-panel"><div className="panel-heading"><h3>Χρεώσεις &amp; παραστατικά</h3><span>Τελευταίες κινήσεις από τον πάροχο πληρωμών</span></div>
-   {pays.length?<table className="admin-table"><thead><tr><th>Ημερομηνία</th><th>Ποσό</th><th>Κατάσταση</th><th>Απόδειξη</th></tr></thead>
+  <div className="panel admin-table-panel"><div className="panel-heading"><h3>{t('adminSubscriptions.payments.title')}</h3><span>{t('adminSubscriptions.payments.subtitle')}</span></div>
+   {pays.length?<table className="admin-table"><thead><tr><th>{t('adminSubscriptions.payments.columns.date')}</th><th>{t('adminSubscriptions.payments.columns.amount')}</th><th>{t('adminSubscriptions.payments.columns.status')}</th><th>{t('adminSubscriptions.payments.columns.receipt')}</th></tr></thead>
     <tbody>{pays.map((x:any)=><tr key={x.id}>
-     <td>{x.createdAt?new Date(x.createdAt).toLocaleString('el-GR'):'—'}</td>
+     <td>{x.createdAt?new Date(x.createdAt).toLocaleString(i18n.resolvedLanguage==='en'?'en-GB':'el-GR'):'—'}</td>
      <td>{money(x.amount||0)}</td>
-     <td><span className={x.status==='paid'?'ok-tag':'warn-tag'}>{x.status==='paid'?'Πληρώθηκε':'Απέτυχε'}</span></td>
-     <td>{x.hostedInvoiceUrl?<a className="inline-link" href={x.hostedInvoiceUrl} target="_blank" rel="noreferrer">Προβολή</a>:<span className="muted">—</span>}</td>
-    </tr>)}</tbody></table>:<p className="muted">Καμία χρέωση ακόμη. Οι χρεώσεις καταγράφονται αυτόματα από τα webhooks του Stripe.</p>}
+     <td><span className={x.status==='paid'?'ok-tag':'warn-tag'}>{x.status==='paid'?t('adminSubscriptions.payments.paid'):t('adminSubscriptions.payments.failed')}</span></td>
+     <td>{x.hostedInvoiceUrl?<a className="inline-link" href={x.hostedInvoiceUrl} target="_blank" rel="noreferrer">{t('adminSubscriptions.payments.view')}</a>:<span className="muted">—</span>}</td>
+    </tr>)}</tbody></table>:<p className="muted">{t('adminSubscriptions.payments.empty')}</p>}
   </div>
  </>
 }
