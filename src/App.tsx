@@ -1538,33 +1538,21 @@ function isStrongPassword(password: string) {
 }
 
 function PasswordChecklist({ password }: { password: string }) {
+  const {t}=useTranslation()
   const checks = getPasswordChecks(password)
-
   const items = [
-    ['length', 'Τουλάχιστον 8 χαρακτήρες'],
-    ['uppercase', 'Ένα κεφαλαίο γράμμα'],
-    ['lowercase', 'Ένα πεζό γράμμα'],
-    ['number', 'Έναν αριθμό'],
-    ['special', 'Έναν ειδικό χαρακτήρα']
+    ['length', t('auth.password.length')],
+    ['uppercase', t('auth.password.uppercase')],
+    ['lowercase', t('auth.password.lowercase')],
+    ['number', t('auth.password.number')],
+    ['special', t('auth.password.special')]
   ] as const
-
   return (
     <div className="password-checklist">
-      <strong>Ο κωδικός πρέπει να περιλαμβάνει:</strong>
-
-      {items.map(([key, label]) => (
-        <div
-          key={key}
-          className={
-            checks[key]
-              ? 'password-rule ok'
-              : 'password-rule'
-          }
-        >
-          <span>
-            {checks[key] ? '✓' : '○'}
-          </span>
-
+      <strong>{t('auth.password.checklistTitle')}</strong>
+      {items.map(([key,label])=>(
+        <div key={key} className={checks[key]?'password-rule ok':'password-rule'}>
+          <span>{checks[key]?'\u2713':'\u25cb'}</span>
           <span>{label}</span>
         </div>
       ))}
@@ -1573,318 +1561,120 @@ function PasswordChecklist({ password }: { password: string }) {
 }
 
 function PasswordStrength({password}:{password:string}) {
-  const checks = getPasswordChecks(password)
-  const score = Object.values(checks).filter(Boolean).length
-
-  const label =
-    score <= 1 ? 'Πολύ αδύναμος' :
-    score === 2 ? 'Αδύναμος' :
-    score === 3 ? 'Μέτριος' :
-    score === 4 ? 'Ισχυρός' :
-    'Πολύ ισχυρός'
-
+  const {t}=useTranslation()
+  const checks=getPasswordChecks(password)
+  const score=Object.values(checks).filter(Boolean).length
+  const label=
+    score<=1?t('auth.password.veryWeak'):
+    score===2?t('auth.password.weak'):
+    score===3?t('auth.password.medium'):
+    score===4?t('auth.password.strong'):
+    t('auth.password.veryStrong')
   return (
     <div className="password-strength">
       <div className="password-strength-head">
-        <span>Ισχύς κωδικού</span>
+        <span>{t('auth.password.strength')}</span>
         <strong>{label}</strong>
       </div>
-
-      <div className="password-strength-bar">
-        <span style={{width:`${(score/5)*100}%`}}/>
-      </div>
+      <div className="password-strength-bar"><span style={{width:`${(score/5)*100}%`}}/></div>
     </div>
   )
 }
 
 
 function Auth({onLogged,cfg,setView}:{onLogged:(t:string,u:User)=>void;cfg:AppConfig;setView:(v:string)=>void}){
- const [mode,setMode]=useState<'login'|'register'|'forgot'>('login');
- const [role,setRole]=useState<'patient'|'professional'>('patient');
- const [form,setForm]=useState({name:'',email:'',phone:'',password:''});
- const [accepted,setAccepted]=useState(false);
- const [error,setError]=useState('');
- const [info,setInfo]=useState('');
- const [busy,setBusy]=useState(false);
- const [socialBusy,setSocialBusy]=useState(''); const [needs2fa,setNeeds2fa]=useState(false); const [totp,setTotp]=useState('');
- const [showPassword,setShowPassword]=useState(false);
-async function submit(e:React.FormEvent){
-  e.preventDefault()
+ const {t}=useTranslation()
+ const [mode,setMode]=useState<'login'|'register'|'forgot'>('login')
+ const [role,setRole]=useState<'patient'|'professional'>('patient')
+ const [form,setForm]=useState({name:'',email:'',phone:'',password:''})
+ const [accepted,setAccepted]=useState(false)
+ const [error,setError]=useState('')
+ const [info,setInfo]=useState('')
+ const [busy,setBusy]=useState(false)
+ const [socialBusy,setSocialBusy]=useState('')
+ const [needs2fa,setNeeds2fa]=useState(false)
+ const [totp,setTotp]=useState('')
+ const [showPassword,setShowPassword]=useState(false)
 
-  setError('')
-  setInfo('')
-
-  /*
-   * ----------------------------------------------------------
-   * PASSWORD POLICY — REGISTER
-   * ----------------------------------------------------------
-   */
-  if(
-    mode === 'register' &&
-    !isStrongPassword(form.password)
-  ){
-    setError(
-      'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει κεφαλαίο γράμμα, πεζό γράμμα, αριθμό και ειδικό χαρακτήρα.'
-    )
-    return
-  }
-
+ async function submit(e:React.FormEvent){
+  e.preventDefault();setError('');setInfo('')
+  if(mode==='register'&&!isStrongPassword(form.password)){setError(t('auth.password.policy'));return}
   setBusy(true)
-
   try{
-
-    /*
-     * --------------------------------------------------------
-     * FORGOT PASSWORD
-     * --------------------------------------------------------
-     */
-    if(mode === 'forgot'){
-      const r = await api(
-        '/auth/forgot-password',
-        {
-          method:'POST',
-          body:JSON.stringify({
-            email:form.email
-          })
-        }
-      )
-
-      setInfo(
-        r.message ||
-        'Έλεγξε το email σου.'
-      )
-
-      return
+    if(mode==='forgot'){
+      const r=await api('/auth/forgot-password',{method:'POST',body:JSON.stringify({email:form.email})})
+      setInfo(r.message||t('auth.checkEmail'));return
     }
+    const body=mode==='login'?{email:form.email,password:form.password,totp}:{...form,role,acceptedTerms:accepted}
+    const r=await api('/auth/'+mode,{method:'POST',body:JSON.stringify(body)})
+    onLogged('cookie',r.user)
+  }catch(e:any){setError(e.message);if(String(e.message).includes('2FA'))setNeeds2fa(true)}
+  finally{setBusy(false)}
+ }
 
-    /*
-     * --------------------------------------------------------
-     * LOGIN / REGISTER
-     * --------------------------------------------------------
-     */
-    const body =
-      mode === 'login'
-        ? {
-            email:form.email,
-            password:form.password,
-            totp
-          }
-        : {
-            ...form,
-            role,
-            acceptedTerms:accepted
-          }
-
-    const r = await api(
-      '/auth/' + mode,
-      {
-        method:'POST',
-        body:JSON.stringify(body)
-      }
-    )
-
-    onLogged(
-      'cookie',
-      r.user
-    )
-
-  }catch(e:any){
-
-    setError(e.message)
-
-    if(
-      String(e.message).includes('2FA')
-    ){
-      setNeeds2fa(true)
-    }
-
-  }finally{
-
-    setBusy(false)
-
-  }
-}
  async function startGoogleOAuth(){
-  setError('')
-  setInfo('')
-  setSocialBusy('google-production')
-
-  try{
-   window.location.assign('/api/auth/google/start')
-  }catch(e:any){
-   setSocialBusy('')
-   setError(e?.message || 'Δεν ήταν δυνατή η έναρξη σύνδεσης με Google.')
-  }
+  setError('');setInfo('');setSocialBusy('google-production')
+  try{window.location.assign('/api/auth/google/start')}
+  catch(e:any){setSocialBusy('');setError(e?.message||t('auth.googleFailed'))}
  }
  async function social(provider:string){setSocialBusy(provider);setError('');try{const r=await api('/auth/social-demo',{method:'POST',body:JSON.stringify({provider})});onLogged('cookie',r.user)}catch(e:any){setError(e.message)}finally{setSocialBusy('')}}
  function demo(kind:'patient'|'professional'|'admin'){const accounts={patient:{email:'patient@meleo.gr',password:'demo123'},professional:{email:'maria@meleo.gr',password:'demo123'},admin:{email:'admin@meleo.gr',password:'admin123'}};setMode('login');setForm({...form,...accounts[kind]})}
- return <section className="auth-page"> <div className="auth-art"><Mark/><div className="auth-quote"><span>“</span><h2>Η φροντίδα είναι προσωπική.<br/>Η τεχνολογία πρέπει να την κάνει απλούστερη.</h2><p>MELEO · Care, beautifully connected.</p></div></div><div className="auth-panel"><div className="auth-mobile-brand"><Mark/></div><div className="auth-inner"><div className="auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>{setMode('login');setError('');setInfo('')}}>Σύνδεση</button><button className={mode==='register'?'active':''} onClick={()=>{setMode('register');setError('');setInfo('')}}>Νέα εγγραφή</button></div><h1>{mode==='login'?'Καλώς ήρθες ξανά':mode==='forgot'?'Επαναφορά κωδικού':'Δημιούργησε λογαριασμό'}</h1><p>{mode==='login'?'Συνδέσου για να συνεχίσεις στη MELEO.':mode==='forgot'?'Δώσε το email του λογαριασμού σου και θα λάβεις σύνδεσμο επαναφοράς.':'Επίλεξε πώς θέλεις να χρησιμοποιήσεις τη MELEO.'}</p>{mode!=='forgot'&&cfg.googleOAuthEnabled&&<div className="auth-secondary auth-google-production" data-meleo-google-oauth="production"><div className="secondary-social"><button type="button" onClick={startGoogleOAuth} disabled={!!socialBusy}><b>G</b><span>{socialBusy==='google-production'?'Σύνδεση…':'Συνέχεια με Google'}</span></button></div><small>Ασφαλής σύνδεση μέσω Google.</small><div className="auth-divider"><span>ή με email</span></div></div>}{mode==='register'&&<div className="role-toggle"><button className={role==='patient'?'active':''} onClick={()=>setRole('patient')}><Icon>⌂</Icon><b>Χρειάζομαι φροντίδα</b><small>Συνοδός / ασθενής</small></button><button className={role==='professional'?'active':''} onClick={()=>setRole('professional')}><Icon>✦</Icon><b>Είμαι επαγγελματίας</b><small>Απαιτείται συνδρομή BASIC ή PREMIUM</small></button></div>}<form onSubmit={submit}>{mode==='register'&&<><label>Ονοματεπώνυμο<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>Κινητό / Τηλέφωνο<input required value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label></>}<label>Email<input type="email" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>{mode !== 'forgot' && (
-  <label>
-    Κωδικός
 
-    <input
-      type={showPassword ? 'text' : 'password'}
-      minLength={8}
-      required
-      value={form.password}
-      onChange={e =>
-        setForm({
-          ...form,
-          password:e.target.value
-        })
-      }
-    />
-
-<button
-  type="button"
-  className="password-toggle"
-  onClick={()=>setShowPassword(v=>!v)}
-  aria-label={showPassword ? 'Απόκρυψη κωδικού' : 'Εμφάνιση κωδικού'}
->
-  {showPassword ? 'Απόκρυψη' : 'Εμφάνιση'}
-</button>
-    {mode === 'register' && (
-      <PasswordChecklist
-        password={form.password}
-      />
-    )}
-  </label>
-)}{mode==='login'&&needs2fa&&<label>Κωδικός 2FA<input inputMode="numeric" maxLength={6} placeholder="123456" value={totp} onChange={e=>setTotp(e.target.value.replace(/\D/g,''))}/><small className="field-hint">Άνοιξε την εφαρμογή Authenticator του διαχειριστή.</small></label>}{mode==='register'&&<label className="consent-row"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>Αποδέχομαι τους <button type="button" className="inline-link" onClick={()=>setView('terms')}>Όρους Χρήσης</button> και την <button type="button" className="inline-link" onClick={()=>setView('privacy')}>Πολιτική Απορρήτου</button>.</span></label>}{error&&<div className="error">{error}</div>}{info&&<div className="info-box">{info}</div>}<button className="btn btn-dark wide" disabled={busy||(mode==='register'&&!accepted)}>{busy?'Παρακαλώ...':mode==='login'?'Σύνδεση':mode==='forgot'?'Αποστολή συνδέσμου':'Δημιουργία λογαριασμού'}</button></form>{mode==='login'&&<button className="text-btn" onClick={()=>{setMode('forgot');setError('');setInfo('')}}>Ξέχασα τον κωδικό μου</button>}{mode==='forgot'&&<button className="text-btn" onClick={()=>{setMode('login');setError('');setInfo('')}}>← Επιστροφή στη σύνδεση</button>}{cfg.demoAuth&&<div className="auth-secondary"><div className="auth-divider"><span>ή συνέχισε γρήγορα</span></div><div className="secondary-social">{!cfg.googleOAuthEnabled&&<button onClick={()=>social('google')} disabled={!!socialBusy}><b>G</b><span>{socialBusy==='google'?'Σύνδεση…':'Google Demo'}</span></button>}<button onClick={()=>social('apple')} disabled={!!socialBusy}><b>●</b><span>{socialBusy==='apple'?'Σύνδεση…':'Apple Demo'}</span></button></div><small>Demo σύνδεση — διαθέσιμη μόνο εκτός production.</small></div>}{cfg.demoAuth&&mode==='login'&&<div className="demo-box"><small>DEMO ACCOUNTS</small><div><button onClick={()=>demo('patient')}>Συνοδός</button><button onClick={()=>demo('professional')}>Επαγγελματίας</button><button onClick={()=>demo('admin')}>Admin</button></div><p>Πάτησε ρόλο και μετά «Σύνδεση».</p></div>}</div></div></section>
+ return <section className="auth-page">
+  <div className="auth-art"><Mark/><div className="auth-quote"><span>{'\u201c'}</span><h2>{t('auth.quoteLine1')}<br/>{t('auth.quoteLine2')}</h2><p>MELEO {'\u00b7'} Care, beautifully connected.</p></div></div>
+  <div className="auth-panel"><div className="auth-mobile-brand"><Mark/></div><div className="auth-inner">
+   <div className="auth-tabs"><button className={mode==='login'?'active':''} onClick={()=>{setMode('login');setError('');setInfo('')}}>{t('auth.login')}</button><button className={mode==='register'?'active':''} onClick={()=>{setMode('register');setError('');setInfo('')}}>{t('auth.register')}</button></div>
+   <h1>{mode==='login'?t('auth.welcome'):mode==='forgot'?t('auth.resetTitle'):t('auth.createAccount')}</h1>
+   <p>{mode==='login'?t('auth.loginIntro'):mode==='forgot'?t('auth.forgotIntro'):t('auth.registerIntro')}</p>
+   {mode!=='forgot'&&cfg.googleOAuthEnabled&&<div className="auth-secondary auth-google-production" data-meleo-google-oauth="production"><div className="secondary-social"><button type="button" onClick={startGoogleOAuth} disabled={!!socialBusy}><b>G</b><span>{socialBusy==='google-production'?t('auth.googleConnecting'):t('auth.googleContinue')}</span></button></div><small>{t('auth.googleSecure')}</small><div className="auth-divider"><span>{t('auth.emailDivider')}</span></div></div>}
+   {mode==='register'&&<div className="role-toggle"><button className={role==='patient'?'active':''} onClick={()=>setRole('patient')}><Icon>{'\u2302'}</Icon><b>{t('auth.patientRole')}</b><small>{t('auth.patientRoleHelp')}</small></button><button className={role==='professional'?'active':''} onClick={()=>setRole('professional')}><Icon>{'\u2726'}</Icon><b>{t('auth.professionalRole')}</b><small>{t('auth.professionalRoleHelp')}</small></button></div>}
+   <form onSubmit={submit}>
+    {mode==='register'&&<><label>{t('auth.fullName')}<input required value={form.name} onChange={e=>setForm({...form,name:e.target.value})}/></label><label>{t('auth.phone')}<input required value={form.phone} onChange={e=>setForm({...form,phone:e.target.value})}/></label></>}
+    <label>Email<input type="email" required value={form.email} onChange={e=>setForm({...form,email:e.target.value})}/></label>
+    {mode!=='forgot'&&<label>{t('auth.password.label')}<input type={showPassword?'text':'password'} minLength={8} required value={form.password} onChange={e=>setForm({...form,password:e.target.value})}/><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?t('auth.password.hideAria'):t('auth.password.showAria')}>{showPassword?t('auth.password.hide'):t('auth.password.show')}</button>{mode==='register'&&<PasswordChecklist password={form.password}/>}</label>}
+    {mode==='login'&&needs2fa&&<label>{t('auth.twoFactor')}<input inputMode="numeric" maxLength={6} placeholder="123456" value={totp} onChange={e=>setTotp(e.target.value.replace(/\D/g,''))}/><small className="field-hint">{t('auth.twoFactorHelp')}</small></label>}
+    {mode==='register'&&<label className="consent-row"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>{t('auth.consentBefore')}{' '}<button type="button" className="inline-link" onClick={()=>setView('terms')}>{t('auth.terms')}</button>{' '}{t('auth.consentAnd')}{' '}<button type="button" className="inline-link" onClick={()=>setView('privacy')}>{t('auth.privacy')}</button>.</span></label>}
+    {error&&<div className="error">{error}</div>}{info&&<div className="info-box">{info}</div>}
+    <button className="btn btn-dark wide" disabled={busy||(mode==='register'&&!accepted)}>{busy?t('auth.pleaseWait'):mode==='login'?t('auth.login'):mode==='forgot'?t('auth.sendLink'):t('auth.createButton')}</button>
+   </form>
+   {mode==='login'&&<button className="text-btn" onClick={()=>{setMode('forgot');setError('');setInfo('')}}>{t('auth.forgotPassword')}</button>}
+   {mode==='forgot'&&<button className="text-btn" onClick={()=>{setMode('login');setError('');setInfo('')}}>{'\u2190'} {t('auth.backToLogin')}</button>}
+   {cfg.demoAuth&&<div className="auth-secondary"><div className="auth-divider"><span>{t('auth.quickDivider')}</span></div><div className="secondary-social">{!cfg.googleOAuthEnabled&&<button onClick={()=>social('google')} disabled={!!socialBusy}><b>G</b><span>{socialBusy==='google'?t('auth.googleConnecting'):'Google Demo'}</span></button>}<button onClick={()=>social('apple')} disabled={!!socialBusy}><b>{'\u25cf'}</b><span>{socialBusy==='apple'?t('auth.googleConnecting'):'Apple Demo'}</span></button></div><small>{t('auth.demoOnly')}</small></div>}
+   {cfg.demoAuth&&mode==='login'&&<div className="demo-box"><small>DEMO ACCOUNTS</small><div><button onClick={()=>demo('patient')}>{t('auth.demoPatient')}</button><button onClick={()=>demo('professional')}>{t('auth.demoProfessional')}</button><button onClick={()=>demo('admin')}>Admin</button></div><p>{t('auth.demoHint')}</p></div>}
+  </div></div>
+ </section>
 }
+
 function ResetPassword({token,setView,setToast}:any){
-  const [password,setPassword]=useState('')
-  const [confirm,setConfirm]=useState('')
-  const [error,setError]=useState('')
-  const [busy,setBusy]=useState(false)
-  const [showPassword,setShowPassword]=useState(false)
-  const [showConfirm,setShowConfirm]=useState(false)
-
-  async function submit(e:React.FormEvent){
-    e.preventDefault()
-    setError('')
-
-    if(!isStrongPassword(password)){
-      setError(
-        'Ο κωδικός πρέπει να έχει τουλάχιστον 8 χαρακτήρες και να περιλαμβάνει κεφαλαίο γράμμα, πεζό γράμμα, αριθμό και ειδικό χαρακτήρα.'
-      )
-      return
-    }
-
-    if(password!==confirm){
-      setError('Οι κωδικοί δεν ταιριάζουν.')
-      return
-    }
-
-    setBusy(true)
-
-    try{
-      await api('/auth/reset-password',{
-        method:'POST',
-        body:JSON.stringify({token,password})
-      })
-
-      setToast('Ο κωδικός άλλαξε. Συνδέσου με τον νέο κωδικό.')
-      setView('auth')
-    }catch(e:any){
-      setError(e.message)
-    }finally{
-      setBusy(false)
-    }
-  }
-
-  return (
-    <section className="page">
-      <div className="container narrow">
-        <div className="form-card">
-
-          <div className="eyebrow">
-            ΑΣΦΑΛΕΙΑ ΛΟΓΑΡΙΑΣΜΟΥ
-          </div>
-
-          <h1>Όρισε νέο κωδικό</h1>
-
-          <form onSubmit={submit}>
-
-            <label>
-              Νέος κωδικός
-
-              <input
-                type={showPassword ? 'text' : 'password'}
-                minLength={8}
-                required
-                value={password}
-                onChange={e=>setPassword(e.target.value)}
-              />
-
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={()=>setShowPassword(v=>!v)}
-              >
-                {showPassword ? 'Απόκρυψη' : 'Εμφάνιση'}
-              </button>
-            </label>
-
-            <PasswordStrength password={password}/>
-
-            <PasswordChecklist password={password}/>
-
-            <label>
-              Επιβεβαίωση κωδικού
-
-              <input
-                type={showConfirm ? 'text' : 'password'}
-                minLength={8}
-                required
-                value={confirm}
-                onChange={e=>setConfirm(e.target.value)}
-              />
-
-              <button
-                type="button"
-                className="password-toggle"
-                onClick={()=>setShowConfirm(v=>!v)}
-              >
-                {showConfirm ? 'Απόκρυψη' : 'Εμφάνιση'}
-              </button>
-            </label>
-
-            {confirm && password!==confirm && (
-              <small className="field-hint">
-                Οι κωδικοί δεν ταιριάζουν.
-              </small>
-            )}
-
-            {error&&(
-              <div className="error">
-                {error}
-              </div>
-            )}
-
-            <button
-              className="btn btn-dark wide"
-              disabled={
-                busy ||
-                !isStrongPassword(password) ||
-                password!==confirm
-              }
-            >
-              {busy
-                ? 'Αποθήκευση…'
-                : 'Αποθήκευση νέου κωδικού'}
-            </button>
-
-          </form>
-
-          <small className="terms">
-            Για ασφάλεια, όλες οι ενεργές συνεδρίες αποσυνδέονται μετά την αλλαγή.
-          </small>
-
-        </div>
-      </div>
-    </section>
-  )
+ const {t}=useTranslation()
+ const [password,setPassword]=useState('')
+ const [confirm,setConfirm]=useState('')
+ const [error,setError]=useState('')
+ const [busy,setBusy]=useState(false)
+ const [showPassword,setShowPassword]=useState(false)
+ const [showConfirm,setShowConfirm]=useState(false)
+ async function submit(e:React.FormEvent){
+  e.preventDefault();setError('')
+  if(!isStrongPassword(password)){setError(t('auth.password.policy'));return}
+  if(password!==confirm){setError(t('auth.password.mismatch'));return}
+  setBusy(true)
+  try{await api('/auth/reset-password',{method:'POST',body:JSON.stringify({token,password})});setToast(t('auth.reset.changed'));setView('auth')}
+  catch(e:any){setError(e.message)}finally{setBusy(false)}
+ }
+ return <section className="page"><div className="container narrow"><div className="form-card">
+  <div className="eyebrow">{t('auth.reset.kicker')}</div><h1>{t('auth.reset.title')}</h1>
+  <form onSubmit={submit}>
+   <label>{t('auth.password.newPassword')}<input type={showPassword?'text':'password'} minLength={8} required value={password} onChange={e=>setPassword(e.target.value)}/><button type="button" className="password-toggle" onClick={()=>setShowPassword(v=>!v)} aria-label={showPassword?t('auth.password.hideAria'):t('auth.password.showAria')}>{showPassword?t('auth.password.hide'):t('auth.password.show')}</button></label>
+   <PasswordStrength password={password}/><PasswordChecklist password={password}/>
+   <label>{t('auth.password.confirmPassword')}<input type={showConfirm?'text':'password'} minLength={8} required value={confirm} onChange={e=>setConfirm(e.target.value)}/><button type="button" className="password-toggle" onClick={()=>setShowConfirm(v=>!v)} aria-label={showConfirm?t('auth.password.hideAria'):t('auth.password.showAria')}>{showConfirm?t('auth.password.hide'):t('auth.password.show')}</button></label>
+   {confirm&&password!==confirm&&<small className="field-hint">{t('auth.password.mismatch')}</small>}
+   {error&&<div className="error">{error}</div>}
+   <button className="btn btn-dark wide" disabled={busy||!isStrongPassword(password)||password!==confirm}>{busy?t('auth.reset.saving'):t('auth.reset.save')}</button>
+  </form>
+  <small className="terms">{t('auth.reset.sessions')}</small>
+ </div></div></section>
 }
+
 function ReviewComposer({booking,token,onDone,setToast}:any){
  const {t}=useTranslation()
  const [rating,setRating]=useState(Number(booking.review?.rating||0));const [comment,setComment]=useState(booking.review?.comment||'');const [busy,setBusy]=useState(false)
