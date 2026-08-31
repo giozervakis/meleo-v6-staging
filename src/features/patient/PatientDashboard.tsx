@@ -872,7 +872,7 @@ return (
             }
           >
 
-<div className="patient-section-tabs" role="tablist" aria-label="Patient dashboard sections" aria-orientation="horizontal">
+<div className="patient-section-tabs" role="tablist" aria-label={t('patient.bookings.tablistAria')} aria-orientation="horizontal">
 
   <button
     role="tab"
@@ -929,12 +929,12 @@ return (
   <div id="rc3d-patient-bookings-panel" role="tabpanel" aria-labelledby="rc3d-patient-bookings-tab">
             <div className="patient-panel-head">
               <div>
-                <small>MY REQUESTS</small>
-                <h3>Οι κρατήσεις μου</h3>
+                <small>{t('patient.bookings.kicker')}</small>
+                <h3>{t('patient.bookings.title')}</h3>
               </div>
 
               <span>
-                {bookings.length} συνολικά
+                {t('patient.bookings.count',{count:bookings.length})}
               </span>
             </div>
 
@@ -1010,7 +1010,7 @@ onClick={()=>{
                             : b.proposedPrice
                               ? `${b.proposedPrice}€`
                               : b.price
-                                ? `Από ${b.price}€`
+                                ? `${t('patient.bookings.from')} ${b.price}€`
                                 : '—'
                           }
                         </b>
@@ -1043,8 +1043,8 @@ onClick={e=>{
 }}
                         >
                           {open===b.id
-                            ? 'Κλείσιμο'
-                            : 'Λεπτομέρειες'
+                            ? t('patient.bookings.close')
+                            : t('patient.bookings.details')
                           }
 
                           <span className="details-arrow">
@@ -1065,14 +1065,14 @@ onClick={e=>{
                         <div className="request-detail-grid">
 
                           <div>
-                            <small>Επαγγελματίας</small>
+                            <small>{t('patient.bookings.professional')}</small>
                             <b>{b.professionalName}</b>
                             <span>{b.professionalEmail}</span>
                             <span>{b.professionalPhone}</span>
                           </div>
 
                           <div>
-                            <small>Αίτημα</small>
+                            <small>{t('patient.bookings.request')}</small>
                             <b>{b.service}</b>
                             <span>
                               {b.date} · {b.time}
@@ -1086,7 +1086,7 @@ onClick={e=>{
 
                         {b.notes&&
                           <div className="request-description">
-                            <small>Περιγραφή ανάγκης</small>
+                            <small>{t('patient.bookings.needDescription')}</small>
                             <p>{b.notes}</p>
                           </div>
                         }

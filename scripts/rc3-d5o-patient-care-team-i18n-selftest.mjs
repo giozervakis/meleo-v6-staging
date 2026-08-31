@@ -23,18 +23,19 @@ for(const q of [
   if(!x.includes(q)) fail('dashboard '+q)
 }
 
+const careTeamChunks=i.split('careTeam:{kicker:').slice(1).map(v=>v.split('},bookings:{tablistAria:')[0])
+if(careTeamChunks.length!==2) fail('i18n careTeam blocks expected twice, found '+careTeamChunks.length)
+
 for(const q of [
-  "careTeam:{kicker:",
   "count_one:",
   "count_other:",
   "requestAgain:",
   "lastVisit:"
 ]){
-  const count=(i.match(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'g'))||[]).length
-  if(count!==2) fail('i18n '+q+' expected twice, found '+count)
+  if(careTeamChunks.some(c=>!c.includes(q))) fail('i18n careTeam '+q)
 }
 
 if(p.scripts?.['rc3-d5o-check']!=='node scripts/rc3-d5o-patient-care-team-i18n-selftest.mjs') fail('package script')
-if(!p.scripts?.['ci:gate']?.endsWith('npm run rc3-d5n-check && npm run rc3-d5o-check')) fail('ci gate tail')
+if(!p.scripts?.['ci:gate']?.includes('npm run rc3-d5n-check && npm run rc3-d5o-check')) fail('ci gate sequence')
 
 console.log('RC3-D5-O patient care team i18n self-test: PASS')
