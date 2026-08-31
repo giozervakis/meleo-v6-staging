@@ -27,9 +27,10 @@ if ((env.ADMIN_TOTP_SECRET||'').length < 16) failures.push('ADMIN_TOTP_SECRET lo
 if (!String(env.STRIPE_SECRET_KEY||'').startsWith('sk_live_')) warnings.push('Stripe secret key is not sk_live_; use test mode only for a pre-launch rehearsal')
 if (!env.ADMIN_IP_ALLOWLIST) warnings.push('ADMIN_IP_ALLOWLIST is empty')
 if (env.SEED_DEMO !== '0' || env.DEMO_AUTH !== '0' || env.DEMO_CHECKOUT !== '0') failures.push('All demo flags must be 0')
-const report={version:'5.7.0',checkedAt:new Date().toISOString(),passed:failures.length===0,failures,warnings}
+const packageInfo=JSON.parse(fs.readFileSync('package.json','utf8'))
+const report={version:packageInfo.version,checkedAt:new Date().toISOString(),passed:failures.length===0,failures,warnings}
 fs.mkdirSync('reports',{recursive:true}); fs.writeFileSync('reports/release-preflight.json',JSON.stringify(report,null,2))
-console.log(`MELEO v5.7 production preflight: ${report.passed?'PASS':'FAIL'}`)
+console.log(`MELEO v${packageInfo.version} production preflight: ${report.passed?'PASS':'FAIL'}`)
 for(const x of failures) console.error('  ✗',x)
 for(const x of warnings) console.warn('  !',x)
 process.exitCode=report.passed?0:1

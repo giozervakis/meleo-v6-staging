@@ -1,4 +1,5 @@
 import fs from 'node:fs'
+const packageInfo=JSON.parse(fs.readFileSync('package.json','utf8'))
 const maxAgeH=Number(process.env.RELEASE_EVIDENCE_MAX_AGE_HOURS||72)
 const items=[
  ['production preflight','reports/release-preflight.json'],['TLS/domain','reports/tls-readiness.json'],['Stripe','reports/stripe-readiness.json'],['database backup','reports/backup-latest.json'],['restore drill','reports/restore-drill.json'],['critical E2E','reports/e2e-critical-latest.json']
@@ -9,5 +10,5 @@ for(const [name,file] of items){
  catch{results.push({name,file,pass:false,fresh:false,missing:true})}
 }
 const blockers=results.filter(x=>!x.pass||!x.fresh)
-const report={version:'6.2.1',generatedAt:new Date().toISOString(),decision:blockers.length?'NO-GO':'GO',results,blockers}
-fs.mkdirSync('reports',{recursive:true});fs.writeFileSync('reports/release-go-no-go.json',JSON.stringify(report,null,2)); console.table(results); console.log(`\nMELEO v6.0 RELEASE DECISION: ${report.decision}`); process.exitCode=blockers.length?1:0
+const report={version:packageInfo.version,generatedAt:new Date().toISOString(),decision:blockers.length?'NO-GO':'GO',results,blockers}
+fs.mkdirSync('reports',{recursive:true});fs.writeFileSync('reports/release-go-no-go.json',JSON.stringify(report,null,2)); console.table(results); console.log(`\nMELEO v${packageInfo.version} RELEASE DECISION: ${report.decision}`); process.exitCode=blockers.length?1:0
