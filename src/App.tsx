@@ -7,6 +7,7 @@ import { serviceMap, specialtyOptions } from './domain/catalog'
 import { availabilityLabel, catalogLabel, localizedPriceLabel, localizedPriceNote } from './domain/catalog-i18n'
 import { Home, SearchBox, SmartRequest, NowRequest } from './features/home/HomeExperience'
 import LanguageSwitcher from './components/LanguageSwitcher'
+import i18n from './i18n'
 const AdminPage = lazy(() => import('./features/admin/AdminPage'))
 const ProfessionalDashboardPage = lazy(() => import('./features/professional/ProfessionalDashboard'))
 const PatientDashboardPage = lazy(
@@ -29,6 +30,7 @@ const BookingFlowPage = lazy(
 function RouteFallback(){return <div className="route-loading" role="status" aria-live="polite"><span className="route-spinner"/>Φόρτωση MELEO…</div>}
 
 
+function i18nGlobal(){return {t:i18n.t.bind(i18n)}}
 function initials(name:string){ return name.split(' ').slice(0,2).map(x=>x[0]).join('').toUpperCase() }
 function IdentityAvatar({
   name,
@@ -399,7 +401,7 @@ function ProfileIdentityModal({
     </div>
   )
 }
-function statusLabel(s:string){ return ({pending:'Σε αναμονή',clarification:'Χρειάζονται διευκρινίσεις',quoted:'Πρόταση κόστους',accepted:'Επιβεβαιωμένη',completed:'Ολοκληρώθηκε',cancelled:'Ακυρώθηκε'} as any)[s]||s }
+function statusLabel(s:string){const {t}=i18nGlobal();return t('patient.bookingLabels.status.'+s,{defaultValue:s})}
 function professionalLifecycleLabel(s:string){return ({approved:'Verified',pending_verification:'Pending Verification',verification_rejected:'Verification Rejected',awaiting_subscription:'Αναμονή συνδρομής',profile_incomplete:'Ελλιπές προφίλ',verification_required:'Αναμονή υποβολής verification',deletion_pending:'Διαγραφή σε αναμονή'} as any)[s]||'—'}
 function professionalLifecycleClass(s:string){return s==='approved'?'yes':s==='pending_verification'?'pending':s==='verification_rejected'?'no':'neutral'}
 async function fileToBase64(file:File){return await new Promise<string>((resolve,reject)=>{const r=new FileReader();r.onload=()=>resolve(String(r.result||'').split(',')[1]||'');r.onerror=()=>reject(new Error('Αδυναμία ανάγνωσης αρχείου'));r.readAsDataURL(file)})}
@@ -493,6 +495,7 @@ function LiveEvents({user,setToast}:any){
 }
 
 function CalendarActions({booking}:any){
+  const {t}=useTranslation()
 
   if(!['accepted','completed'].includes(booking?.status)){
     return null
@@ -535,7 +538,7 @@ function CalendarActions({booking}:any){
       .replace(/\.\d{3}Z$/,'Z')
 
   const title =
-    `MELEO · ${booking?.service || 'Επίσκεψη'}`
+    `MELEO · ${booking?.service || t('patient.calendar.visit')}`
 
   const loc = booking?.address || ''
 
@@ -577,7 +580,7 @@ function CalendarActions({booking}:any){
     <div className="calendar-actions">
 
       <span>
-        Προσθήκη στο ημερολόγιο
+        {t('patient.calendar.add')}
       </span>
 
       <a
@@ -1884,7 +1887,7 @@ function ReviewComposer({booking,token,onDone,setToast}:any){
  return <div className="review-composer"><div><span className="review-kicker">{t('patient.review.kicker')}</span><h4>{t('patient.review.title',{name:booking.professionalName})}</h4><p>{t('patient.review.textBefore')} <b>Verified booking</b> {t('patient.review.textAfter')}</p></div><div className="review-stars" aria-label={t('patient.review.ratingAria')}>{[1,2,3,4,5].map(n=><button key={n} type="button" className={rating>=n?'active':''} onClick={()=>setRating(n)} aria-label={t('patient.review.starAria',{count:n})}>★</button>)}</div><textarea placeholder={t('patient.review.placeholder')} value={comment} maxLength={1000} onChange={e=>setComment(e.target.value)}/><button className="btn btn-gold" disabled={busy||!rating} onClick={submit}>{busy?t('patient.review.submitting'):t('patient.review.publish')}</button></div>
 }
 
-function repeatLabel(r:string){return ({once:'Μία επίσκεψη',daily7:'Καθημερινά για 7 ημέρες',twice7:'Πρωί & βράδυ για 7 ημέρες'} as any)[r]||r}
+function repeatLabel(r:string){const {t}=i18nGlobal();return t('patient.bookingLabels.repeat.'+r,{defaultValue:r})}
 function Conversation({messages}:any){if(!messages?.length)return null;return <div className="conversation"><div className="conversation-title">Ιστορικό επικοινωνίας</div>{messages.map((m:any)=><div key={m.id} className={'conversation-msg '+m.fromRole}><div><b>{m.fromName}</b><small>{new Date(m.createdAt).toLocaleString('el-GR')}</small></div><p>{m.text}</p></div>)}</div>}
 
 function Stat({label,value,note}:any){return <div className="stat-card"><span>{label}</span><strong>{value}</strong><small>{note}</small></div>}
