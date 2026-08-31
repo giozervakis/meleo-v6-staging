@@ -1,5 +1,6 @@
 import {useCallback,useEffect,useMemo,useState} from 'react'
 import {api} from '../../../lib/api'
+import {useTranslation} from 'react-i18next'
 import './professional-billing.css'
 
 type BillingPlan={
@@ -79,7 +80,7 @@ function money(value:any){
   ).format(Number(value||0))
 }
 
-function dateLabel(value?:string|null){
+function dateLabel(value?:string|null,locale='el-GR'){
   if(!value)return '—'
 
   const date=new Date(value)
@@ -89,7 +90,7 @@ function dateLabel(value?:string|null){
   }
 
   return date.toLocaleDateString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'short',
@@ -154,6 +155,8 @@ export default function ProfessionalBilling({
   cfg
 }:Props){
 
+  const {t,i18n}=useTranslation()
+
   const [info,setInfo]=useState<BillingInfo|null>(null)
   const [busy,setBusy]=useState('')
   const [loading,setLoading]=useState(true)
@@ -175,7 +178,7 @@ export default function ProfessionalBilling({
     catch(e:any){
       setError(
         e?.message ||
-        'Δεν ήταν δυνατή η φόρτωση των στοιχείων χρέωσης.'
+        t('proBilling.errors.load')
       )
     }
     finally{
@@ -263,7 +266,7 @@ export default function ProfessionalBilling({
 
     if(kind==='cancel'){
       const confirmed=window.confirm(
-        'Να προγραμματιστεί η ακύρωση της συνδρομής στο τέλος της τρέχουσας περιόδου;'
+        t('proBilling.confirmCancel')
       )
 
       if(!confirmed)return
@@ -297,8 +300,8 @@ export default function ProfessionalBilling({
 
         setToast(
           result?.scheduled
-            ? `Η αλλαγή σε ${String(plan||'').toUpperCase()} προγραμματίστηκε για την επόμενη ανανέωση.`
-            : `Το πακέτο ενημερώθηκε σε ${String(plan||'').toUpperCase()}.`
+            ? t('proBilling.toast.changeScheduled',{plan:String(plan||'').toUpperCase()})
+            : t('proBilling.toast.changed',{plan:String(plan||'').toUpperCase()})
         )
       }
 
@@ -329,7 +332,7 @@ export default function ProfessionalBilling({
         )
 
         setToast(
-          'Η ακύρωση της συνδρομής προγραμματίστηκε.'
+          t('proBilling.toast.cancelScheduled')
         )
       }
 
@@ -344,7 +347,7 @@ export default function ProfessionalBilling({
         )
 
         setToast(
-          'Η συνδρομή συνεχίζεται κανονικά.'
+          t('proBilling.toast.resumed')
         )
       }
 
@@ -359,7 +362,7 @@ export default function ProfessionalBilling({
         )
 
         setToast(
-          'Η προγραμματισμένη αλλαγή ακυρώθηκε. Παραμένεις PREMIUM.'
+          t('proBilling.toast.downgradeCancelled')
         )
       }
 
@@ -369,7 +372,7 @@ export default function ProfessionalBilling({
     catch(e:any){
       setError(
         e?.message ||
-        'Η ενέργεια δεν ολοκληρώθηκε.'
+        t('proBilling.errors.action')
       )
     }
     finally{
@@ -388,14 +391,13 @@ export default function ProfessionalBilling({
           </span>
 
           <h2>
-            Η συνδρομή σου,
+            {t('proBilling.hero.title')}
             <br/>
-            <em>χωρίς ψιλά γράμματα.</em>
+            <em>{t('proBilling.hero.emphasis')}</em>
           </h2>
 
           <p>
-            Διαχειρίσου το πακέτο, τη χρέωση και το
-            ιστορικό πληρωμών σου από ένα σημείο.
+            {t('proBilling.hero.text')}
           </p>
 
           <div className="pro-billing-status-row">
@@ -417,7 +419,7 @@ export default function ProfessionalBilling({
 
             {cancelAtPeriodEnd&&
               <span className="pro-billing-ending">
-                Λήγει {dateLabel(periodEnd)}
+                {t('proBilling.hero.ends')} {dateLabel(periodEnd,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}
               </span>
             }
           </div>
@@ -427,7 +429,7 @@ export default function ProfessionalBilling({
 
           <div className="pro-billing-card-top">
             <span>
-              ΤΡΕΧΟΝ ΠΑΚΕΤΟ
+              {t('proBilling.currentPlan')}
             </span>
 
             <b>
@@ -440,25 +442,25 @@ export default function ProfessionalBilling({
               {money(currentPrice)}
             </strong>
             <span>
-              / μήνα
+              {t('proBilling.perMonth')}
             </span>
           </div>
 
           <div className="pro-billing-renewal">
             <small>
               {cancelAtPeriodEnd
-                ? 'ΠΡΟΓΡΑΜΜΑΤΙΣΜΕΝΗ ΛΗΞΗ'
-                : 'ΕΠΟΜΕΝΗ ΑΝΑΝΕΩΣΗ'}
+                ? t('proBilling.scheduledEnd')
+                : t('proBilling.nextRenewal')}
             </small>
 
             <b>
-              {dateLabel(periodEnd)}
+              {dateLabel(periodEnd,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}
             </b>
           </div>
 
           <div className="pro-billing-mode">
             <span>
-              Χρέωση
+              {t('proBilling.billing')}
             </span>
 
             <b>
@@ -483,13 +485,11 @@ export default function ProfessionalBilling({
 
           <section>
             <strong>
-              Υπάρχει εκκρεμότητα πληρωμής
+              {t('proBilling.pastDue.title')}
             </strong>
 
             <p>
-              Η τελευταία χρέωση δεν ολοκληρώθηκε.
-              Ενημέρωσε τα στοιχεία πληρωμής σου για
-              να διατηρηθεί ομαλά η συνδρομή.
+              {t('proBilling.pastDue.text')}
             </p>
           </section>
 
@@ -499,7 +499,7 @@ export default function ProfessionalBilling({
               disabled={!!busy}
               onClick={()=>action('portal')}
             >
-              Διαχείριση πληρωμής
+              {t('proBilling.pastDue.action')}
             </button>
           }
         </div>
@@ -514,14 +514,13 @@ export default function ProfessionalBilling({
 
           <section>
             <strong>
-              Αλλαγή σε {String(info.scheduledPlan).toUpperCase()} στην επόμενη ανανέωση
+              {t('proBilling.scheduledChange.title',{plan:String(info.scheduledPlan).toUpperCase()})}
             </strong>
 
             <p>
               Μέχρι {' '}
-              <b>{dateLabel(info.scheduledPlanEffectiveAt)}</b>
-              {' '}διατηρείς όλα τα προνόμια του {current.toUpperCase()} που έχεις ήδη πληρώσει.
-              Από τότε θα ενεργοποιηθεί το {String(info.scheduledPlan).toUpperCase()}.
+              <b>{dateLabel(info.scheduledPlanEffectiveAt,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}</b>
+              {' '}{t('proBilling.scheduledChange.text',{current:current.toUpperCase(),plan:String(info.scheduledPlan).toUpperCase()})}
             </p>
           </section>
 
@@ -531,8 +530,8 @@ export default function ProfessionalBilling({
             onClick={()=>action('cancelDowngrade')}
           >
             {busy==='cancelDowngrade'
-              ? 'Ακύρωση αλλαγής…'
-              : 'Παραμονή στο PREMIUM'}
+              ? t('proBilling.scheduledChange.cancelling')
+              : t('proBilling.scheduledChange.keepPremium')}
           </button>
         </div>
       }
@@ -545,14 +544,13 @@ export default function ProfessionalBilling({
 
           <section>
             <strong>
-              Η συνδρομή έχει προγραμματιστεί για ακύρωση
+              {t('proBilling.cancellation.title')}
             </strong>
 
             <p>
-              Η πρόσβαση παραμένει σύμφωνα με την
-              τρέχουσα περίοδο συνδρομής έως
+              {t('proBilling.cancellation.text')}
               {' '}
-              <b>{dateLabel(periodEnd)}</b>.
+              <b>{dateLabel(periodEnd,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}</b>.
             </p>
           </section>
 
@@ -562,8 +560,8 @@ export default function ProfessionalBilling({
             onClick={()=>action('resume')}
           >
             {busy==='resume'
-              ? 'Επαναφορά…'
-              : 'Συνέχιση συνδρομής'}
+              ? t('proBilling.cancellation.resuming')
+              : t('proBilling.cancellation.resume')}
           </button>
         </div>
       }
@@ -579,35 +577,35 @@ export default function ProfessionalBilling({
       <section className="pro-billing-facts">
 
         <article>
-          <span>ΚΑΤΑΣΤΑΣΗ</span>
+          <span>{t('proBilling.facts.status')}</span>
           <strong>
             {statusLabel(status)}
           </strong>
           <small>
             {info?.stripeStatus
               ? `Stripe: ${info.stripeStatus}`
-              : 'Κατάσταση MELEO'}
+              : t('proBilling.facts.meleoStatus')}
           </small>
         </article>
 
         <article>
           <span>
             {cancelAtPeriodEnd
-              ? 'ΛΗΞΗ'
-              : 'ΑΝΑΝΕΩΣΗ'}
+              ? t('proBilling.facts.end')
+              : t('proBilling.facts.renewal')}
           </span>
 
           <strong>
-            {dateLabel(periodEnd)}
+            {dateLabel(periodEnd,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}
           </strong>
 
           <small>
-            Μηνιαία συνδρομή
+            {t('proBilling.facts.monthly')}
           </small>
         </article>
 
         <article>
-          <span>ΧΡΕΩΣΗ</span>
+          <span>{t('proBilling.facts.billing')}</span>
 
           <strong>
             {billingMode==='stripe'
@@ -619,10 +617,10 @@ export default function ProfessionalBilling({
 
           <small>
             {billingMode==='stripe'
-              ? 'Ασφαλής διαχείριση μέσω Stripe'
+              ? t('proBilling.facts.stripeSafe')
               : billingMode==='demo'
-                ? 'Δεν πραγματοποιείται πραγματική χρέωση'
-                : 'Δεν υπάρχουν στοιχεία χρέωσης'}
+                ? t('proBilling.facts.demoNoCharge')
+                : t('proBilling.facts.noBillingData')}
           </small>
         </article>
 
@@ -635,13 +633,12 @@ export default function ProfessionalBilling({
           <div>
             <span>MEMBERSHIP</span>
             <h3>
-              Επίλεξε το πακέτο που σου ταιριάζει
+              {t('proBilling.membership.title')}
             </h3>
           </div>
 
           <p>
-            Μπορείς να αλλάξεις πακέτο χωρίς να
-            δημιουργήσεις νέο επαγγελματικό λογαριασμό.
+            {t('proBilling.membership.text')}
           </p>
         </div>
 
@@ -671,7 +668,7 @@ export default function ProfessionalBilling({
                   <div>
                     <span>
                       {selected
-                        ? 'ΤΡΕΧΟΝ ΠΑΚΕΤΟ'
+                        ? t('proBilling.currentPlan')
                         : plan.recommended
                           ? 'ΠΡΟΤΕΙΝΟΜΕΝΟ'
                           : 'MELEO PROFESSIONAL'}
@@ -695,7 +692,7 @@ export default function ProfessionalBilling({
                     {money(plan.price)}
                   </strong>
                   <span>
-                    /μήνα
+                    {t('proBilling.perMonthCompact')}
                   </span>
                 </div>
 
@@ -729,12 +726,12 @@ export default function ProfessionalBilling({
                   }
                 >
                   {selected
-                    ? 'Ενεργό πακέτο'
+                    ? t('proBilling.plan.active')
                     : busy==='change'+plan.id
-                      ? 'Επεξεργασία…'
+                      ? t('proBilling.plan.processing')
                       : upgrading
-                        ? `Αναβάθμιση σε ${plan.name}`
-                        : `Μετάβαση σε ${plan.name}`}
+                        ? t('proBilling.plan.upgrade',{plan:plan.name})
+                        : t('proBilling.plan.switch',{plan:plan.name})}
                 </button>
 
               </article>
@@ -745,9 +742,7 @@ export default function ProfessionalBilling({
 
         {currentPlan&&
           <p className="pro-billing-proration-note">
-            Οι αλλαγές ενεργής Stripe συνδρομής
-            υπολογίζονται αναλογικά από τον πάροχο
-            πληρωμών.
+            {t('proBilling.prorationNote')}
           </p>
         }
 
@@ -760,7 +755,7 @@ export default function ProfessionalBilling({
           <div>
             <span>BILLING</span>
             <h3>
-              Πληρωμές & διαχείριση
+              {t('proBilling.management.title')}
             </h3>
           </div>
         </div>
@@ -774,13 +769,11 @@ export default function ProfessionalBilling({
 
             <div>
               <strong>
-                Στοιχεία πληρωμής
+                {t('proBilling.management.paymentDetails')}
               </strong>
 
               <p>
-                Διαχειρίσου τον τρόπο πληρωμής και
-                τα στοιχεία χρέωσης από το ασφαλές
-                billing portal.
+                {t('proBilling.management.paymentText')}
               </p>
             </div>
 
@@ -791,11 +784,11 @@ export default function ProfessionalBilling({
                   onClick={()=>action('portal')}
                 >
                   {busy==='portal'
-                    ? 'Άνοιγμα…'
-                    : 'Άνοιγμα billing portal'}
+                    ? t('proBilling.management.opening')
+                    : t('proBilling.management.openPortal')}
                 </button>
               : <span className="pro-billing-unavailable">
-                  Μη διαθέσιμο
+                  {t('proBilling.management.unavailable')}
                 </span>
             }
           </article>
@@ -808,13 +801,13 @@ export default function ProfessionalBilling({
 
             <div>
               <strong>
-                Κατάσταση συνδρομής
+                {t('proBilling.management.subscriptionStatus')}
               </strong>
 
               <p>
                 {cancelAtPeriodEnd
-                  ? 'Η ακύρωση έχει ήδη προγραμματιστεί.'
-                  : 'Η συνδρομή ανανεώνεται σύμφωνα με την ενεργή περίοδο χρέωσης.'}
+                  ? t('proBilling.management.cancelScheduled')
+                  : t('proBilling.management.renewsNormally')}
               </p>
             </div>
 
@@ -826,8 +819,8 @@ export default function ProfessionalBilling({
                   onClick={()=>action('resume')}
                 >
                   {busy==='resume'
-                    ? 'Επαναφορά…'
-                    : 'Συνέχιση'}
+                    ? t('proBilling.cancellation.resuming')
+                    : t('proBilling.management.continue')}
                 </button>
               : <button
                   type="button"
@@ -836,8 +829,8 @@ export default function ProfessionalBilling({
                   onClick={()=>action('cancel')}
                 >
                   {busy==='cancel'
-                    ? 'Ακύρωση…'
-                    : 'Ακύρωση συνδρομής'}
+                    ? t('proBilling.management.cancelling')
+                    : t('proBilling.management.cancelSubscription')}
                 </button>
             }
 
@@ -854,20 +847,19 @@ export default function ProfessionalBilling({
           <div>
             <span>HISTORY</span>
             <h3>
-              Ιστορικό χρεώσεων
+              {t('proBilling.history.title')}
             </h3>
           </div>
 
           <p>
-            Οι πιο πρόσφατες καταγεγραμμένες
-            συναλλαγές της συνδρομής σου.
+            {t('proBilling.history.text')}
           </p>
         </div>
 
 
         {loading
           ? <div className="pro-billing-empty">
-              Φόρτωση ιστορικού…
+              {t('proBilling.history.loading')}
             </div>
 
           : invoices.length
@@ -875,9 +867,9 @@ export default function ProfessionalBilling({
             ? <div className="pro-billing-invoice-table">
 
                 <div className="pro-billing-invoice-head">
-                  <span>Ημερομηνία</span>
-                  <span>Ποσό</span>
-                  <span>Κατάσταση</span>
+                  <span>{t('proBilling.history.date')}</span>
+                  <span>{t('proBilling.history.amount')}</span>
+                  <span>{t('proBilling.history.status')}</span>
                   <span/>
                 </div>
 
@@ -892,7 +884,7 @@ export default function ProfessionalBilling({
                       key={invoice.id}
                     >
                       <span>
-                        {dateLabel(invoice.createdAt)}
+                        {dateLabel(invoice.createdAt,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}
                       </span>
 
                       <strong>
@@ -915,7 +907,7 @@ export default function ProfessionalBilling({
                               target="_blank"
                               rel="noreferrer"
                             >
-                              Προβολή ↗
+                              {t('proBilling.history.view')}
                             </a>
                           : '—'
                         }
@@ -929,11 +921,10 @@ export default function ProfessionalBilling({
             : <div className="pro-billing-empty">
                 <span>◇</span>
                 <strong>
-                  Δεν υπάρχει ακόμη ιστορικό χρεώσεων
+                  {t('proBilling.history.emptyTitle')}
                 </strong>
                 <p>
-                  Όταν καταγραφεί συναλλαγή συνδρομής,
-                  θα εμφανιστεί εδώ.
+                  {t('proBilling.history.emptyText')}
                 </p>
               </div>
         }
@@ -945,11 +936,7 @@ export default function ProfessionalBilling({
         <span>i</span>
 
         <p>
-          Η MELEO δεν αποθηκεύει στοιχεία κάρτας.
-          Η διαχείριση πραγματικών ηλεκτρονικών
-          πληρωμών πραγματοποιείται μέσω του
-          παρόχου πληρωμών. Η MELEO δεν κρατά
-          προμήθεια από τις επισκέψεις σου.
+          {t('proBilling.footerNote')}
         </p>
       </footer>
 
