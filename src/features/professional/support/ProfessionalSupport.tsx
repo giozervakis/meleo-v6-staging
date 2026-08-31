@@ -6,6 +6,7 @@ import {
 } from 'react'
 
 import {api} from '../../../lib/api'
+import {useTranslation} from 'react-i18next'
 
 import './professional-support.css'
 
@@ -36,7 +37,10 @@ type Props={
 }
 
 
-function dateLabel(value?:string){
+function dateLabel(
+  value?:string,
+  locale='el-GR'
+){
 
   if(!value){
     return ''
@@ -50,7 +54,7 @@ function dateLabel(value?:string){
   }
 
   return date.toLocaleString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'short',
@@ -61,17 +65,20 @@ function dateLabel(value?:string){
 }
 
 
-function statusLabel(status:string){
+function statusLabel(
+  status:string,
+  t:(key:string)=>string
+){
 
   if(status==='closed'){
-    return 'Κλειστό'
+    return t('proSupport.status.closed')
   }
 
   if(status==='pending'){
-    return 'Σε αναμονή'
+    return t('proSupport.status.pending')
   }
 
-  return 'Ανοιχτό'
+  return t('proSupport.status.open')
 }
 
 
@@ -79,6 +86,8 @@ export default function ProfessionalSupport({
   token,
   setToast
 }:Props){
+
+  const {t,i18n}=useTranslation()
 
   const [tickets,setTickets]=
     useState<SupportTicket[]>([])
@@ -162,7 +171,7 @@ export default function ProfessionalSupport({
 
           setError(
             e?.message ||
-            'Δεν ήταν δυνατή η φόρτωση των αιτημάτων υποστήριξης.'
+            t('proSupport.errors.load')
           )
         }
         finally{
@@ -210,7 +219,7 @@ export default function ProfessionalSupport({
       !message.trim()
     ){
       setError(
-        'Συμπλήρωσε θέμα και μήνυμα.'
+        t('proSupport.errors.required')
       )
 
       return
@@ -252,14 +261,14 @@ export default function ProfessionalSupport({
       }
 
       setToast(
-        'Το αίτημα υποστήριξης δημιουργήθηκε.'
+        t('proSupport.toast.created')
       )
     }
     catch(e:any){
 
       setError(
         e?.message ||
-        'Το αίτημα δεν δημιουργήθηκε.'
+        t('proSupport.errors.create')
       )
     }
     finally{
@@ -303,7 +312,7 @@ export default function ProfessionalSupport({
 
       setError(
         e?.message ||
-        'Το μήνυμα δεν στάλθηκε.'
+        t('proSupport.errors.reply')
       )
     }
     finally{
@@ -325,13 +334,11 @@ export default function ProfessionalSupport({
           </span>
 
           <h2>
-            Υποστήριξη με ιστορικό.
+            {t('proSupport.hero.title')}
           </h2>
 
           <p>
-            Δημιούργησε αίτημα, παρακολούθησε την
-            κατάστασή του και συνέχισε τη συζήτηση
-            με την ομάδα MELEO στο ίδιο ticket.
+            {t('proSupport.hero.text')}
           </p>
 
         </div>
@@ -340,7 +347,7 @@ export default function ProfessionalSupport({
         <aside>
 
           <small>
-            ΕΝΕΡΓΑ TICKETS
+            {t('proSupport.hero.activeTickets')}
           </small>
 
           <strong>
@@ -353,7 +360,7 @@ export default function ProfessionalSupport({
               ()=>setComposeOpen(true)
             }
           >
-            + Νέο αίτημα
+            {t('proSupport.hero.newRequest')}
           </button>
 
         </aside>
@@ -379,7 +386,7 @@ export default function ProfessionalSupport({
               </span>
 
               <h3>
-                Νέο αίτημα υποστήριξης
+                {t('proSupport.compose.title')}
               </h3>
             </div>
 
@@ -399,7 +406,7 @@ export default function ProfessionalSupport({
 
             <label>
               <span>
-                Θέμα
+                {t('proSupport.compose.subject')}
               </span>
 
               <input
@@ -411,14 +418,14 @@ export default function ProfessionalSupport({
                       event.target.value
                     )
                 }
-                placeholder="Σύντομη περιγραφή του θέματος"
+                placeholder={t('proSupport.compose.subjectPlaceholder')}
               />
             </label>
 
 
             <label>
               <span>
-                Κατηγορία
+                {t('proSupport.compose.category')}
               </span>
 
               <select
@@ -431,23 +438,23 @@ export default function ProfessionalSupport({
                 }
               >
                 <option value="general">
-                  Γενικό
+                  {t('proSupport.categories.general')}
                 </option>
 
                 <option value="account">
-                  Λογαριασμός
+                  {t('proSupport.categories.account')}
                 </option>
 
                 <option value="booking">
-                  Αιτήματα / Ραντεβού
+                  {t('proSupport.categories.booking')}
                 </option>
 
                 <option value="billing">
-                  Συνδρομή / Χρέωση
+                  {t('proSupport.categories.billing')}
                 </option>
 
                 <option value="technical">
-                  Τεχνικό θέμα
+                  {t('proSupport.categories.technical')}
                 </option>
 
                 <option value="verification">
@@ -459,7 +466,7 @@ export default function ProfessionalSupport({
 
             <label className="full">
               <span>
-                Μήνυμα
+                {t('proSupport.compose.message')}
               </span>
 
               <textarea
@@ -471,7 +478,7 @@ export default function ProfessionalSupport({
                       event.target.value
                     )
                 }
-                placeholder="Περιέγραψε τι χρειάζεσαι…"
+                placeholder={t('proSupport.compose.messagePlaceholder')}
               />
 
               <small>
@@ -491,7 +498,7 @@ export default function ProfessionalSupport({
                 ()=>setComposeOpen(false)
               }
             >
-              Ακύρωση
+              {t('proSupport.actions.cancel')}
             </button>
 
             <button
@@ -504,8 +511,8 @@ export default function ProfessionalSupport({
               onClick={createTicket}
             >
               {busy
-                ? 'Αποστολή…'
-                : 'Δημιουργία αιτήματος'}
+                ? t('proSupport.actions.sending')
+                : t('proSupport.actions.create')}
             </button>
 
           </div>
@@ -534,7 +541,7 @@ export default function ProfessionalSupport({
               </span>
 
               <strong>
-                Τα αιτήματά μου
+                {t('proSupport.history.title')}
               </strong>
             </div>
 
@@ -548,7 +555,7 @@ export default function ProfessionalSupport({
           {loading
 
             ? <div className="pro-support-ticket-empty">
-                Φόρτωση…
+                {t('proSupport.history.loading')}
               </div>
 
             : tickets.length===0
@@ -556,12 +563,11 @@ export default function ProfessionalSupport({
               ? <div className="pro-support-ticket-empty">
 
                   <strong>
-                    Δεν υπάρχουν αιτήματα
+                    {t('proSupport.history.emptyTitle')}
                   </strong>
 
                   <p>
-                    Όταν χρειαστείς βοήθεια,
-                    δημιούργησε νέο ticket.
+                    {t('proSupport.history.emptyText')}
                   </p>
 
                 </div>
@@ -599,13 +605,17 @@ export default function ProfessionalSupport({
                             }
                           >
                             {statusLabel(
-                              ticket.status
+                              ticket.status,
+                              t
                             )}
                           </span>
 
                           <time>
                             {dateLabel(
-                              ticket.updatedAt
+                              ticket.updatedAt,
+                              i18n.resolvedLanguage==='en'
+                                ? 'en-GB'
+                                : 'el-GR'
                             )}
                           </time>
                         </div>
@@ -642,7 +652,7 @@ export default function ProfessionalSupport({
                     onClick={
                       ()=>setMobileThread(false)
                     }
-                    aria-label="Πίσω στα αιτήματα"
+                    aria-label={t('proSupport.thread.back')}
                   >
                     ←
                   </button>
@@ -656,7 +666,8 @@ export default function ProfessionalSupport({
                       }
                     >
                       {statusLabel(
-                        selected.status
+                        selected.status,
+                        t
                       )}
                     </span>
 
@@ -669,7 +680,10 @@ export default function ProfessionalSupport({
                        'general'}
                       {' · '}
                       {dateLabel(
-                        selected.createdAt
+                        selected.createdAt,
+                        i18n.resolvedLanguage==='en'
+                          ? 'en-GB'
+                          : 'el-GR'
                       )}
                     </small>
 
@@ -701,7 +715,7 @@ export default function ProfessionalSupport({
 
                             <span>
                               {mine
-                                ? 'Εσύ'
+                                ? t('proSupport.thread.you')
                                 : item.fromName ||
                                   'MELEO Support'}
                             </span>
@@ -712,7 +726,10 @@ export default function ProfessionalSupport({
 
                             <time>
                               {dateLabel(
-                                item.createdAt
+                                item.createdAt,
+                                i18n.resolvedLanguage==='en'
+                                  ? 'en-GB'
+                                  : 'el-GR'
                               )}
                             </time>
 
@@ -739,7 +756,7 @@ export default function ProfessionalSupport({
                               event.target.value
                             )
                         }
-                        placeholder="Γράψε απάντηση…"
+                        placeholder={t('proSupport.thread.replyPlaceholder')}
                       />
 
                       <button
@@ -752,7 +769,7 @@ export default function ProfessionalSupport({
                       >
                         {busy
                           ? '…'
-                          : 'Αποστολή'}
+                          : t('proSupport.actions.send')}
                       </button>
 
                     </div>
@@ -763,8 +780,7 @@ export default function ProfessionalSupport({
                         ✓
                       </span>
 
-                      Το ticket έχει κλείσει από
-                      την ομάδα υποστήριξης.
+                      {t('proSupport.thread.closedText')}
 
                     </div>
                 }
@@ -778,12 +794,11 @@ export default function ProfessionalSupport({
                 </span>
 
                 <strong>
-                  Επίλεξε ένα αίτημα
+                  {t('proSupport.thread.selectTitle')}
                 </strong>
 
                 <p>
-                  Το ιστορικό της συζήτησης θα
-                  εμφανιστεί εδώ.
+                  {t('proSupport.thread.selectText')}
                 </p>
 
               </div>
