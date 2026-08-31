@@ -1,5 +1,24 @@
 import { spawn, spawnSync } from 'node:child_process'
 
+/*
+ * Render staging launcher refuses production explicitly.
+ * This prevents a staging startup command from becoming an
+ * accidental production entry point through dashboard/config drift.
+ */
+if (
+  String(process.env.NODE_ENV || '')
+    .trim()
+    .toLowerCase() === 'production' ||
+  String(process.env.MELEO_DEPLOYMENT_ENV || '')
+    .trim()
+    .toLowerCase() === 'production'
+) {
+  console.error(
+    '[MELEO Render staging] REFUSED: staging launcher cannot run production.'
+  )
+  process.exit(1)
+}
+
 const children = []
 let stopping = false
 
