@@ -1536,15 +1536,15 @@ const smartMatchNeedsAttention=
         <div className="value-financial">
 
           <div>
-            <small>Αξία ολοκληρωμένων επισκέψεων</small>
+            <small>{t('professionalGrowth.value.completedValue')}</small>
             <strong>{money(income)}</strong>
             <span>
-              Με βάση τις τιμές των completed bookings.
+              {t('professionalGrowth.value.completedValueNote')}
             </span>
           </div>
 
           <div>
-            <small>Μηνιαία συνδρομή</small>
+            <small>{t('professionalGrowth.value.monthlySubscription')}</small>
             <strong>{money(subscriptionCost)}</strong>
             <span>
               {(professional?.subscriptionPlan||'—').toUpperCase()}
@@ -1552,7 +1552,7 @@ const smartMatchNeedsAttention=
           </div>
 
           <div className="roi-box">
-            <small>Αναλογία αξίας / συνδρομής</small>
+            <small>{t('professionalGrowth.value.roi')}</small>
 
             <strong>
               {roi>0
@@ -1561,7 +1561,7 @@ const smartMatchNeedsAttention=
             </strong>
 
             <span>
-              Δεν αποτελεί εγγύηση μελλοντικού εισοδήματος.
+              {t('professionalGrowth.value.roiDisclaimer')}
             </span>
           </div>
 
@@ -1571,19 +1571,19 @@ const smartMatchNeedsAttention=
 
           <span>
             <small>DISCOVERY</small>
-            Εμφάνιση → Προφίλ
+            {t('professionalGrowth.value.discovery')}
             <b>{impressionToProfile}%</b>
           </span>
 
           <span>
             <small>INTENT</small>
-            Προφίλ → Επικοινωνία
+            {t('professionalGrowth.value.intent')}
             <b>{profileToContact}%</b>
           </span>
 
           <span>
             <small>CONVERSION</small>
-            Αίτημα → Πελάτης
+            {t('professionalGrowth.value.conversion')}
             <b>{requestToClient}%</b>
           </span>
 
@@ -1596,7 +1596,7 @@ const smartMatchNeedsAttention=
         <div className="command-panel-head">
           <div>
             <small>MELEO INSIGHTS</small>
-            <h3>Τι μπορείς να κάνεις τώρα</h3>
+            <h3>{t('professionalGrowth.insightsTitle')}</h3>
           </div>
         </div>
 
