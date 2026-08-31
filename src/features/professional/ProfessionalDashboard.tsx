@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../../lib/api'
 import { serviceMap, specialtyOptions } from '../../domain/catalog'
 import type { Booking, Plan } from '../../domain/types'
@@ -147,6 +148,7 @@ function professionalTabFromLocation(){
     : 'overview'
 }
 function ProfessionalDashboard({user,professional,token,onRefresh,setToast,cfg,setView}:any){
+  const {t,i18n}=useTranslation()
 
   const [bookings,setBookings]=useState<Booking[]>([])
   const [analytics,setAnalytics]=useState<any>(null)
@@ -353,17 +355,17 @@ if(
   catch(e:any){
     setToast(
       e.message||
-      'Η αποστολή μηνύματος απέτυχε.'
+      t('professionalDashboard.toast.messageFailed')
     )
   }
   finally{
     setMessageSending(false)
   }
 }
- async function status(id:string,s:string,agreedPrice?:number){await api('/bookings/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:s,agreedPrice})},token);refresh();setToast(s==='accepted'?'Η επίσκεψη επιβεβαιώθηκε':'Η κατάσταση ενημερώθηκε')}
- async function saveProfile(){const payload={...form,price:Number(form.price),years:Number(form.years),services:typeof form.services==='string'?form.services.split(',').map((x:string)=>x.trim()).filter(Boolean):form.services,availability:typeof form.availability==='string'?form.availability.split(',').map((x:string)=>x.trim()).filter(Boolean):form.availability};await api('/professional/profile',{method:'PUT',body:JSON.stringify(payload)},token);await onRefresh();setToast('Το προφίλ ενημερώθηκε')}
- async function uploadVerificationFile(file:File){try{setUploadBusy(true);const dataBase64=await fileToBase64(file);const d=await api('/professional/verification-document',{method:'POST',body:JSON.stringify({name:file.name,data:dataBase64})},token);setDocs((x:any[])=>[...x,d]);setToast('Το δικαιολογητικό ανέβηκε κρυπτογραφημένο.')}catch(e:any){setToast(e.message)}finally{setUploadBusy(false)}}
- async function verifyReq(){try{await api('/professional/verification',{method:'POST',body:JSON.stringify(vr)},token);setToast('Το αίτημα επαλήθευσης καταχωρήθηκε')}catch(e:any){setToast(e.message)}}
+ async function status(id:string,s:string,agreedPrice?:number){await api('/bookings/'+id+'/status',{method:'PATCH',body:JSON.stringify({status:s,agreedPrice})},token);refresh();setToast(s==='accepted'?t('professionalDashboard.toast.visitConfirmed'):t('professionalDashboard.toast.statusUpdated'))}
+ async function saveProfile(){const payload={...form,price:Number(form.price),years:Number(form.years),services:typeof form.services==='string'?form.services.split(',').map((x:string)=>x.trim()).filter(Boolean):form.services,availability:typeof form.availability==='string'?form.availability.split(',').map((x:string)=>x.trim()).filter(Boolean):form.availability};await api('/professional/profile',{method:'PUT',body:JSON.stringify(payload)},token);await onRefresh();setToast(t('professionalDashboard.toast.profileUpdated'))}
+ async function uploadVerificationFile(file:File){try{setUploadBusy(true);const dataBase64=await fileToBase64(file);const d=await api('/professional/verification-document',{method:'POST',body:JSON.stringify({name:file.name,data:dataBase64})},token);setDocs((x:any[])=>[...x,d]);setToast(t('professionalDashboard.toast.documentUploaded'))}catch(e:any){setToast(e.message)}finally{setUploadBusy(false)}}
+ async function verifyReq(){try{await api('/professional/verification',{method:'POST',body:JSON.stringify(vr)},token);setToast(t('professionalDashboard.toast.verificationSubmitted'))}catch(e:any){setToast(e.message)}}
  const income=bookings.filter(b=>b.status==='completed').reduce((a,b)=>a+Number(b.agreedPrice??b.price??0),0)
  const completion=(()=>{const f=[professional?.title,professional?.specialty,professional?.city,professional?.bio,(professional?.services||[]).length,(professional?.availability||[]).length,professional?.years,professional?.verified];return Math.round(f.filter(Boolean).length/f.length*100)})()
  const messageBookings=
@@ -425,15 +427,18 @@ const activeConversation=
   activeConversation?.messages?.length
 ])
  if(!professional || !['active','past_due'].includes(professional.subscriptionStatus) || !professional.onboardingCompleted) return <ProfessionalOnboarding user={user} professional={professional} token={token} onRefresh={onRefresh} setToast={setToast} cfg={cfg}/>
- return <section className="dashboard-pro"><div className="pro-sidebar"><Mark/><div className="pro-user"><div className="avatar">{initials(user.name)}</div><div><b>{user.name}</b><small>{professional?.verified?'✓ Verified':'Αναμονή επαλήθευσης'}</small></div></div><nav>{[['overview','⌂','Επισκόπηση'],
- ['requests','◇','Αιτήματα'],
- ['messages','💬','Μηνύματα'],
- ['profile','○','Προφίλ'],
- ['availability','◷','Διαθεσιμότητα'],['reputation','★','Αξιολογήσεις & Φήμη'],
- ['subscription','◆','Συνδρομή'],
- ['verification','✓','Επαλήθευση'],
- ['notifications','🔔','Ειδοποιήσεις'],
- ['support','?','Υποστήριξη']]
+ return <section className="dashboard-pro"><div className="pro-sidebar"><Mark/><div className="pro-user"><div className="avatar">{initials(user.name)}</div><div><b>{user.name}</b><small>{professional?.verified?'✓ Verified':t('professionalDashboard.sidebar.pendingVerification')}</small></div></div><nav>{[
+ ['overview','⌂',t('professionalDashboard.tabs.overview')],
+ ['requests','◇',t('professionalDashboard.tabs.requests')],
+ ['messages','💬',t('professionalDashboard.tabs.messages')],
+ ['profile','○',t('professionalDashboard.tabs.profile')],
+ ['availability','◷',t('professionalDashboard.tabs.availability')],
+ ['reputation','★',t('professionalDashboard.tabs.reputation')],
+ ['subscription','◆',t('professionalDashboard.tabs.subscription')],
+ ['verification','✓',t('professionalDashboard.tabs.verification')],
+ ['notifications','🔔',t('professionalDashboard.tabs.notifications')],
+ ['support','?',t('professionalDashboard.tabs.support')]
+]
 .map(x=>
   <button
     key={x[0]}
@@ -441,9 +446,7 @@ const activeConversation=
     onClick={()=>setTab(x[0])}
   >
     <span>{x[1]}</span>
-
     {x[2]}
-
     {x[0]==='requests'&&
       bookings.filter(
         b=>['pending','clarification'].includes(b.status)
@@ -454,38 +457,33 @@ const activeConversation=
         ).length}
       </i>
     }
-
     {x[0]==='messages'&&messageUnreadTotal>0&&
       <i>
-        {messageUnreadTotal>99
-          ? '99+'
-          : messageUnreadTotal
-        }
+        {messageUnreadTotal>99 ? '99+' : messageUnreadTotal}
       </i>
     }
-
   </button>
 )}
-</nav><button className="pro-personal-care-link" onClick={()=>setView('patient-dashboard')}>♡ <span>Οι προσωπικές μου κρατήσεις</span></button><small className="side-version">MELEO Professional v{APP_VERSION}</small></div><div className="pro-content"><VerifyEmailBanner user={user} token={token} cfg={cfg} setToast={setToast}/>{professional?.subscriptionStatus==='past_due'&&<div className="alert-banner">Η τελευταία χρέωση της συνδρομής απέτυχε. Ενημέρωσε τον τρόπο πληρωμής από τη «Συνδρομή», ώστε το προφίλ σου να μη απενεργοποιηθεί.</div>}{professional?.cancelAtPeriodEnd&&<div className="alert-banner soft">Η συνδρομή έχει προγραμματιστεί για ακύρωση{professional?.currentPeriodEnd?` στις ${new Date(professional.currentPeriodEnd).toLocaleDateString('el-GR')}`:''}.</div>}<div className="pro-top"><div><small>PROFESSIONAL SPACE</small><h2>{
+</nav><button className="pro-personal-care-link" onClick={()=>setView('patient-dashboard')}>♡ <span>{t('professionalDashboard.sidebar.personalBookings')}</span></button><small className="side-version">MELEO Professional v{APP_VERSION}</small></div><div className="pro-content"><VerifyEmailBanner user={user} token={token} cfg={cfg} setToast={setToast}/>{professional?.subscriptionStatus==='past_due'&&<div className="alert-banner">{t('professionalDashboard.alerts.pastDue')}</div>}{professional?.cancelAtPeriodEnd&&<div className="alert-banner soft">{t('professionalDashboard.alerts.cancelScheduled')}{professional?.currentPeriodEnd?t('professionalDashboard.alerts.onDate',{date:new Date(professional.currentPeriodEnd).toLocaleDateString(i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}):''}.</div>}<div className="pro-top"><div><small>PROFESSIONAL SPACE</small><h2>{
   tab==='overview'
-    ? 'Επισκόπηση'
+    ? t('professionalDashboard.headings.overview')
     : tab==='requests'
-      ? 'Αιτήματα επισκέψεων'
+      ? t('professionalDashboard.headings.requests')
       : tab==='messages'
-        ? 'Μηνύματα'
+        ? t('professionalDashboard.headings.messages')
         : tab==='profile'
-          ? 'Επαγγελματικό προφίλ'
+          ? t('professionalDashboard.headings.profile')
           : tab==='availability'
-            ? 'Διαθεσιμότητα'
+            ? t('professionalDashboard.headings.availability')
             : tab==='reputation'
-              ? 'Αξιολογήσεις & Φήμη'
+              ? t('professionalDashboard.headings.reputation')
               : tab==='subscription'
-              ? 'Συνδρομή MELEO'
+              ? t('professionalDashboard.headings.subscription')
               : tab==='notifications'
-                ? 'Ειδοποιήσεις'
+                ? t('professionalDashboard.headings.notifications')
                 : tab==='support'
-                  ? 'Υποστήριξη'
-                  : 'Επαλήθευση στοιχείων'
+                  ? t('professionalDashboard.headings.support')
+                  : t('professionalDashboard.headings.verification')
 }</h2>
 </div><div className="status-pill"><i/> {professional?.verified?'Verified':'Pending verification'}</div>
  </div>{tab==='overview'&&<>
@@ -510,14 +508,14 @@ const activeConversation=
           </small>
 
           <h3>
-            Πρόσφατα αιτήματα
+            {t('professionalDashboard.overview.recentRequests')}
           </h3>
         </div>
 
         <button
           onClick={()=>setTab('requests')}
         >
-          Προβολή όλων
+          {t('professionalDashboard.overview.viewAll')}
         </button>
       </div>
 
@@ -536,8 +534,8 @@ const activeConversation=
             )
 
         : <Empty
-            title="Δεν υπάρχουν αιτήματα ακόμη"
-            text="Μόλις κάποιος χρήστης σε επιλέξει, το αίτημα θα εμφανιστεί εδώ."
+            title={t('professionalDashboard.overview.emptyTitle')}
+            text={t('professionalDashboard.overview.emptyText')}
           />
       }
 
@@ -566,7 +564,7 @@ const activeConversation=
     onUnreadRefresh={refreshMessageUnread}
     setToast={setToast}
   />
-}{tab==='profile'&&<div className="panel form-panel"><div className="form-grid"><label>Επαγγελματικός τίτλος<input value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>Ειδικότητα<select value={form.specialty||'Νοσηλευτική'} onChange={e=>setForm({...form,specialty:e.target.value})}>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></label><ProfessionalLocationEditor form={form} setForm={setForm}/><label>Εμφάνιση κόστους<select value={form.pricingMode||'from'} onChange={e=>setForm({...form,pricingMode:e.target.value})}><option value="from">Ναι · Από βασικό κόστος επίσκεψης</option><option value="contact">Όχι · Κατόπιν επικοινωνίας</option></select></label>{form.pricingMode!=='contact'&&<label>Βασικό κόστος απλής επίσκεψης (€)<input type="number" min="0" value={form.price||''} onChange={e=>setForm({...form,price:e.target.value})}/></label>}<div className="full contact-privacy-card"><b>Δημόσια στοιχεία επικοινωνίας</b><p className="muted">Εσύ αποφασίζεις ποια προσωπικά στοιχεία εμφανίζονται στο δημόσιο προφίλ σου.</p><label className="consent-row"><input type="checkbox" checked={form.showPhone!==false} onChange={e=>setForm({...form,showPhone:e.target.checked})}/><span>Εμφάνιση τηλεφώνου / κουμπιού κλήσης</span></label><label className="consent-row"><input type="checkbox" checked={form.showEmail!==false} onChange={e=>setForm({...form,showEmail:e.target.checked})}/><span>Εμφάνιση email</span></label><label className="consent-row"><input type="checkbox" checked={Boolean(form.preferPlatformContact)} onChange={e=>setForm({...form,preferPlatformContact:e.target.checked})}/><span>Προτιμώ επικοινωνία μέσω MELEO</span></label></div><div className="full notice">Το ποσό εμφανίζεται ως <b>«Από Χ€»</b>. Το τελικό κόστος συμφωνείται τηλεφωνικά με τον πελάτη ανάλογα με τις πραγματικές ανάγκες της επίσκεψης.</div><label>Έτη εμπειρίας<input type="number" value={form.years||''} onChange={e=>setForm({...form,years:e.target.value})}/></label><label className="full">Σύντομο βιογραφικό<textarea value={form.bio||''} onChange={e=>setForm({...form,bio:e.target.value})}/></label><label className="full">Υπηρεσίες που παρέχεις (χωρισμένες με κόμμα)<input value={Array.isArray(form.services)?form.services.join(', '):form.services||''} onChange={e=>setForm({...form,services:e.target.value})}/></label></div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση προφίλ</button></div>}{tab==='availability'&&
+}{tab==='profile'&&<div className="panel form-panel"><div className="form-grid"><label>{t('professionalDashboard.profile.title')}<input value={form.title||''} onChange={e=>setForm({...form,title:e.target.value})}/></label><label>{t('professionalDashboard.profile.specialty')}<select value={form.specialty||'Νοσηλευτική'} onChange={e=>setForm({...form,specialty:e.target.value})}>{specialtyOptions.map(x=><option key={x}>{x}</option>)}</select></label><ProfessionalLocationEditor form={form} setForm={setForm}/><label>{t('professionalDashboard.profile.pricingMode')}<select value={form.pricingMode||'from'} onChange={e=>setForm({...form,pricingMode:e.target.value})}><option value="from">{t('professionalDashboard.profile.pricingFrom')}</option><option value="contact">{t('professionalDashboard.profile.pricingContact')}</option></select></label>{form.pricingMode!=='contact'&&<label>{t('professionalDashboard.profile.basePrice')}<input type="number" min="0" value={form.price||''} onChange={e=>setForm({...form,price:e.target.value})}/></label>}<div className="full contact-privacy-card"><b>{t('professionalDashboard.profile.publicContactTitle')}</b><p className="muted">{t('professionalDashboard.profile.publicContactBody')}</p><label className="consent-row"><input type="checkbox" checked={form.showPhone!==false} onChange={e=>setForm({...form,showPhone:e.target.checked})}/><span>{t('professionalDashboard.profile.showPhone')}</span></label><label className="consent-row"><input type="checkbox" checked={form.showEmail!==false} onChange={e=>setForm({...form,showEmail:e.target.checked})}/><span>{t('professionalDashboard.profile.showEmail')}</span></label><label className="consent-row"><input type="checkbox" checked={Boolean(form.preferPlatformContact)} onChange={e=>setForm({...form,preferPlatformContact:e.target.checked})}/><span>{t('professionalDashboard.profile.preferMeleo')}</span></label></div><div className="full notice">Το ποσό εμφανίζεται ως <b>«Από Χ€»</b>. Το τελικό κόστος συμφωνείται τηλεφωνικά με τον πελάτη ανάλογα με τις πραγματικές ανάγκες της επίσκεψης.</div><label>Έτη εμπειρίας<input type="number" value={form.years||''} onChange={e=>setForm({...form,years:e.target.value})}/></label><label className="full">Σύντομο βιογραφικό<textarea value={form.bio||''} onChange={e=>setForm({...form,bio:e.target.value})}/></label><label className="full">Υπηρεσίες που παρέχεις (χωρισμένες με κόμμα)<input value={Array.isArray(form.services)?form.services.join(', '):form.services||''} onChange={e=>setForm({...form,services:e.target.value})}/></label></div><button className="btn btn-dark" onClick={saveProfile}>Αποθήκευση προφίλ</button></div>}{tab==='availability'&&
   <ProfessionalAvailability
     availability={
       Array.isArray(form.availability)
