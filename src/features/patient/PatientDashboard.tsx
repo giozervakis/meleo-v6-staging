@@ -1313,8 +1313,8 @@ onClick={e=>{
                 )
 
               : <Empty
-                  title="Δεν έχεις ακόμη κρατήσεις"
-                  text="Η επόμενη φροντίδα σου απέχει λίγα clicks."
+                  title={t('patient.emptyBookings.title')}
+                  text={t('patient.emptyBookings.text')}
                 />
             }
  </div>
