@@ -560,6 +560,35 @@ proSupport:{
  thread:{back:'Πίσω στα αιτήματα',you:'Εσύ',replyPlaceholder:'Γράψε απάντηση…',closedText:'Το ticket έχει κλείσει από την ομάδα υποστήριξης.',selectTitle:'Επίλεξε ένα αίτημα',selectText:'Το ιστορικό της συζήτησης θα εμφανιστεί εδώ.'}
 },
 proBilling:{
+residue:{
+features:{
+ publicProfile:'Δημόσιο επαγγελματικό προφίλ',
+ requests:'Αιτήματα και διαχείριση κρατήσεων',
+ area:'Περιοχή & ακτίνα εξυπηρέτησης',
+ stats:'Βασικά στατιστικά',
+ allBasic:'Όλα τα BASIC',
+ priority:'Προτεραιότητα στην κατάταξη αποτελεσμάτων',
+ recommendedBadge:'Σήμανση «Προτεινόμενος»'
+},
+status:{
+ active:'Ενεργή',
+ pastDue:'Εκκρεμεί πληρωμή',
+ cancelled:'Ακυρωμένη',
+ pending:'Σε εκκρεμότητα',
+ none:'Χωρίς συνδρομή',
+ unpaid:'Απαιτείται πληρωμή',
+ trialing:'Δοκιμαστική'
+},
+invoice:{
+ paid:'Πληρωμένο',
+ pending:'Σε εκκρεμότητα',
+ cancelled:'Ακυρωμένο',
+ failed:'Απέτυχε'
+},
+until:'Μέχρι',
+recommended:'ΠΡΟΤΕΙΝΟΜΕΝΟ'
+},
+
  errors:{load:'Δεν ήταν δυνατή η φόρτωση των στοιχείων χρέωσης.',action:'Η ενέργεια δεν ολοκληρώθηκε.'},
  confirmCancel:'Να προγραμματιστεί η ακύρωση της συνδρομής στο τέλος της τρέχουσας περιόδου;',
  toast:{changeScheduled:'Η αλλαγή σε {{plan}} προγραμματίστηκε για την επόμενη ανανέωση.',changed:'Το πακέτο ενημερώθηκε σε {{plan}}.',cancelScheduled:'Η ακύρωση της συνδρομής προγραμματίστηκε.',resumed:'Η συνδρομή συνεχίζεται κανονικά.',downgradeCancelled:'Η προγραμματισμένη αλλαγή ακυρώθηκε. Παραμένεις PREMIUM.'},
@@ -1414,6 +1443,35 @@ proSupport:{
  thread:{back:'Back to requests',you:'You',replyPlaceholder:'Write a reply…',closedText:'The ticket has been closed by the support team.',selectTitle:'Select a request',selectText:'The conversation history will appear here.'}
 },
 proBilling:{
+residue:{
+features:{
+ publicProfile:'Public professional profile',
+ requests:'Requests and booking management',
+ area:'Service area and radius',
+ stats:'Basic statistics',
+ allBasic:'Everything in BASIC',
+ priority:'Priority in search result ranking',
+ recommendedBadge:'Recommended badge'
+},
+status:{
+ active:'Active',
+ pastDue:'Payment pending',
+ cancelled:'Cancelled',
+ pending:'Pending',
+ none:'No subscription',
+ unpaid:'Payment required',
+ trialing:'Trial'
+},
+invoice:{
+ paid:'Paid',
+ pending:'Pending',
+ cancelled:'Cancelled',
+ failed:'Failed'
+},
+until:'Until',
+recommended:'RECOMMENDED'
+},
+
  errors:{load:'Billing details could not be loaded.',action:'The action could not be completed.'},
  confirmCancel:'Schedule subscription cancellation at the end of the current period?',
  toast:{changeScheduled:'The change to {{plan}} is scheduled for the next renewal.',changed:'Your plan was updated to {{plan}}.',cancelScheduled:'Subscription cancellation was scheduled.',resumed:'Your subscription will continue normally.',downgradeCancelled:'The scheduled change was cancelled. You remain on PREMIUM.'},

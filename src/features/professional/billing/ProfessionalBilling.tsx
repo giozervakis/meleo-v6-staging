@@ -44,31 +44,33 @@ type Props={
   cfg:any
 }
 
-const FALLBACK_PLANS:BillingPlan[]=[
-  {
-    id:'basic',
-    name:'BASIC',
-    price:9.99,
-    features:[
-      'Δημόσιο επαγγελματικό προφίλ',
-      'Αιτήματα και διαχείριση κρατήσεων',
-      'Περιοχή & ακτίνα εξυπηρέτησης',
-      'Βασικά στατιστικά'
-    ]
-  },
-  {
-    id:'premium',
-    name:'PREMIUM',
-    price:14.99,
-    recommended:true,
-    features:[
-      'Όλα τα BASIC',
-      'Προτεραιότητα στην κατάταξη αποτελεσμάτων',
-      'Σήμανση «Προτεινόμενος»',
-      'Advanced profile analytics'
-    ]
-  }
-]
+function fallbackPlans(t:any):BillingPlan[]{
+  return [
+    {
+      id:'basic',
+      name:'BASIC',
+      price:9.99,
+      features:[
+        t('proBilling.residue.features.publicProfile'),
+        t('proBilling.residue.features.requests'),
+        t('proBilling.residue.features.area'),
+        t('proBilling.residue.features.stats')
+      ]
+    },
+    {
+      id:'premium',
+      name:'PREMIUM',
+      price:14.99,
+      recommended:true,
+      features:[
+        t('proBilling.residue.features.allBasic'),
+        t('proBilling.residue.features.priority'),
+        t('proBilling.residue.features.recommendedBadge'),
+        'Advanced profile analytics'
+      ]
+    }
+  ]
+}
 
 function money(value:any){
   return new Intl.NumberFormat(
@@ -99,34 +101,34 @@ function dateLabel(value?:string|null,locale='el-GR'){
   )
 }
 
-function statusLabel(value?:string|null){
+function statusLabel(value:string|null|undefined,t:any){
   const labels:Record<string,string>={
-    active:'Ενεργή',
-    past_due:'Εκκρεμεί πληρωμή',
-    cancelled:'Ακυρωμένη',
-    canceled:'Ακυρωμένη',
-    pending:'Σε εκκρεμότητα',
-    none:'Χωρίς συνδρομή',
-    incomplete:'Σε εκκρεμότητα',
-    unpaid:'Απαιτείται πληρωμή',
-    trialing:'Δοκιμαστική'
+    active:t('proBilling.residue.status.active'),
+    past_due:t('proBilling.residue.status.pastDue'),
+    cancelled:t('proBilling.residue.status.cancelled'),
+    canceled:t('proBilling.residue.status.cancelled'),
+    pending:t('proBilling.residue.status.pending'),
+    none:t('proBilling.residue.status.none'),
+    incomplete:t('proBilling.residue.status.pending'),
+    unpaid:t('proBilling.residue.status.unpaid'),
+    trialing:t('proBilling.residue.status.trialing')
   }
 
   return labels[String(value||'')]||String(value||'—')
 }
 
-function invoiceStatus(value?:string){
+function invoiceStatus(value:string|undefined,t:any){
   const normalized=String(value||'').toLowerCase()
 
   if(normalized==='paid'){
-    return 'Πληρωμένο'
+    return t('proBilling.residue.invoice.paid')
   }
 
   if(
     normalized==='open' ||
     normalized==='pending'
   ){
-    return 'Σε εκκρεμότητα'
+    return t('proBilling.residue.invoice.pending')
   }
 
   if(
@@ -134,14 +136,14 @@ function invoiceStatus(value?:string){
     normalized==='cancelled' ||
     normalized==='canceled'
   ){
-    return 'Ακυρωμένο'
+    return t('proBilling.residue.invoice.cancelled')
   }
 
   if(
     normalized==='failed' ||
     normalized==='unpaid'
   ){
-    return 'Απέτυχε'
+    return t('proBilling.residue.invoice.failed')
   }
 
   return value||'—'
@@ -199,9 +201,9 @@ export default function ProfessionalBilling({
 
       return configured.length
         ? configured
-        : FALLBACK_PLANS
+        : fallbackPlans(t)
     },
-    [cfg]
+    [cfg,t]
   )
 
   const current=
@@ -414,7 +416,7 @@ export default function ProfessionalBilling({
               }
             >
               <i/>
-              {statusLabel(status)}
+              {statusLabel(status,t)}
             </span>
 
             {cancelAtPeriodEnd&&
@@ -518,7 +520,7 @@ export default function ProfessionalBilling({
             </strong>
 
             <p>
-              Μέχρι {' '}
+              {t('proBilling.residue.until')} {' '}
               <b>{dateLabel(info.scheduledPlanEffectiveAt,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}</b>
               {' '}{t('proBilling.scheduledChange.text',{current:current.toUpperCase(),plan:String(info.scheduledPlan).toUpperCase()})}
             </p>
@@ -579,7 +581,7 @@ export default function ProfessionalBilling({
         <article>
           <span>{t('proBilling.facts.status')}</span>
           <strong>
-            {statusLabel(status)}
+            {statusLabel(status,t)}
           </strong>
           <small>
             {info?.stripeStatus
@@ -670,7 +672,7 @@ export default function ProfessionalBilling({
                       {selected
                         ? t('proBilling.currentPlan')
                         : plan.recommended
-                          ? 'ΠΡΟΤΕΙΝΟΜΕΝΟ'
+                          ? t('proBilling.residue.recommended')
                           : 'MELEO PROFESSIONAL'}
                     </span>
 
@@ -897,7 +899,7 @@ export default function ProfessionalBilling({
                           (paid?'paid':'other')
                         }
                       >
-                        {invoiceStatus(invoice.status)}
+                        {invoiceStatus(invoice.status,t)}
                       </span>
 
                       <span className="invoice-action">
