@@ -721,7 +721,9 @@ export function SmartRequest({
             <button
               onClick={() =>
                 setText(
-                  'Η μητέρα μου έκανε επέμβαση ισχίου και χρειάζεται βοήθεια στην αποκατάσταση'
+                  t(
+                    'homeExperience.smart.examples.hip'
+                  )
                 )
               }
             >
@@ -733,7 +735,9 @@ export function SmartRequest({
             <button
               onClick={() =>
                 setText(
-                  'Χρειάζομαι νοσηλευτή για αντιβίωση πρωί και βράδυ για μία εβδομάδα'
+                  t(
+                    'homeExperience.smart.examples.treatment'
+                  )
                 )
               }
             >
@@ -745,7 +749,9 @@ export function SmartRequest({
             <button
               onClick={() =>
                 setText(
-                  'Θέλω να χάσω κιλά και χρειάζομαι πρόγραμμα διατροφής'
+                  t(
+                    'homeExperience.smart.examples.weight'
+                  )
                 )
               }
             >

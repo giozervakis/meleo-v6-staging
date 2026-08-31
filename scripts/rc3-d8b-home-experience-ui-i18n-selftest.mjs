@@ -82,7 +82,7 @@ need(
 
 need(
   app.includes(
-    "'Η μητέρα μου έκανε επέμβαση ισχίου και χρειάζεται βοήθεια στην αποκατάσταση'"
+    "'homeExperience.smart.examples.hip'"
   ),
   'Smart Request functional example query changed'
 )
