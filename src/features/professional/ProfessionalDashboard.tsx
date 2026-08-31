@@ -604,6 +604,7 @@ function ProfessionalPerformance({
   income,
   setTab
 }:any){
+  const {t}=useTranslation()
 
   const a=analytics||{
     impressions:0,
@@ -733,8 +734,8 @@ const smartMatchFactors=[
       Number(d.verified?.max||6)
     ),
     note:d.verified?.active
-      ? 'Η επαληθευμένη επαγγελματική ιδιότητα προσθέτει το μέγιστο σχετικό σήμα.'
-      : 'Η ολοκλήρωση της επαλήθευσης ενισχύει το Smart Match.'
+      ? t('professionalGrowth.factors.verifiedActive')
+      : t('professionalGrowth.factors.verifiedInactive')
   },
 
   {
@@ -751,13 +752,13 @@ const smartMatchFactors=[
         )
       : 'building',
     note:d.trust?.eligible
-      ? `Trust Score ${d.trust?.score||0}/100 · συμμετέχει κανονικά στο matching.`
-      : 'Νέος επαγγελματίας: εφαρμόζεται ουδέτερο Trust fallback ώστε να μη θάβεται λόγω έλλειψης ιστορικού.'
+      ? t('professionalGrowth.factors.trustEligible',{score:d.trust?.score||0})
+      : t('professionalGrowth.factors.trustFallback')
   },
 
   {
     key:'rating',
-    label:'Ποιότητα αξιολόγησης',
+    label:t('professionalGrowth.factors.ratingLabel'),
     icon:'★',
     value:smartDiagnostics
       ? `${Number(d.rating?.points||0).toFixed(1)} / ${d.rating?.max||14}`
@@ -767,13 +768,13 @@ const smartMatchFactors=[
       Number(d.rating?.max||14)
     ),
     note:d.rating?.reviews
-      ? `${Number(d.rating?.rating||0).toFixed(1)}/5 από ${d.rating.reviews} αξιολογήσεις.`
-      : 'Τα νέα προφίλ λαμβάνουν ουδέτερη αρχική βαθμολόγηση rating.'
+      ? t('professionalGrowth.factors.ratingReviews',{rating:Number(d.rating?.rating||0).toFixed(1),reviews:d.rating.reviews})
+      : t('professionalGrowth.factors.ratingFallback')
   },
 
   {
     key:'reviews',
-    label:'Εμπιστοσύνη αξιολογήσεων',
+    label:t('professionalGrowth.factors.reviewConfidenceLabel'),
     icon:'◎',
     value:smartDiagnostics
       ? `${Number(d.reviewConfidence?.points||0)} / ${d.reviewConfidence?.max||5}`
@@ -782,12 +783,12 @@ const smartMatchFactors=[
       Number(d.reviewConfidence?.points||0),
       Number(d.reviewConfidence?.max||5)
     ),
-    note:`${Number(d.reviewConfidence?.reviews||0)} verified αξιολογήσεις · όσο αυξάνεται το δείγμα, αυξάνεται και η εμπιστοσύνη του συστήματος.`
+    note:t('professionalGrowth.factors.reviewConfidenceNote',{reviews:Number(d.reviewConfidence?.reviews||0)})
   },
 
   {
     key:'availability',
-    label:'Διαθεσιμότητα',
+    label:t('professionalGrowth.factors.availabilityLabel'),
     icon:'⚡',
     value:smartDiagnostics
       ? `${Number(d.availability?.points||0)} / ${d.availability?.max||8}`
@@ -797,13 +798,13 @@ const smartMatchFactors=[
       Number(d.availability?.max||8)
     ),
     note:d.availability?.value
-      ? `Τρέχουσα ένδειξη: ${d.availability.value}`
-      : 'Ενημέρωσε τη διαθεσιμότητά σου για καλύτερη συνάφεια στις αναζητήσεις.'
+      ? t('professionalGrowth.factors.availabilityCurrent',{value:d.availability.value})
+      : t('professionalGrowth.factors.availabilityFallback')
   },
 
   {
     key:'response',
-    label:'Ταχύτητα ανταπόκρισης',
+    label:t('professionalGrowth.factors.responseLabel'),
     icon:'↗',
     value:smartDiagnostics
       ? `${Number(d.response?.points||0)} / ${d.response?.max||6}`
@@ -813,13 +814,13 @@ const smartMatchFactors=[
       Number(d.response?.max||6)
     ),
     note:d.response?.value
-      ? `Δηλωμένος χρόνος απόκρισης: ${d.response.value}`
-      : 'Η καταγεγραμμένη ταχύτητα ανταπόκρισης μπορεί να ενισχύσει το matching.'
+      ? t('professionalGrowth.factors.responseCurrent',{value:d.response.value})
+      : t('professionalGrowth.factors.responseFallback')
   },
 
   {
     key:'experience',
-    label:'Εμπειρία',
+    label:t('professionalGrowth.factors.experienceLabel'),
     icon:'◷',
     value:smartDiagnostics
       ? `${Number(d.experience?.points||0)} / ${d.experience?.max||3}`
@@ -829,8 +830,8 @@ const smartMatchFactors=[
       Number(d.experience?.max||3)
     ),
     note:d.experience?.years
-      ? `${d.experience.years} έτη επαγγελματικής εμπειρίας.`
-      : 'Πρόσθεσε τα έτη εμπειρίας στο επαγγελματικό προφίλ.'
+      ? t('professionalGrowth.factors.experienceYears',{years:d.experience.years})
+      : t('professionalGrowth.factors.experienceFallback')
   },
 
   {
@@ -846,8 +847,8 @@ const smartMatchFactors=[
       'premium'
     ),
     note:d.premium?.active
-      ? 'Ενεργό ελεγχόμενο εμπορικό boost. Δεν υπερισχύει ενός σημαντικά καλύτερου επαγγελματία.'
-      : 'Το BASIC συμμετέχει κανονικά στο Smart Match χωρίς εμπορικό boost.'
+      ? t('professionalGrowth.factors.premiumActive')
+      : t('professionalGrowth.factors.premiumFallback')
   }
 ]
 
@@ -886,27 +887,27 @@ const smartMatchNeedsAttention=
   const funnel=[
     {
       icon:'👁',
-      label:'Εμφανίσεις',
+      label:t('professionalGrowth.funnel.impressions'),
       value:impressions
     },
     {
       icon:'👤',
-      label:'Προφίλ',
+      label:t('professionalGrowth.funnel.profile'),
       value:profileViews
     },
     {
       icon:'📞',
-      label:'Τηλέφωνο',
+      label:t('professionalGrowth.funnel.phone'),
       value:phoneClicks
     },
     {
       icon:'💬',
-      label:'Αιτήματα',
+      label:t('professionalGrowth.funnel.requests'),
       value:requests
     },
     {
       icon:'✓',
-      label:'Πελάτες',
+      label:t('professionalGrowth.funnel.clients'),
       value:newClients
     }
   ]
@@ -918,7 +919,7 @@ const smartMatchNeedsAttention=
     impressionToProfile<10
   ){
     insights.push(
-      'Οι εμφανίσεις σου δεν μετατρέπονται ακόμη αρκετά σε επισκέψεις προφίλ. Δούλεψε τίτλο, βασική εικόνα και σαφήνεια υπηρεσιών.'
+      t('professionalGrowth.insights.impressions')
     )
   }
 
@@ -927,7 +928,7 @@ const smartMatchNeedsAttention=
     profileToContact<10
   ){
     insights.push(
-      'Υπάρχει ενδιαφέρον για το προφίλ σου, αλλά χαμηλή μετάβαση σε επικοινωνία. Έλεγξε τιμή, διαθεσιμότητα και περιγραφή υπηρεσιών.'
+      t('professionalGrowth.insights.contact')
     )
   }
 
@@ -936,49 +937,49 @@ const smartMatchNeedsAttention=
     requestToClient<30
   ){
     insights.push(
-      'Τα αιτήματα δεν μετατρέπονται ακόμη αρκετά σε ολοκληρωμένους πελάτες. Η γρήγορη απάντηση και οι σαφείς προτάσεις μπορούν να βοηθήσουν.'
+      t('professionalGrowth.insights.clients')
     )
   }
 
   if(completion<80){
     insights.push(
-      'Συμπλήρωσε περισσότερο το προφίλ σου για να αυξήσεις την εμπιστοσύνη των χρηστών.'
+      t('professionalGrowth.insights.completion')
     )
   }
 
   if(pending>0){
     insights.push(
-      `Έχεις ${pending} ${pending===1?'νέο αίτημα':'νέα αιτήματα'} που ${pending===1?'χρειάζεται':'χρειάζονται'} απάντηση.`
+      t(pending===1?'professionalGrowth.insights.pendingOne':'professionalGrowth.insights.pendingMany',{count:pending})
     )
   }
 
   if(clarification>0){
     insights.push(
-      `${clarification} ${clarification===1?'αίτημα περιμένει':'αιτήματα περιμένουν'} διευκρινίσεις.`
+      t(clarification===1?'professionalGrowth.insights.clarificationOne':'professionalGrowth.insights.clarificationMany',{count:clarification})
     )
   }
 
   if((a.profileViews||0)>0 && (a.requests||0)===0){
     insights.push(
-      'Έχεις επισκέψεις στο προφίλ αλλά ακόμη κανένα αίτημα. Έλεγξε περιγραφή, υπηρεσίες, τιμή και διαθεσιμότητα.'
+      t('professionalGrowth.insights.noRequests')
     )
   }
 
   if((professional?.reviews||0)<3){
     insights.push(
-      'Οι πρώτες αξιολογήσεις θα ενισχύσουν σημαντικά την κοινωνική απόδειξη του προφίλ σου.'
+      t('professionalGrowth.insights.reviews')
     )
   }
 
   if(professional?.subscriptionPlan==='premium'){
     insights.push(
-      'Το PREMIUM σου δίνει ελεγχόμενη εμπορική ενίσχυση στο Smart Match, χωρίς να αντικαθιστά Trust και ποιότητα.'
+      t('professionalGrowth.insights.premium')
     )
   }
 
   if(!insights.length){
     insights.push(
-      'Το προφίλ σου είναι σε καλή κατάσταση. Συνέχισε να απαντάς γρήγορα και να ολοκληρώνεις σωστά τις επισκέψεις.'
+      t('professionalGrowth.insights.healthy')
     )
   }
 
@@ -994,31 +995,29 @@ const smartMatchNeedsAttention=
           </span>
 
           <h2>
-            Δες πώς η παρουσία σου
-            <em> μετατρέπεται σε πελάτες.</em>
+            {t('professionalGrowth.hero.title')}
+            <em>{t('professionalGrowth.hero.titleEm')}</em>
           </h2>
 
           <p>
-            Πραγματική εικόνα της απόδοσής σου στη MELEO:
-            από την πρώτη εμφάνιση μέχρι την επικοινωνία,
-            το αίτημα και την ολοκληρωμένη συνεργασία.
+            {t('professionalGrowth.hero.intro')}
           </p>
 
           <div className="growth-hero-signals">
 
             <span>
               <b>{impressionToProfile}%</b>
-              εμφάνιση → προφίλ
+              {t('professionalGrowth.hero.impressionToProfile')}
             </span>
 
             <span>
               <b>{profileToContact}%</b>
-              προφίλ → ενδιαφέρον
+              {t('professionalGrowth.hero.profileToInterest')}
             </span>
 
             <span>
               <b>{requestToClient}%</b>
-              αίτημα → πελάτης
+              {t('professionalGrowth.hero.requestToClient')}
             </span>
 
           </div>
@@ -1038,19 +1037,19 @@ const smartMatchNeedsAttention=
 
             <p>
               {growthScore>=80
-                ? 'Ισχυρή παρουσία'
+                ? t('professionalGrowth.hero.strong')
                 : growthScore>=60
-                  ? 'Καλή δυναμική'
+                  ? t('professionalGrowth.hero.good')
                   : growthScore>=40
-                    ? 'Αναπτυσσόμενη παρουσία'
-                    : 'Χτίζεις τη δυναμική σου'}
+                    ? t('professionalGrowth.hero.growing')
+                    : t('professionalGrowth.hero.building')}
             </p>
 
           </div>
 
           <div className="command-plan">
 
-            <small>ΠΑΚΕΤΟ</small>
+            <small>{t('professionalGrowth.hero.plan')}</small>
 
             <strong>
               {(professional?.subscriptionPlan||'basic').toUpperCase()}
@@ -1058,7 +1057,7 @@ const smartMatchNeedsAttention=
 
             <span>
               {professional?.subscriptionStatus==='active'
-                ? '● Ενεργό'
+                ? t('professionalGrowth.hero.active')
                 : professional?.subscriptionStatus||'—'}
             </span>
 
@@ -1073,42 +1072,42 @@ const smartMatchNeedsAttention=
         <div className="command-metric">
           <span>👁</span>
           <strong>{Number(a.impressions||0).toLocaleString('el-GR')}</strong>
-          <b>Εμφανίσεις</b>
-          <small>στα αποτελέσματα</small>
+          <b>{t('professionalGrowth.metrics.impressions')}</b>
+          <small>{t('professionalGrowth.metrics.impressionsSub')}</small>
         </div>
 
         <div className="command-metric">
           <span>👤</span>
           <strong>{Number(a.profileViews||0).toLocaleString('el-GR')}</strong>
-          <b>Επισκέψεις προφίλ</b>
-          <small>πραγματικό ενδιαφέρον</small>
+          <b>{t('professionalGrowth.metrics.profileViews')}</b>
+          <small>{t('professionalGrowth.metrics.profileViewsSub')}</small>
         </div>
 
         <div className="command-metric">
           <span>📞</span>
           <strong>{Number(a.phoneClicks||0).toLocaleString('el-GR')}</strong>
-          <b>Πατήματα τηλεφώνου</b>
-          <small>άμεση επικοινωνία</small>
+          <b>{t('professionalGrowth.metrics.phoneClicks')}</b>
+          <small>{t('professionalGrowth.metrics.phoneClicksSub')}</small>
         </div>
 
         <div className="command-metric">
           <span>💬</span>
           <strong>{Number(a.requests||0).toLocaleString('el-GR')}</strong>
-          <b>Αιτήματα</b>
-          <small>μέσω MELEO</small>
+          <b>{t('professionalGrowth.metrics.requests')}</b>
+          <small>{t('professionalGrowth.metrics.requestsSub')}</small>
         </div>
 
         <div className="command-metric">
           <span>✅</span>
           <strong>{Number(a.newClients||0).toLocaleString('el-GR')}</strong>
-          <b>Νέοι πελάτες</b>
-          <small>με ολοκληρωμένη επίσκεψη</small>
+          <b>{t('professionalGrowth.metrics.clients')}</b>
+          <small>{t('professionalGrowth.metrics.clientsSub')}</small>
         </div>
 
         <div className="command-metric">
           <span>⭐</span>
           <strong>{analyticsReviews.toLocaleString('el-GR')}</strong>
-          <b>Αξιολογήσεις</b>
+          <b>{t('professionalGrowth.metrics.reviews')}</b>
           <small>verified bookings</small>
         </div>
 
@@ -1121,7 +1120,7 @@ const smartMatchNeedsAttention=
           <div className="command-panel-head">
             <div>
               <small>COMMAND CENTER</small>
-              <h3>Τι χρειάζεται την προσοχή σου</h3>
+              <h3>{t('professionalGrowth.attention.title')}</h3>
             </div>
 
             {(pending+clarification)>0&&
@@ -1139,11 +1138,11 @@ const smartMatchNeedsAttention=
             >
               <span>●</span>
               <div>
-                <b>{pending} νέα αιτήματα</b>
+                <b>{t('professionalGrowth.attention.pending',{count:pending})}</b>
                 <small>
                   {pending
-                    ? 'Χρειάζονται απάντηση'
-                    : 'Δεν υπάρχουν αιτήματα σε αναμονή'}
+                    ? t('professionalGrowth.attention.pendingNeeds')
+                    : t('professionalGrowth.attention.pendingNone')}
                 </small>
               </div>
               <em>→</em>
@@ -1152,8 +1151,8 @@ const smartMatchNeedsAttention=
             <button onClick={()=>setTab('requests')}>
               <span>●</span>
               <div>
-                <b>{clarification} διευκρινίσεις</b>
-                <small>Αιτήματα σε διάλογο</small>
+                <b>{t('professionalGrowth.attention.clarifications',{count:clarification})}</b>
+                <small>{t('professionalGrowth.attention.clarificationSub')}</small>
               </div>
               <em>→</em>
             </button>
@@ -1161,8 +1160,8 @@ const smartMatchNeedsAttention=
             <button onClick={()=>setTab('requests')}>
               <span>●</span>
               <div>
-                <b>{accepted} επιβεβαιωμένες</b>
-                <small>Προσεχείς επισκέψεις</small>
+                <b>{t('professionalGrowth.attention.accepted',{count:accepted})}</b>
+                <small>{t('professionalGrowth.attention.acceptedSub')}</small>
               </div>
               <em>→</em>
             </button>
@@ -1170,8 +1169,8 @@ const smartMatchNeedsAttention=
             <div className="command-action-static">
               <span>●</span>
               <div>
-                <b>{completed} ολοκληρωμένες</b>
-                <small>Συνολικές ολοκληρωμένες συνεργασίες</small>
+                <b>{t('professionalGrowth.attention.completed',{count:completed})}</b>
+                <small>{t('professionalGrowth.attention.completedSub')}</small>
               </div>
             </div>
 
@@ -1183,7 +1182,7 @@ const smartMatchNeedsAttention=
           <div className="command-panel-head">
             <div>
               <small>PROFILE HEALTH</small>
-              <h3>Ισχύς επαγγελματικού προφίλ</h3>
+              <h3>{t('professionalGrowth.profile.title')}</h3>
             </div>
           </div>
 
@@ -1205,22 +1204,21 @@ const smartMatchNeedsAttention=
             <div className="profile-health-copy">
               <b>
                 {completion>=90
-                  ? 'Εξαιρετικά συμπληρωμένο'
+                  ? t('professionalGrowth.profile.excellent')
                   : completion>=70
-                    ? 'Καλή βάση'
-                    : 'Χρειάζεται ενίσχυση'}
+                    ? t('professionalGrowth.profile.good')
+                    : t('professionalGrowth.profile.improve')}
               </b>
 
               <p>
-                Πληρέστερο προφίλ σημαίνει περισσότερη πληροφορία
-                για τον χρήστη πριν αποφασίσει.
+                {t('professionalGrowth.profile.body')}
               </p>
 
               <button
                 className="btn btn-outline"
                 onClick={()=>setTab('profile')}
               >
-                Βελτίωση προφίλ
+                {t('professionalGrowth.profile.improveAction')}
               </button>
             </div>
 
@@ -1234,7 +1232,7 @@ const smartMatchNeedsAttention=
 
             <span>
               <b>{professional?.rating||'—'}</b>
-              Αξιολόγηση
+              {t('professionalGrowth.profile.rating')}
             </span>
 
             <span>
@@ -1249,7 +1247,7 @@ const smartMatchNeedsAttention=
   <div className="command-panel-head">
     <div>
       <small>MELEO TRUST</small>
-      <h3>Αξιοπιστία επαγγελματία</h3>
+      <h3>{t('professionalGrowth.trust.title')}</h3>
     </div>
 
     {trust?.eligible&&
@@ -1271,8 +1269,7 @@ const smartMatchNeedsAttention=
           <div className="trust-dashboard-copy">
             <b>{trust.label}</b>
             <p>
-              Το MELEO Trust βασίζεται σε πραγματική δραστηριότητα,
-              ολοκληρώσεις, αξιολογήσεις και συνέπεια.
+              {t('professionalGrowth.trust.body')}
             </p>
           </div>
 
@@ -1281,22 +1278,22 @@ const smartMatchNeedsAttention=
         <div className="trust-dashboard-metrics">
 
           <div>
-            <small>Ολοκλήρωση</small>
+            <small>{t('professionalGrowth.trust.completion')}</small>
             <strong>{trust.completionRate}%</strong>
           </div>
 
           <div>
-            <small>Ανταπόκριση</small>
+            <small>{t('professionalGrowth.trust.response')}</small>
             <strong>{trust.responseRate}%</strong>
           </div>
 
           <div>
-            <small>Ολοκληρωμένες</small>
+            <small>{t('professionalGrowth.trust.completed')}</small>
             <strong>{trust.completed}</strong>
           </div>
 
           <div>
-            <small>Αξιολογήσεις</small>
+            <small>{t('professionalGrowth.trust.reviews')}</small>
             <strong>{trust.reviews}</strong>
           </div>
 
@@ -1310,11 +1307,10 @@ const smartMatchNeedsAttention=
           </div>
 
           <div>
-            <b>Το Trust Score χτίζεται</b>
+            <b>{t('professionalGrowth.trust.building')}</b>
 
             <p>
-              Για να ενεργοποιηθεί το MELEO Trust χρειάζονται
-              τουλάχιστον 5 ολοκληρωμένες συνεργασίες και 3 αξιολογήσεις.
+              {t('professionalGrowth.trust.buildingBody')}
             </p>
           </div>
 
@@ -1323,7 +1319,7 @@ const smartMatchNeedsAttention=
         <div className="trust-progress-grid">
 
           <div>
-            <small>Ολοκληρωμένες συνεργασίες</small>
+            <small>{t('professionalGrowth.trust.completedCollaborations')}</small>
 
             <strong>
               {trust?.completed||0}
@@ -1344,7 +1340,7 @@ const smartMatchNeedsAttention=
           </div>
 
           <div>
-            <small>Αξιολογήσεις</small>
+            <small>{t('professionalGrowth.trust.reviews')}</small>
 
             <strong>
               {trust?.reviews||0}
@@ -1377,10 +1373,9 @@ const smartMatchNeedsAttention=
 
     <div>
       <small>MELEO SMART MATCH</small>
-      <h3>Η δυναμική σου στο matching</h3>
+      <h3>{t('professionalGrowth.smart.title')}</h3>
       <p>
-        Οι παράγοντες που βοηθούν τη MELEO να προτείνει
-        τον κατάλληλο επαγγελματία στον κατάλληλο χρήστη.
+        {t('professionalGrowth.smart.intro')}
       </p>
     </div>
 
@@ -1388,12 +1383,12 @@ const smartMatchNeedsAttention=
 
       <div>
         <strong>{smartMatchStrong}</strong>
-        <span>ισχυρά σήματα</span>
+        <span>{t('professionalGrowth.smart.strongSignals')}</span>
       </div>
 
       <div className={smartMatchNeedsAttention?'attention':''}>
         <strong>{smartMatchNeedsAttention}</strong>
-        <span>για βελτίωση</span>
+        <span>{t('professionalGrowth.smart.improveSignals')}</span>
       </div>
 
     </div>
@@ -1418,7 +1413,7 @@ const smartMatchNeedsAttention=
       </strong>
 
       <p>
-        Οι σταθεροί παράγοντες του επαγγελματικού σου προφίλ.
+        {t('professionalGrowth.smart.profileSignals')}
       </p>
     </div>
 
@@ -1436,7 +1431,7 @@ const smartMatchNeedsAttention=
 
       <p>
         {smartDiagnostics.distance?.note||
-          'Υπολογίζεται ξεχωριστά σε κάθε αναζήτηση.'
+          t('professionalGrowth.smart.distanceFallback')
         }
       </p>
     </div>
@@ -1462,16 +1457,16 @@ const smartMatchNeedsAttention=
 
           <span className={`smart-match-state ${factor.status}`}>
             {factor.status==='strong'
-              ? 'ΙΣΧΥΡΟ'
+              ? t('professionalGrowth.smart.stateStrong')
               : factor.status==='good'
-                ? 'ΚΑΛΟ'
+                ? t('professionalGrowth.smart.stateGood')
                 : factor.status==='improve'
-                  ? 'ΒΕΛΤΙΩΣΗ'
+                  ? t('professionalGrowth.smart.stateImprove')
                   : factor.status==='building'
-                    ? 'ΧΤΙΖΕΤΑΙ'
+                    ? t('professionalGrowth.smart.stateBuilding')
                     : factor.status==='premium'
                       ? 'BOOST'
-                      : 'ΟΥΔΕΤΕΡΟ'}
+                      : t('professionalGrowth.smart.stateNeutral')}
           </span>
 
         </div>
@@ -1496,12 +1491,7 @@ const smartMatchNeedsAttention=
     <span>ⓘ</span>
 
     <p>
-      Το Smart Match δεν αγοράζεται.
-      Το PREMIUM παρέχει μόνο ελεγχόμενη εμπορική ενίσχυση.
-      Η συνάφεια, η απόσταση, το MELEO Trust,
-      οι αξιολογήσεις, η διαθεσιμότητα και η συμπεριφορά
-      ανταπόκρισης εξακολουθούν να καθορίζουν την ποιότητα
-      της αντιστοίχισης.
+      {t('professionalGrowth.smart.explainer')}
     </p>
 
   </div>
@@ -1513,10 +1503,10 @@ const smartMatchNeedsAttention=
         <div className="value-heading">
           <div>
             <small>MELEO VALUE</small>
-            <h3>Τι σου έχει αποφέρει η παρουσία σου</h3>
+            <h3>{t('professionalGrowth.value.title')}</h3>
           </div>
 
-          <span>πραγματικά δεδομένα</span>
+          <span>{t('professionalGrowth.value.data')}</span>
         </div>
 
         <div className="value-funnel">
