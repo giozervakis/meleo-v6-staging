@@ -162,6 +162,14 @@ const resources={
   text:'Επίλεξε μια συνομιλία για να ανοίξει ο διάλογος.'
  }
 },
+languageSwitcher:{
+ greek:'Ελληνικά',
+ english:'English',
+ greekEnglish:'Greek',
+ englishGreek:'Αγγλικά',
+ changeAria:'Αλλαγή γλώσσας',
+ menuAria:'Γλώσσα'
+},
 supportPages:{
  notifications:{
   toast:{
@@ -998,6 +1006,14 @@ adminRevenue:{
   title:'Your messages',
   text:'Select a conversation to open the discussion.'
  }
+},
+languageSwitcher:{
+ greek:'Greek',
+ english:'English',
+ greekEnglish:'Greek',
+ englishGreek:'English',
+ changeAria:'Change language',
+ menuAria:'Language'
 },
 supportPages:{
  notifications:{

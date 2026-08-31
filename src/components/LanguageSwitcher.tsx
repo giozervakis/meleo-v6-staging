@@ -3,11 +3,14 @@ import { useTranslation } from 'react-i18next'
 import './language-switcher.css'
 
 export default function LanguageSwitcher(){
-  const {i18n}=useTranslation()
+  const {t,i18n}=useTranslation()
   const [open,setOpen]=useState(false)
   const root=useRef<HTMLDivElement>(null)
   const language=i18n.language==='en'?'en':'el'
-  const nativeLabel=language==='en'?'English':'Ελληνικά'
+  const nativeLabel=
+    language==='en'
+      ? t('languageSwitcher.english')
+      : t('languageSwitcher.greek')
 
   useEffect(()=>{
     const outside=(e:MouseEvent)=>{
@@ -35,7 +38,9 @@ export default function LanguageSwitcher(){
       className={'meleo-language-trigger '+(open?'is-open':'')}
       aria-haspopup="menu"
       aria-expanded={open}
-      aria-label={language==='en'?'Change language':'Αλλαγή γλώσσας'}
+      aria-label={t(
+        'languageSwitcher.changeAria'
+      )}
       onClick={()=>setOpen(v=>!v)}
     >
       <span className="meleo-language-monogram" aria-hidden="true">{language.toUpperCase()}</span>
@@ -45,16 +50,28 @@ export default function LanguageSwitcher(){
       </svg>
     </button>
 
-    {open&&<div className="meleo-language-menu" role="menu" aria-label={language==='en'?'Language':'Γλώσσα'}>
+    {open&&<div
+      className="meleo-language-menu"
+      role="menu"
+      aria-label={t(
+        'languageSwitcher.menuAria'
+      )}
+    >
       <div className="meleo-language-menu-kicker">MELEO · LANGUAGE</div>
       <button type="button" role="menuitemradio" aria-checked={language==='el'} onClick={()=>void choose('el')}>
         <span className="meleo-language-option-code">EL</span>
-        <span className="meleo-language-option-copy"><b>Ελληνικά</b><small>Greek</small></span>
+        <span className="meleo-language-option-copy">
+          <b>{t('languageSwitcher.greek')}</b>
+          <small>{t('languageSwitcher.greekEnglish')}</small>
+        </span>
         <span className="meleo-language-check" aria-hidden="true">{language==='el'?'✓':''}</span>
       </button>
       <button type="button" role="menuitemradio" aria-checked={language==='en'} onClick={()=>void choose('en')}>
         <span className="meleo-language-option-code">EN</span>
-        <span className="meleo-language-option-copy"><b>English</b><small>Αγγλικά</small></span>
+        <span className="meleo-language-option-copy">
+          <b>{t('languageSwitcher.english')}</b>
+          <small>{t('languageSwitcher.englishGreek')}</small>
+        </span>
         <span className="meleo-language-check" aria-hidden="true">{language==='en'?'✓':''}</span>
       </button>
     </div>}
