@@ -67,7 +67,7 @@ assert.ok(
 
 assert.ok(
   manifest.includes('version:packageInfo.version') &&
-  manifest.includes("channel:'release-candidate'") &&
+  manifest.includes("packageInfo.version.includes('-rc.')?'release-candidate':'production'") &&
   manifest.includes('gitCommit()')
 )
 

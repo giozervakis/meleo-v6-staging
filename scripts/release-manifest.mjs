@@ -113,7 +113,7 @@ const commit=
 const manifest={
   product:'MELEO',
   version:packageInfo.version,
-  channel:'release-candidate',
+  channel:packageInfo.version.includes('-rc.')?'release-candidate':'production',
   commit,
   commitShort:
     commit==='unknown'
