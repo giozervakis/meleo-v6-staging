@@ -49,6 +49,7 @@ function AdminSubscriptions({token,setToast}:any){
  </>
 }
 function Admin({token,setToast}:any){
+ const {t,i18n}=useTranslation()
  const [stats,setStats]=useState<any>(null),
       [command,setCommand]=useState<any>(null),
       [vers,setVers]=useState<any[]>([]),
@@ -142,21 +143,21 @@ function Admin({token,setToast}:any){
 
     setToast(
       e.message||
-      'Αποτυχία φόρτωσης Admin Command Center.'
+      t('adminCommand.toast.loadFailed')
     )
 
   }
 }
  
  useEffect(()=>{refresh()},[])
- async function decide(id:string,status:string){const approved=status==='approved';const raw=window.prompt(approved?'Σημείωση έγκρισης (προαιρετικά)':'Λόγος απόρριψης (υποχρεωτικός) — π.χ. μη επιβεβαιωμένη πληρωμή, ελλιπή/μη έγκυρα έγγραφα, αδυναμία επαλήθευσης επαγγελματικής ιδιότητας') ;if(raw===null)return;const note=raw.trim();if(!approved&&!note){setToast('Συμπλήρωσε υποχρεωτικά τον λόγο απόρριψης.');return}await api('/admin/verifications/'+id,{method:'PATCH',body:JSON.stringify({status,adminNote:note})},token);await refresh();setToast(approved?'Ο επαγγελματίας επαληθεύτηκε και ενημερώθηκε.':'Το αίτημα απορρίφθηκε και ο χρήστης ενημερώθηκε.')}
+ async function decide(id:string,status:string){const approved=status==='approved';const raw=window.prompt(approved?t('adminCommand.verification.approveNote'):t('adminCommand.verification.rejectReason')) ;if(raw===null)return;const note=raw.trim();if(!approved&&!note){setToast(t('adminCommand.verification.rejectRequired'));return}await api('/admin/verifications/'+id,{method:'PATCH',body:JSON.stringify({status,adminNote:note})},token);await refresh();setToast(approved?t('adminCommand.verification.approvedToast'):t('adminCommand.verification.rejectedToast'))}
  async function memberAction(m:any,action:string){
    const destructive=['suspend','unverify'].includes(action)
-   const label:any={suspend:'αναστείλεις',reactivate:'επανενεργοποιήσεις',verify:'επαληθεύσεις χειροκίνητα',unverify:'αφαιρέσεις την επαλήθευση από',feature:'ορίσεις ως προτεινόμενο',unfeature:'αφαιρέσεις από τα προτεινόμενα'}
-   if(!window.confirm(`Θέλεις να ${label[action]||action} το μέλος «${m.name}»;`))return
-   const reason=(destructive||action==='verify')?(window.prompt('Αιτιολογία / εσωτερική σημείωση:')||''):''
+   const label:any={suspend:t('adminCommand.memberActions.suspend'),reactivate:t('adminCommand.memberActions.reactivate'),verify:t('adminCommand.memberActions.verify'),unverify:t('adminCommand.memberActions.unverify'),feature:t('adminCommand.memberActions.feature'),unfeature:t('adminCommand.memberActions.unfeature')}
+   if(!window.confirm(t('adminCommand.memberActions.confirm',{action:label[action]||action,name:m.name})))return
+   const reason=(destructive||action==='verify')?(window.prompt(t('adminCommand.memberActions.reason'))||''):''
    setBusy(m.id+action)
-   try{await api('/admin/members/'+m.id+'/action',{method:'PATCH',body:JSON.stringify({action,reason})},token);await refresh();setToast('Η ενέργεια ολοκληρώθηκε και καταγράφηκε στο Audit Log.')}catch(e:any){setToast(e.message||'Η ενέργεια απέτυχε')}finally{setBusy('')}
+   try{await api('/admin/members/'+m.id+'/action',{method:'PATCH',body:JSON.stringify({action,reason})},token);await refresh();setToast(t('adminCommand.memberActions.completed'))}catch(e:any){setToast(e.message||t('adminCommand.memberActions.failed'))}finally{setBusy('')}
  }
  if(!stats||!insights||!command){
   return (
@@ -211,10 +212,10 @@ const totalAttention=
 
 const platformOperational=
   criticalAlerts===0
- return <section className="admin-page admin-control"><div className="container"><DashboardHead eyebrow={`MELEO v${APP_VERSION} · FOUNDER & OPERATIONS`} title="Admin Control Center" subtitle="Ενιαία εικόνα ανάπτυξης, μελών, επαγγελματιών, κρατήσεων, συνδρομών, verification, ποιότητας και λειτουργιών."/>
- <div className="admin-commandbar"><div><span className="live-dot"></span><b>Operations live</b><small>Τελευταία ανανέωση {new Date().toLocaleTimeString('el-GR',{hour:'2-digit',minute:'2-digit'})}</small></div><button className="btn ghost small" onClick={refresh}>↻ Ανανέωση δεδομένων</button></div>
- <div className="admin-kpi-strip"><div><span>ΣΥΝΟΛΙΚΑ ΜΕΛΗ</span><strong>{stats.accounts.total}</strong><small>+{stats.accounts.new30} / 30 ημέρες · {mp.active30||0} ενεργά</small></div><div><span>ΕΠΑΓΓΕΛΜΑΤΙΕΣ</span><strong>{stats.professionals.total}</strong><small>{stats.professionals.verified} verified · {stats.professionals.pendingVerification} pending</small></div><div><span>PREMIUM SHARE</span><strong>{mp.premiumShare||0}%</strong><small>{stats.professionals.premium} Premium · {stats.professionals.basic} Basic</small></div><div className="revenue-kpi"><span>MRR ΣΥΝΔΡΟΜΩΝ</span><strong><Euro value={stats.revenue.subscriptionMrr}/></strong><small>Collected this month <Euro value={stats.revenue.collectedRevenue}/></small></div></div>
- <div className="admin-tabs"><button className={tab==='overview'?'active':''} onClick={()=>setTab('overview')}>Επισκόπηση</button><button className={tab==='insights'?'active':''} onClick={()=>setTab('insights')}>Insights</button><button className={tab==='members'?'active':''} onClick={()=>setTab('members')}>Μέλη <b>{members.length}</b></button><button className={tab==='bookings'?'active':''} onClick={()=>setTab('bookings')}>Κρατήσεις <b>{bookings.length}</b></button><button className={tab==='revenue'?'active':''} onClick={()=>setTab('revenue')}>Έσοδα</button><button className={tab==='subs'?'active':''} onClick={()=>setTab('subs')}>Συνδρομές</button><button className={tab==='verification'?'active':''} onClick={()=>setTab('verification')}>Verification <b>{stats.professionals.pendingVerification}</b></button><button className={tab==='support'?'active':''} onClick={()=>setTab('support')}>Support</button><button className={tab==='smart'?'active':''} onClick={()=>setTab('smart')}>🧠 Smart Requests</button><button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Log</button></div>
+ return <section className="admin-page admin-control"><div className="container"><DashboardHead eyebrow={`MELEO v${APP_VERSION} · FOUNDER & OPERATIONS`} title="Admin Control Center" subtitle={t('adminCommand.header.subtitle')}/>
+ <div className="admin-commandbar"><div><span className="live-dot"></span><b>Operations live</b><small>{t('adminCommand.commandBar.lastRefresh')} {new Date().toLocaleTimeString(i18n.resolvedLanguage==='en'?'en-GB':'el-GR',{hour:'2-digit',minute:'2-digit'})}</small></div><button className="btn ghost small" onClick={refresh}>{t('adminCommand.commandBar.refresh')}</button></div>
+ <div className="admin-kpi-strip"><div><span>{t('adminCommand.kpi.totalMembers')}</span><strong>{stats.accounts.total}</strong><small>+{stats.accounts.new30} / 30 {t('adminCommand.kpi.days')} · {mp.active30||0} {t('adminCommand.kpi.active')}</small></div><div><span>{t('adminCommand.kpi.professionals')}</span><strong>{stats.professionals.total}</strong><small>{stats.professionals.verified} verified · {stats.professionals.pendingVerification} pending</small></div><div><span>PREMIUM SHARE</span><strong>{mp.premiumShare||0}%</strong><small>{stats.professionals.premium} Premium · {stats.professionals.basic} Basic</small></div><div className="revenue-kpi"><span>{t('adminCommand.kpi.subscriptionMrr')}</span><strong><Euro value={stats.revenue.subscriptionMrr}/></strong><small>Collected this month <Euro value={stats.revenue.collectedRevenue}/></small></div></div>
+ <div className="admin-tabs"><button className={tab==='overview'?'active':''} onClick={()=>setTab('overview')}>{t('adminCommand.tabs.overview')}</button><button className={tab==='insights'?'active':''} onClick={()=>setTab('insights')}>Insights</button><button className={tab==='members'?'active':''} onClick={()=>setTab('members')}>{t('adminCommand.tabs.members')} <b>{members.length}</b></button><button className={tab==='bookings'?'active':''} onClick={()=>setTab('bookings')}>{t('adminCommand.tabs.bookings')} <b>{bookings.length}</b></button><button className={tab==='revenue'?'active':''} onClick={()=>setTab('revenue')}>{t('adminCommand.tabs.revenue')}</button><button className={tab==='subs'?'active':''} onClick={()=>setTab('subs')}>{t('adminCommand.tabs.subscriptions')}</button><button className={tab==='verification'?'active':''} onClick={()=>setTab('verification')}>Verification <b>{stats.professionals.pendingVerification}</b></button><button className={tab==='support'?'active':''} onClick={()=>setTab('support')}>Support</button><button className={tab==='smart'?'active':''} onClick={()=>setTab('smart')}>🧠 Smart Requests</button><button className={tab==='audit'?'active':''} onClick={()=>setTab('audit')}>Audit Log</button></div>
  {tab==='overview'&&<>
 
   <section className="admin-executive-hero">
