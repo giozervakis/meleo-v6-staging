@@ -6,6 +6,7 @@ import React, {
 } from 'react'
 
 import { api } from '../../../lib/api'
+import {useTranslation} from 'react-i18next'
 import './professional-availability.css'
 
 type WeeklySchedule = Record<number,string[]>
@@ -113,14 +114,14 @@ function normalizeExceptions(value:any):AvailabilityException[]{
     )
 }
 
-function formatDate(date:string){
+function formatDate(date:string,locale:string){
   if(!date){
     return ''
   }
 
   try{
     return new Intl.DateTimeFormat(
-      'el-GR',
+      locale,
       {
         weekday:'short',
         day:'2-digit',
@@ -141,6 +142,8 @@ export default function ProfessionalAvailability({
   onChange,
   setToast
 }:Props){
+
+  const {t,i18n}=useTranslation()
 
   const [weekly,setWeekly]=
     useState<WeeklySchedule>(
@@ -223,7 +226,7 @@ export default function ProfessionalAvailability({
       }catch(e:any){
         setError(
           e?.message ||
-          'Δεν ήταν δυνατή η φόρτωση της διαθεσιμότητας.'
+          t('proAvailability.errors.load')
         )
       }finally{
         setLoading(false)
@@ -317,7 +320,7 @@ export default function ProfessionalAvailability({
     })
 
     setToast?.(
-      'Το ωράριο αντιγράφηκε στις εργάσιμες ημέρες.'
+      t('proAvailability.toast.copiedWeekdays')
     )
   }
 
@@ -339,7 +342,7 @@ export default function ProfessionalAvailability({
   function addException(){
     if(!exceptionDate){
       setToast?.(
-        'Επίλεξε ημερομηνία εξαίρεσης.'
+        t('proAvailability.toast.selectExceptionDate')
       )
       return
     }
@@ -349,7 +352,7 @@ export default function ProfessionalAvailability({
       exceptionSlots.length===0
     ){
       setToast?.(
-        'Επίλεξε τουλάχιστον μία διαθέσιμη ώρα.'
+        t('proAvailability.toast.selectExceptionSlot')
       )
       return
     }
@@ -440,13 +443,13 @@ export default function ProfessionalAvailability({
       onChange?.(legacy)
 
       setToast?.(
-        'Η πραγματική διαθεσιμότητα αποθηκεύτηκε.'
+        t('proAvailability.toast.saved')
       )
 
     }catch(e:any){
       const message=
         e?.message ||
-        'Δεν ήταν δυνατή η αποθήκευση της διαθεσιμότητας.'
+        t('proAvailability.errors.save')
 
       setError(message)
       setToast?.(message)
@@ -462,7 +465,7 @@ export default function ProfessionalAvailability({
         <div className="availability-loading">
           <span className="availability-spinner"/>
           <strong>
-            Φόρτωση προγράμματος…
+            {t('proAvailability.loading')}
           </strong>
         </div>
       </section>
@@ -480,12 +483,11 @@ export default function ProfessionalAvailability({
           </span>
 
           <h1>
-            Διαθεσιμότητα & πρόγραμμα
+            {t('proAvailability.hero.title')}
           </h1>
 
           <p>
-            Όρισε τις πραγματικές ώρες στις οποίες
-            μπορούν να σου στείλουν αίτημα επίσκεψης.
+            {t('proAvailability.hero.text')}
           </p>
         </div>
 
@@ -493,17 +495,17 @@ export default function ProfessionalAvailability({
 
           <div>
             <strong>{activeDays}</strong>
-            <span>ενεργές ημέρες</span>
+            <span>{t('proAvailability.stats.activeDays')}</span>
           </div>
 
           <div>
             <strong>{weeklySlotCount}</strong>
-            <span>slots / εβδομάδα</span>
+            <span>{t('proAvailability.stats.slotsWeek')}</span>
           </div>
 
           <div>
             <strong>{exceptions.length}</strong>
-            <span>εξαιρέσεις</span>
+            <span>{t('proAvailability.stats.exceptions')}</span>
           </div>
 
         </div>
@@ -523,9 +525,9 @@ export default function ProfessionalAvailability({
           <div className="availability-section-head">
 
             <div>
-              <span>ΕΒΔΟΜΑΔΙΑΙΟ ΠΡΟΓΡΑΜΜΑ</span>
+              <span>{t('proAvailability.weekly.kicker')}</span>
               <h2>
-                Πότε δέχεσαι επισκέψεις;
+                {t('proAvailability.weekly.title')}
               </h2>
             </div>
 
@@ -534,7 +536,7 @@ export default function ProfessionalAvailability({
               className="availability-secondary-action"
               onClick={copyDayToWeekdays}
             >
-              Αντιγραφή στις εργάσιμες
+              {t('proAvailability.weekly.copyWeekdays')}
             </button>
 
           </div>
@@ -572,8 +574,8 @@ export default function ProfessionalAvailability({
 
                   <strong>
                     {active
-                      ? `${slots.length} ώρες`
-                      : 'Κλειστά'}
+                      ? `${slots.length} ${t('proAvailability.hours')}`
+                      : t('proAvailability.closed')}
                   </strong>
 
                 </button>
@@ -594,7 +596,7 @@ export default function ProfessionalAvailability({
                 </span>
 
                 <h3>
-                  Ωράριο ημέρας
+                  {t('proAvailability.day.title')}
                 </h3>
               </div>
 
@@ -610,7 +612,7 @@ export default function ProfessionalAvailability({
                   }
                 />
                 <span>
-                  Ενεργή ημέρα
+                  {t('proAvailability.day.active')}
                 </span>
               </label>
 
@@ -621,12 +623,11 @@ export default function ProfessionalAvailability({
               <div className="availability-closed-day">
 
                 <strong>
-                  Δεν δέχεσαι αιτήματα αυτή την ημέρα.
+                  {t('proAvailability.day.closedTitle')}
                 </strong>
 
                 <p>
-                  Ενεργοποίησε την ημέρα και επίλεξε
-                  τις ώρες που θέλεις.
+                  {t('proAvailability.day.closedText')}
                 </p>
 
                 <button
@@ -639,7 +640,7 @@ export default function ProfessionalAvailability({
                     )
                   }
                 >
-                  Ενεργοποίηση ημέρας
+                  {t('proAvailability.day.enable')}
                 </button>
 
               </div>
@@ -677,14 +678,14 @@ export default function ProfessionalAvailability({
                   <span>
                     {selectedSlots.length}
                     {' '}
-                    επιλεγμένα slots
+                    {t('proAvailability.day.selectedSlots')}
                   </span>
 
                   <button
                     type="button"
                     onClick={clearSelectedDay}
                   >
-                    Καθαρισμός ημέρας
+                    {t('proAvailability.day.clear')}
                   </button>
 
                 </div>
@@ -699,10 +700,10 @@ export default function ProfessionalAvailability({
             <div className="availability-section-head">
 
               <div>
-                <span>ΕΞΑΙΡΕΣΕΙΣ ΗΜΕΡΟΜΗΝΙΑΣ</span>
+                <span>{t('proAvailability.exceptions.kicker')}</span>
 
                 <h2>
-                  Ρεπό, άδεια ή ειδικό ωράριο
+                  {t('proAvailability.exceptions.title')}
                 </h2>
               </div>
 
@@ -711,7 +712,7 @@ export default function ProfessionalAvailability({
             <div className="availability-exception-form">
 
               <label>
-                <span>Ημερομηνία</span>
+                <span>{t('proAvailability.exceptions.date')}</span>
 
                 <input
                   type="date"
@@ -741,12 +742,12 @@ export default function ProfessionalAvailability({
                 />
 
                 <span>
-                  Ειδικό διαθέσιμο ωράριο
+                  {t('proAvailability.exceptions.specialSchedule')}
                 </span>
               </label>
 
               <label className="availability-exception-note">
-                <span>Σημείωση</span>
+                <span>{t('proAvailability.exceptions.note')}</span>
 
                 <input
                   value={exceptionNote}
@@ -755,7 +756,7 @@ export default function ProfessionalAvailability({
                       e.target.value
                     )
                   }
-                  placeholder="π.χ. Άδεια, συνέδριο, ειδικό ωράριο"
+                  placeholder={t('proAvailability.exceptions.notePlaceholder')}
                 />
               </label>
 
@@ -765,7 +766,7 @@ export default function ProfessionalAvailability({
               <div className="availability-exception-slots">
 
                 <span>
-                  Διαθέσιμες ώρες για αυτή την ημερομηνία
+                  {t('proAvailability.exceptions.availableHours')}
                 </span>
 
                 <div className="availability-time-grid compact">
@@ -798,7 +799,7 @@ export default function ProfessionalAvailability({
               className="availability-add-exception"
               onClick={addException}
             >
-              + Προσθήκη εξαίρεσης
+              {t('proAvailability.exceptions.add')}
             </button>
 
             {exceptions.length>0&&(
@@ -813,7 +814,7 @@ export default function ProfessionalAvailability({
                     <div>
 
                       <strong>
-                        {formatDate(item.date)}
+                        {formatDate(item.date,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}
                       </strong>
 
                       <span
@@ -824,8 +825,8 @@ export default function ProfessionalAvailability({
                         }
                       >
                         {item.available
-                          ? 'Ειδικό ωράριο'
-                          : 'Μη διαθέσιμος'}
+                          ? t('proAvailability.exceptions.specialScheduleShort')
+                          : t('proAvailability.exceptions.unavailable')}
                       </span>
 
                     </div>
@@ -844,7 +845,7 @@ export default function ProfessionalAvailability({
 
                     <button
                       type="button"
-                      aria-label="Διαγραφή εξαίρεσης"
+                      aria-label={t('proAvailability.exceptions.delete')}
                       onClick={()=>
                         removeException(
                           item.date
@@ -868,11 +869,11 @@ export default function ProfessionalAvailability({
         <aside className="availability-summary">
 
           <span className="availability-summary-label">
-            LIVE ΠΡΟΓΡΑΜΜΑ
+            {t('proAvailability.summary.kicker')}
           </span>
 
           <h3>
-            Το εβδομαδιαίο σου πρόγραμμα
+            {t('proAvailability.summary.title')}
           </h3>
 
           <div className="availability-summary-week">
@@ -890,8 +891,8 @@ export default function ProfessionalAvailability({
 
                   <span>
                     {slots.length
-                      ? `${slots.length} διαθέσιμα`
-                      : 'Κλειστά'}
+                      ? `${slots.length} ${t('proAvailability.summary.available')}`
+                      : t('proAvailability.closed')}
                   </span>
 
                 </div>
@@ -908,14 +909,11 @@ export default function ProfessionalAvailability({
 
             <div>
               <strong>
-                Πραγματική διαθεσιμότητα
+                {t('proAvailability.summary.realAvailabilityTitle')}
               </strong>
 
               <p>
-                Οι ασθενείς βλέπουν μόνο τις
-                διαθέσιμες ώρες της ημερομηνίας που
-                επιλέγουν. Ώρες με ενεργό αίτημα
-                αφαιρούνται αυτόματα.
+                {t('proAvailability.summary.realAvailabilityText')}
               </p>
             </div>
 
@@ -929,12 +927,11 @@ export default function ProfessionalAvailability({
 
             <div>
               <strong>
-                Προστασία διπλής κράτησης
+                {t('proAvailability.summary.doubleBookingTitle')}
               </strong>
 
               <p>
-                Το MELEO επανελέγχει την ώρα στον
-                server πριν δημιουργηθεί το αίτημα.
+                {t('proAvailability.summary.doubleBookingText')}
               </p>
             </div>
 
@@ -947,13 +944,12 @@ export default function ProfessionalAvailability({
             onClick={save}
           >
             {saving
-              ? 'Αποθήκευση…'
-              : 'Αποθήκευση προγράμματος'}
+              ? t('proAvailability.save.saving')
+              : t('proAvailability.save.button')}
           </button>
 
           <small className="availability-save-note">
-            Οι αλλαγές εφαρμόζονται στη δημόσια
-            διαθεσιμότητα του προφίλ.
+            {t('proAvailability.save.note')}
           </small>
 
         </aside>
