@@ -6,6 +6,7 @@ import {
 } from 'react'
 
 import {api} from '../../../lib/api'
+import {useTranslation} from 'react-i18next'
 
 import './professional-notifications.css'
 
@@ -63,7 +64,10 @@ function isUnread(item:NotificationItem){
 }
 
 
-function dateLabel(value:string){
+function dateLabel(
+  value:string,
+  locale='el-GR'
+){
 
   if(!value){
     return ''
@@ -77,7 +81,7 @@ function dateLabel(value:string){
   }
 
   return date.toLocaleString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'short',
@@ -88,33 +92,44 @@ function dateLabel(value:string){
 }
 
 
-function typeLabel(type?:string){
+function typeLabel(
+  type:string|undefined,
+  t:(key:string)=>string
+){
 
   const value=
     String(type||'').toLowerCase()
 
   if(value.includes('support')){
-    return 'Υποστήριξη'
+    return t(
+      'proNotifications.types.support'
+    )
   }
 
   if(
     value.includes('booking') ||
     value.includes('request')
   ){
-    return 'Αίτημα'
+    return t(
+      'proNotifications.types.request'
+    )
   }
 
   if(
     value.includes('review') ||
     value.includes('rating')
   ){
-    return 'Αξιολόγηση'
+    return t(
+      'proNotifications.types.review'
+    )
   }
 
   if(
     value.includes('verification')
   ){
-    return 'Verification'
+    return t(
+      'proNotifications.types.verification'
+    )
   }
 
   if(
@@ -122,7 +137,9 @@ function typeLabel(type?:string){
     value.includes('billing') ||
     value.includes('payment')
   ){
-    return 'Συνδρομή'
+    return t(
+      'proNotifications.types.subscription'
+    )
   }
 
   return 'MELEO'
@@ -133,6 +150,13 @@ export default function ProfessionalNotifications({
   token,
   setToast
 }:Props){
+
+  const {t,i18n}=useTranslation()
+
+  const locale=
+    i18n.resolvedLanguage==='en'
+      ? 'en-GB'
+      : 'el-GR'
 
   const [items,setItems]=
     useState<NotificationItem[]>([])
@@ -182,14 +206,16 @@ export default function ProfessionalNotifications({
 
           setError(
             e?.message ||
-            'Δεν ήταν δυνατή η φόρτωση των ειδοποιήσεων.'
+            t(
+              'proNotifications.errors.load'
+            )
           )
         }
         finally{
           setLoading(false)
         }
       },
-      [token]
+      [token,t]
     )
 
 
@@ -213,7 +239,7 @@ export default function ProfessionalNotifications({
       ()=>{
 
         const q=
-          query.trim().toLocaleLowerCase('el-GR')
+          query.trim().toLocaleLowerCase(locale)
 
         return [...items]
           .filter(
@@ -235,7 +261,7 @@ export default function ProfessionalNotifications({
                 ' '+
                 String(item.type||'')
               )
-                .toLocaleLowerCase('el-GR')
+                .toLocaleLowerCase(locale)
                 .includes(q)
             }
           )
@@ -260,7 +286,8 @@ export default function ProfessionalNotifications({
       [
         items,
         filter,
-        query
+        query,
+        locale
       ]
     )
 
@@ -309,7 +336,9 @@ export default function ProfessionalNotifications({
 
       setToast(
         e?.message ||
-        'Η ειδοποίηση δεν ενημερώθηκε.'
+        t(
+          'proNotifications.errors.markRead'
+        )
       )
     }
     finally{
@@ -356,14 +385,18 @@ export default function ProfessionalNotifications({
       )
 
       setToast(
-        'Όλες οι ειδοποιήσεις σημειώθηκαν ως αναγνωσμένες.'
+        t(
+          'proNotifications.toast.allRead'
+        )
       )
     }
     catch(e:any){
 
       setToast(
         e?.message ||
-        'Οι ειδοποιήσεις δεν ενημερώθηκαν.'
+        t(
+          'proNotifications.errors.markAllRead'
+        )
       )
     }
     finally{
@@ -381,17 +414,21 @@ export default function ProfessionalNotifications({
         <div>
 
           <span>
-            PROFESSIONAL NOTIFICATION CENTER
+            {t(
+              'proNotifications.hero.eyebrow'
+            )}
           </span>
 
           <h2>
-            Ό,τι χρειάζεται την προσοχή σου.
+            {t(
+              'proNotifications.hero.title'
+            )}
           </h2>
 
           <p>
-            Αιτήματα, υποστήριξη και σημαντικές
-            ενημερώσεις του επαγγελματικού λογαριασμού
-            συγκεντρωμένα σε ένα καθαρό inbox.
+            {t(
+              'proNotifications.hero.text'
+            )}
           </p>
 
         </div>
@@ -400,7 +437,9 @@ export default function ProfessionalNotifications({
         <aside>
 
           <small>
-            ΜΗ ΑΝΑΓΝΩΣΜΕΝΕΣ
+            {t(
+              'proNotifications.hero.unread'
+            )}
           </small>
 
           <strong>
@@ -408,7 +447,12 @@ export default function ProfessionalNotifications({
           </strong>
 
           <span>
-            από {items.length} συνολικά
+            {t(
+              'proNotifications.hero.total',
+              {
+                count:items.length
+              }
+            )}
           </span>
 
         </aside>
@@ -429,7 +473,9 @@ export default function ProfessionalNotifications({
             }
             onClick={()=>setFilter('all')}
           >
-            Όλες
+            {t(
+              'proNotifications.filters.all'
+            )}
           </button>
 
           <button
@@ -441,7 +487,9 @@ export default function ProfessionalNotifications({
             }
             onClick={()=>setFilter('unread')}
           >
-            Μη αναγνωσμένες
+            {t(
+              'proNotifications.filters.unread'
+            )}
 
             {unreadCount>0&&
               <b>
@@ -463,7 +511,9 @@ export default function ProfessionalNotifications({
                   event.target.value
                 )
             }
-            placeholder="Αναζήτηση ειδοποιήσεων"
+            placeholder={t(
+              'proNotifications.search.placeholder'
+            )}
           />
 
           <button
@@ -474,7 +524,9 @@ export default function ProfessionalNotifications({
             }
             onClick={markAllRead}
           >
-            ✓ Ανάγνωση όλων
+            ✓ {t(
+              'proNotifications.actions.markAllRead'
+            )}
           </button>
 
         </div>
@@ -492,7 +544,9 @@ export default function ProfessionalNotifications({
       {loading
 
         ? <div className="pro-notifications-empty">
-            Φόρτωση ειδοποιήσεων…
+            {t(
+              'proNotifications.loading'
+            )}
           </div>
 
         : visible.length===0
@@ -505,13 +559,18 @@ export default function ProfessionalNotifications({
 
               <strong>
                 {filter==='unread'
-                  ? 'Δεν υπάρχουν μη αναγνωσμένες ειδοποιήσεις'
-                  : 'Δεν υπάρχουν ειδοποιήσεις'}
+                  ? t(
+                      'proNotifications.empty.unread'
+                    )
+                  : t(
+                      'proNotifications.empty.all'
+                    )}
               </strong>
 
               <p>
-                Οι νέες ενημερώσεις του λογαριασμού
-                σου θα εμφανίζονται εδώ.
+                {t(
+                  'proNotifications.empty.text'
+                )}
               </p>
 
             </div>
@@ -545,13 +604,15 @@ export default function ProfessionalNotifications({
 
                           <span>
                             {typeLabel(
-                              item.type
+                              item.type,
+                              t
                             )}
                           </span>
 
                           <time>
                             {dateLabel(
-                              createdAt(item)
+                              createdAt(item),
+                              locale
                             )}
                           </time>
 
@@ -559,7 +620,9 @@ export default function ProfessionalNotifications({
 
                         <strong>
                           {item.title ||
-                           'Ενημέρωση MELEO'}
+                           t(
+                             'proNotifications.fallbackTitle'
+                           )}
                         </strong>
 
                         {notificationText(item)&&
@@ -585,11 +648,15 @@ export default function ProfessionalNotifications({
                             >
                               {busy===item.id
                                 ? '…'
-                                : 'Σήμανση ως αναγνωσμένη'}
+                                : t(
+                                    'proNotifications.actions.markRead'
+                                  )}
                             </button>
 
                           : <span>
-                              ✓ Αναγνώστηκε
+                              ✓ {t(
+                                'proNotifications.actions.read'
+                              )}
                             </span>
                         }
 
