@@ -1,3 +1,4 @@
+const packageInfo=JSON.parse(fs.readFileSync('package.json','utf8'))
 import tls from 'node:tls'; import fs from 'node:fs'
 if (process.loadEnvFile && fs.existsSync('.env')) process.loadEnvFile('.env')
 const target=new URL(process.env.APP_URL||'https://meleo.gr'); const host=target.hostname; const port=Number(target.port||443)
@@ -11,6 +12,6 @@ const result=await new Promise((resolve)=>{
 let health=null
 try { const r=await fetch(new URL('/api/health',target),{signal:AbortSignal.timeout(7000)}); health={ok:r.ok,status:r.status,body:await r.text()} } catch(e){ health={ok:false,error:e.message} }
 const passed=Boolean(result.ok && result.authorized && result.daysRemaining>=14 && health?.ok)
-const report={version:'5.7.0',checkedAt:new Date().toISOString(),target:target.origin,tls:result,health,passed}
+const report={version:packageInfo.version,checkedAt:new Date().toISOString(),target:target.origin,tls:result,health,passed}
 fs.mkdirSync('reports',{recursive:true}); fs.writeFileSync('reports/tls-readiness.json',JSON.stringify(report,null,2))
-console.log(`MELEO v5.7 TLS/domain readiness: ${passed?'PASS':'FAIL'}`); console.log(JSON.stringify(report,null,2)); process.exitCode=passed?0:1
+console.log(`MELEO v${packageInfo.version} TLS/domain readiness: ${passed?'PASS':'FAIL'}`); console.log(JSON.stringify(report,null,2)); process.exitCode=passed?0:1
