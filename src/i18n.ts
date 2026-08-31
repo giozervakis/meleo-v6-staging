@@ -173,6 +173,12 @@ languageSwitcher:{
 apiErrors:{
  generic:'Κάτι πήγε στραβά'
 },
+appCard:{
+ new:'Νέο'
+},
+common:{
+ distanceKm:'χλμ'
+},
 supportPages:{
  notifications:{
   toast:{
@@ -1020,6 +1026,12 @@ languageSwitcher:{
 },
 apiErrors:{
  generic:'Something went wrong'
+},
+appCard:{
+ new:'New'
+},
+common:{
+ distanceKm:'km'
 },
 supportPages:{
  notifications:{

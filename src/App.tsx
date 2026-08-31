@@ -1166,6 +1166,8 @@ const messageLabel=
 function SectionTitle({over,title,subtitle}:any){return <div className="section-title"><div className="eyebrow">{over}</div><h2>{title}</h2><p>{subtitle}</p></div>}
 function Step({n,icon,title,text}:any){return <div className="step"><div className="step-top"><span className="step-icon">{icon}</span><span className="step-num">{n}</span></div><h3>{title}</h3><p>{text}</p></div>}
 function MiniCard({p}:{p:Professional}){
+  const {t}=useTranslation()
+
   const hasDistance=
     p.distance!==undefined &&
     p.distance!==null &&
@@ -1192,13 +1194,13 @@ function MiniCard({p}:{p:Professional}){
 
         <div>
           <span className="stars">
-            ★ {p.rating || 'Νέο'}
+            ★ {p.rating || t('appCard.new')}
           </span>
 
           {hasDistance && (
             <span>
               {' · '}
-              {Number(p.distance).toFixed(1)} χλμ
+              {Number(p.distance).toFixed(1)} {t('common.distanceKm')}
             </span>
           )}
         </div>
@@ -1430,7 +1432,7 @@ function ProCard({p,open,favorite,toggle}:any){
             <span className="discovery-context-icon">⌖</span>
             <span>
               <b>
-                {distance!.toFixed(1)} {language==='en'?'km':'χλμ'}
+                {distance!.toFixed(1)} {t('common.distanceKm')}
               </b>
               <small>{t('card.fromArea')}</small>
             </span>
