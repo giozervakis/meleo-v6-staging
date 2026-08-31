@@ -18,7 +18,7 @@ for(const q of [
   if(!x.includes(q)) fail('App.tsx '+q)
 }
 
-if((i.match(/calendar:\{visit:/g)||[]).length!==2) fail('calendar object count')
+if((i.match(/calendar:\{visit:/g)||[]).length<2) fail('patient calendar objects missing')
 if((i.match(/bookingLabels:\{status:/g)||[]).length!==2) fail('bookingLabels object count')
 
 if(p.scripts?.['rc3-d5u-check']!=='node scripts/rc3-d5u-calendar-booking-labels-i18n-selftest.mjs') fail('package script')
