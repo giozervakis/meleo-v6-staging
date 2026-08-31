@@ -654,10 +654,10 @@ const platformOperational=
       <div className="admin-command-section-head">
 
         <div>
-          <small>GROWTH · 30 DAYS</small>
+          <small>{t('adminGrowth.registrationKicker')}</small>
 
           <h3>
-            Νέες εγγραφές
+            {t('adminGrowth.newRegistrations')}
           </h3>
         </div>
 
@@ -686,10 +686,10 @@ const platformOperational=
       <div className="admin-command-section-head">
 
         <div>
-          <small>MARKETPLACE · 30 DAYS</small>
+          <small>{t('adminGrowth.marketplaceKicker')}</small>
 
           <h3>
-            Νέα αιτήματα
+            {t('adminGrowth.newRequests')}
           </h3>
         </div>
 
@@ -718,10 +718,10 @@ const platformOperational=
       <div className="admin-command-section-head">
 
         <div>
-          <small>REVENUE · 30 DAYS</small>
+          <small>{t('adminGrowth.revenueKicker')}</small>
 
           <h3>
-            Πληρωμές
+            {t('adminGrowth.payments')}
           </h3>
         </div>
 
