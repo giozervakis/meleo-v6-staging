@@ -740,7 +740,26 @@ adminRevenue:{
  commandBar:{lastRefresh:'Τελευταία ανανέωση',refresh:'↻ Ανανέωση δεδομένων'},
  kpi:{totalMembers:'ΣΥΝΟΛΙΚΑ ΜΕΛΗ',days:'ημέρες',active:'ενεργά',professionals:'ΕΠΑΓΓΕΛΜΑΤΙΕΣ',subscriptionMrr:'MRR ΣΥΝΔΡΟΜΩΝ'},
  tabs:{overview:'Επισκόπηση',members:'Μέλη',bookings:'Κρατήσεις',revenue:'Έσοδα',subscriptions:'Συνδρομές'}
-},adminSubscriptions:{
+},adminStatus:{
+booking:{
+pending:'Σε αναμονή',
+clarification:'Χρειάζονται διευκρινίσεις',
+quoted:'Πρόταση κόστους',
+accepted:'Επιβεβαιωμένη',
+completed:'Ολοκληρώθηκε',
+cancelled:'Ακυρώθηκε'
+},
+professionalLifecycle:{
+approved:'Επαληθευμένος',
+pendingVerification:'Αναμονή επαλήθευσης',
+verificationRejected:'Η επαλήθευση απορρίφθηκε',
+awaitingSubscription:'Αναμονή συνδρομής',
+profileIncomplete:'Ελλιπές προφίλ',
+verificationRequired:'Αναμονή υποβολής επαλήθευσης',
+deletionPending:'Διαγραφή σε αναμονή'
+}
+},
+adminSubscriptions:{
  toast:{loadError:'Σφάλμα φόρτωσης',synced:'Η συνδρομή συγχρονίστηκε από το Stripe',syncFailed:'Ο συγχρονισμός απέτυχε'},
  loading:'Φόρτωση συνδρομών…',
  actions:{refresh:'Ανανέωση'},
@@ -1637,7 +1656,26 @@ adminRevenue:{
  commandBar:{lastRefresh:'Last refresh',refresh:'↻ Refresh data'},
  kpi:{totalMembers:'TOTAL MEMBERS',days:'days',active:'active',professionals:'PROFESSIONALS',subscriptionMrr:'SUBSCRIPTION MRR'},
  tabs:{overview:'Overview',members:'Members',bookings:'Bookings',revenue:'Revenue',subscriptions:'Subscriptions'}
-},adminSubscriptions:{
+},adminStatus:{
+booking:{
+pending:'Pending',
+clarification:'Clarification needed',
+quoted:'Cost proposal',
+accepted:'Confirmed',
+completed:'Completed',
+cancelled:'Cancelled'
+},
+professionalLifecycle:{
+approved:'Verified',
+pendingVerification:'Pending verification',
+verificationRejected:'Verification rejected',
+awaitingSubscription:'Awaiting subscription',
+profileIncomplete:'Incomplete profile',
+verificationRequired:'Awaiting verification submission',
+deletionPending:'Deletion pending'
+}
+},
+adminSubscriptions:{
  toast:{loadError:'Load failed',synced:'Subscription synchronized from Stripe',syncFailed:'Synchronization failed'},
  loading:'Loading subscriptions…',
  actions:{refresh:'Refresh'},
