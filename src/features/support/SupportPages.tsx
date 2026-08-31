@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useTranslation } from 'react-i18next'
 import { api } from '../../lib/api'
 function SectionTitle({over,title,subtitle}:any){return <div className="section-title"><div className="eyebrow">{over}</div><h2>{title}</h2><p>{subtitle}</p></div>}
 function Empty({title,text}:any){return <div className="empty"><div>◇</div><h3>{title}</h3><p>{text}</p></div>}
@@ -8,6 +9,13 @@ function NotificationsPage({
   setToast,
   embedded=false
 }:any){
+
+  const {t,i18n}=useTranslation()
+
+  const locale=
+    i18n.resolvedLanguage==='en'
+      ? 'en-GB'
+      : 'el-GR'
 
   const [rows,setRows]=useState<any[]>([])
   const [unread,setUnread]=useState(0)
@@ -82,7 +90,9 @@ function NotificationsPage({
 
     if(!('Notification' in window)){
       return setToast(
-        'Ο browser δεν υποστηρίζει ειδοποιήσεις.'
+        t(
+          'supportPages.notifications.toast.unsupported'
+        )
       )
     }
 
@@ -93,8 +103,12 @@ function NotificationsPage({
 
     setToast(
       p==='granted'
-        ? 'Οι browser ειδοποιήσεις ενεργοποιήθηκαν.'
-        : 'Δεν δόθηκε άδεια ειδοποιήσεων.'
+        ? t(
+            'supportPages.notifications.toast.enabled'
+          )
+        : t(
+            'supportPages.notifications.toast.denied'
+          )
     )
   }
 
@@ -236,7 +250,9 @@ function NotificationsPage({
       await load()
 
       setToast(
-        'Όλες οι ειδοποιήσεις σημειώθηκαν ως διαβασμένες.'
+        t(
+          'supportPages.notifications.toast.allRead'
+        )
       )
 
     }
@@ -244,7 +260,9 @@ function NotificationsPage({
 
       setToast(
         e.message||
-        'Η ενέργεια απέτυχε.'
+        t(
+          'supportPages.notifications.toast.actionFailed'
+        )
       )
 
     }
@@ -333,11 +351,18 @@ function NotificationsPage({
       )
 
     if(minutes<1){
-      return 'Μόλις τώρα'
+      return t(
+        'supportPages.notifications.time.now'
+      )
     }
 
     if(minutes<60){
-      return `${minutes} λεπτά πριν`
+      return t(
+        'supportPages.notifications.time.minutes',
+        {
+          count:minutes
+        }
+      )
     }
 
     const hours=
@@ -346,7 +371,12 @@ function NotificationsPage({
       )
 
     if(hours<24){
-      return `${hours} ώρες πριν`
+      return t(
+        'supportPages.notifications.time.hours',
+        {
+          count:hours
+        }
+      )
     }
 
     const days=
@@ -355,11 +385,16 @@ function NotificationsPage({
       )
 
     if(days<7){
-      return `${days} ημέρες πριν`
+      return t(
+        'supportPages.notifications.time.days',
+        {
+          count:days
+        }
+      )
     }
 
     return date.toLocaleString(
-      'el-GR'
+      locale
     )
   }
 
@@ -409,13 +444,15 @@ function NotificationsPage({
           </div>
 
           <h2>
-            Κέντρο Ειδοποιήσεων
+            {t(
+              'supportPages.notifications.hero.title'
+            )}
           </h2>
 
           <p>
-            Μηνύματα, κρατήσεις, προτάσεις κόστους,
-            verification και σημαντικές ενημερώσεις
-            εμφανίζονται εδώ σε πραγματικό χρόνο.
+            {t(
+              'supportPages.notifications.hero.text'
+            )}
           </p>
 
         </div>
@@ -426,7 +463,9 @@ function NotificationsPage({
           <div>
 
             <small>
-              ΑΔΙΑΒΑΣΤΕΣ
+              {t(
+                'supportPages.notifications.hero.unread'
+              )}
             </small>
 
             <strong>
@@ -441,8 +480,12 @@ function NotificationsPage({
             onClick={enable}
           >
             {permission==='granted'
-              ? '✓ Browser notifications'
-              : 'Ενεργοποίηση browser notifications'
+              ? '✓ '+t(
+                  'supportPages.notifications.browser.enabled'
+                )
+              : t(
+                  'supportPages.notifications.browser.enable'
+                )
             }
           </button>
 
@@ -463,7 +506,9 @@ function NotificationsPage({
             }
             onClick={()=>setFilter('all')}
           >
-            Όλα
+            {t(
+              'supportPages.notifications.filters.all'
+            )}
 
             {unread>0&&
               <span>
@@ -481,7 +526,9 @@ function NotificationsPage({
             }
             onClick={()=>setFilter('messages')}
           >
-            Μηνύματα
+            {t(
+              'supportPages.notifications.filters.messages'
+            )}
 
             {messageCount>0&&
               <span>
@@ -499,7 +546,9 @@ function NotificationsPage({
             }
             onClick={()=>setFilter('bookings')}
           >
-            Κρατήσεις
+            {t(
+              'supportPages.notifications.filters.bookings'
+            )}
 
             {bookingCount>0&&
               <span>
@@ -517,7 +566,9 @@ function NotificationsPage({
             }
             onClick={()=>setFilter('system')}
           >
-            Σύστημα
+            {t(
+              'supportPages.notifications.filters.system'
+            )}
 
             {systemCount>0&&
               <span>
@@ -534,7 +585,9 @@ function NotificationsPage({
           onClick={markAll}
           disabled={!unread}
         >
-          ✓ Σήμανση όλων ως διαβασμένα
+          ✓ {t(
+            'supportPages.notifications.markAll'
+          )}
         </button>
 
       </section>
@@ -544,7 +597,9 @@ function NotificationsPage({
 
         {loading
           ? <div className="notifications-loading">
-              Φόρτωση ειδοποιήσεων…
+              {t(
+                'supportPages.notifications.loading'
+              )}
             </div>
 
           : filtered.length
@@ -600,28 +655,38 @@ function NotificationsPage({
 
                         <span>
                           {groupFor(n)==='messages'
-                            ? 'Επικοινωνία'
+                            ? t(
+                                'supportPages.notifications.meta.communication'
+                              )
                             : groupFor(n)==='bookings'
-                              ? 'Κράτηση'
+                              ? t(
+                                  'supportPages.notifications.meta.booking'
+                                )
                               : 'MELEO'
                           }
                         </span>
 
                         {n.priority==='high'&&
                           <span className="notification-priority high">
-                            Σημαντικό
+                            {t(
+                              'supportPages.notifications.priority.high'
+                            )}
                           </span>
                         }
 
                         {n.priority==='critical'&&
                           <span className="notification-priority critical">
-                            Κρίσιμο
+                            {t(
+                              'supportPages.notifications.priority.critical'
+                            )}
                           </span>
                         }
 
                         {n.actionUrl&&
                           <span className="notification-action-hint">
-                            Προβολή →
+                            {t(
+                              'supportPages.notifications.view'
+                            )} →
                           </span>
                         }
 
@@ -632,7 +697,9 @@ function NotificationsPage({
 
                     {!n.read&&
                       <span className="notification-v2-unread">
-                        ΝΕΟ
+                        {t(
+                          'supportPages.notifications.new'
+                        )}
                       </span>
                     }
 
@@ -642,13 +709,21 @@ function NotificationsPage({
             : <Empty
                 title={
                   filter==='all'
-                    ? 'Δεν υπάρχουν ειδοποιήσεις'
-                    : 'Δεν υπάρχουν ειδοποιήσεις σε αυτή την κατηγορία'
+                    ? t(
+                        'supportPages.notifications.empty.allTitle'
+                      )
+                    : t(
+                        'supportPages.notifications.empty.filterTitle'
+                      )
                 }
                 text={
                   filter==='all'
-                    ? 'Όταν υπάρξει νέα δραστηριότητα θα εμφανιστεί εδώ.'
-                    : 'Δοκίμασε διαφορετικό φίλτρο.'
+                    ? t(
+                        'supportPages.notifications.empty.allText'
+                      )
+                    : t(
+                        'supportPages.notifications.empty.filterText'
+                      )
                 }
               />
         }
@@ -664,19 +739,24 @@ function NotificationsPage({
 
           <div>
             <b>
-              Real-time σύνδεση MELEO
+              {t(
+                'supportPages.notifications.live.title'
+              )}
             </b>
 
             <small>
-              Οι ενημερώσεις εμφανίζονται χωρίς ανανέωση της σελίδας.
+              {t(
+                'supportPages.notifications.live.text'
+              )}
             </small>
           </div>
 
         </div>
 
         <small>
-          Για background ειδοποιήσεις όταν ο browser είναι κλειστός
-          απαιτείται Web Push / VAPID configuration.
+          {t(
+            'supportPages.notifications.live.background'
+          )}
         </small>
 
       </section>
@@ -695,12 +775,349 @@ function NotificationsPage({
       </section>
 }
 function HelpCenter({user,token,setToast,cfg,embedded=false}:any){
- const [tickets,setTickets]=useState<any[]>([]);const [f,setF]=useState({subject:'',category:'booking',text:''});const [reply,setReply]=useState('')
- async function load(){if(user){const d=await api('/support/tickets?limit=50',{},token);setTickets(Array.isArray(d)?d:(d.items||[]))}}useEffect(()=>{load();const fn=()=>load();window.addEventListener('meleo:live',fn);return()=>window.removeEventListener('meleo:live',fn)},[user?.id])
- async function create(){if(!user)return setToast('Συνδέσου για να ανοίξεις αίτημα υποστήριξης.');await api('/support/tickets',{method:'POST',body:JSON.stringify(f)},token);setF({subject:'',category:'booking',text:''});await load();setToast('Το αίτημα υποστήριξης δημιουργήθηκε.')}
- async function send(id:string){if(!reply.trim())return;await api('/support/tickets/'+id+'/message',{method:'POST',body:JSON.stringify({text:reply})},token);setReply('');load()}
- const body=<div className="container"><SectionTitle over="MELEO SUPPORT" title="Help Center" subtitle="Άμεση βοήθεια για κρατήσεις, λογαριασμό, συνδρομές, verification και λειτουργία της πλατφόρμας."/><div className="help-grid"><div className="panel"><h3>Γρήγορες απαντήσεις</h3><div className="faq-list"><details><summary>Πώς λειτουργεί μια κράτηση;</summary><p>Αίτημα → διευκρινίσεις → τελικό κόστος → αποδοχή → επιβεβαιωμένη επίσκεψη.</p></details><details><summary>Πώς γίνεται το MELEO Verified;</summary><p>Ο επαγγελματίας υποβάλλει τα απαιτούμενα δικαιολογητικά και η ομάδα MELEO ολοκληρώνει τον έλεγχο.</p></details><details><summary>Πώς ακυρώνω συνδρομή;</summary><p>Από το Professional Dashboard → Συνδρομή. Η ακύρωση ισχύει στο τέλος της πληρωμένης περιόδου.</p></details><details><summary>Έχω επείγουσα ανάγκη.</summary><p>Η MELEO δεν είναι υπηρεσία επειγόντων. Σε επείγουσα κατάσταση κάλεσε {cfg?.emergencyNumber||'112'}.</p></details></div><a className="support-mail" href={`mailto:${cfg?.legal?.supportEmail||'support@meleo.gr'}`}>✉ {cfg?.legal?.supportEmail||'support@meleo.gr'}</a></div><div className="panel support-create"><h3>Νέο αίτημα υποστήριξης</h3>{user?<><label>Κατηγορία<select value={f.category} onChange={e=>setF({...f,category:e.target.value})}><option value="booking">Κράτηση</option><option value="billing">Συνδρομή / Χρέωση</option><option value="verification">Verification</option><option value="account">Λογαριασμός</option><option value="technical">Τεχνικό θέμα</option><option value="general">Άλλο</option></select></label><label>Θέμα<input value={f.subject} onChange={e=>setF({...f,subject:e.target.value})}/></label><label>Περιγραφή<textarea value={f.text} onChange={e=>setF({...f,text:e.target.value})}/></label><button className="btn btn-dark" onClick={create}>Αποστολή στην υποστήριξη</button></>:<p>Συνδέσου για να δημιουργήσεις ticket και να παρακολουθείς τις απαντήσεις της ομάδας MELEO.</p>}</div></div>{user&&<div className="support-tickets"><h3>Τα αιτήματά μου</h3>{tickets.length?tickets.map(t=><div className="support-ticket" key={t.id}><div className="support-ticket-head"><div><b>{t.subject}</b><small>{t.category} · {new Date(t.createdAt).toLocaleString('el-GR')}</small></div><span className={'status '+(t.status==='closed'?'completed':'pending')}>{t.status}</span></div><div className="support-thread">{t.messages.map((m:any)=><div className={'support-message '+m.fromRole} key={m.id}><b>{m.fromName}</b><p>{m.text}</p><small>{new Date(m.createdAt).toLocaleString('el-GR')}</small></div>)}</div>{t.status!=='closed'&&<div className="support-reply"><input placeholder="Απάντηση…" value={reply} onChange={e=>setReply(e.target.value)}/><button onClick={()=>send(t.id)}>Αποστολή</button></div>}</div>):<Empty title="Δεν έχεις ανοικτά αιτήματα" text="Η ομάδα υποστήριξης είναι εδώ όταν τη χρειαστείς."/>}</div>}</div>
- return embedded?<div className="embedded-page">{body}</div>:<section className="page help-page">{body}</section>
+ const {t,i18n}=useTranslation()
+ const locale=i18n.resolvedLanguage==='en'?'en-GB':'el-GR'
+ const [tickets,setTickets]=useState<any[]>([])
+ const [f,setF]=useState({subject:'',category:'booking',text:''})
+ const [reply,setReply]=useState('')
+
+ async function load(){
+  if(user){
+   const d=await api('/support/tickets?limit=50',{},token)
+   setTickets(Array.isArray(d)?d:(d.items||[]))
+  }
+ }
+
+ useEffect(()=>{
+  load()
+  const fn=()=>load()
+  window.addEventListener('meleo:live',fn)
+  return()=>window.removeEventListener('meleo:live',fn)
+ },[user?.id])
+
+ async function create(){
+  if(!user){
+   return setToast(
+    t('supportPages.help.toast.login')
+   )
+  }
+
+  await api(
+   '/support/tickets',
+   {
+    method:'POST',
+    body:JSON.stringify(f)
+   },
+   token
+  )
+
+  setF({
+   subject:'',
+   category:'booking',
+   text:''
+  })
+
+  await load()
+
+  setToast(
+   t('supportPages.help.toast.created')
+  )
+ }
+
+ async function send(id:string){
+  if(!reply.trim()){
+   return
+  }
+
+  await api(
+   '/support/tickets/'+id+'/message',
+   {
+    method:'POST',
+    body:JSON.stringify({
+     text:reply
+    })
+   },
+   token
+  )
+
+  setReply('')
+  load()
+ }
+
+ const body=
+  <div className="container">
+
+   <SectionTitle
+    over="MELEO SUPPORT"
+    title={t('supportPages.help.title')}
+    subtitle={t('supportPages.help.subtitle')}
+   />
+
+   <div className="help-grid">
+
+    <div className="panel">
+     <h3>
+      {t('supportPages.help.quick.title')}
+     </h3>
+
+     <div className="faq-list">
+
+      <details>
+       <summary>
+        {t('supportPages.help.quick.bookingQ')}
+       </summary>
+       <p>
+        {t('supportPages.help.quick.bookingA')}
+       </p>
+      </details>
+
+      <details>
+       <summary>
+        {t('supportPages.help.quick.verifiedQ')}
+       </summary>
+       <p>
+        {t('supportPages.help.quick.verifiedA')}
+       </p>
+      </details>
+
+      <details>
+       <summary>
+        {t('supportPages.help.quick.cancelQ')}
+       </summary>
+       <p>
+        {t('supportPages.help.quick.cancelA')}
+       </p>
+      </details>
+
+      <details>
+       <summary>
+        {t('supportPages.help.quick.emergencyQ')}
+       </summary>
+       <p>
+        {t(
+         'supportPages.help.quick.emergencyA',
+         {
+          number:
+           cfg?.emergencyNumber||
+           '112'
+         }
+        )}
+       </p>
+      </details>
+
+     </div>
+
+     <a
+      className="support-mail"
+      href={
+       `mailto:${cfg?.legal?.supportEmail||'support@meleo.gr'}`
+      }
+     >
+      ✉ {cfg?.legal?.supportEmail||'support@meleo.gr'}
+     </a>
+    </div>
+
+    <div className="panel support-create">
+
+     <h3>
+      {t('supportPages.help.create.title')}
+     </h3>
+
+     {user
+      ? <>
+         <label>
+          {t('supportPages.help.create.category')}
+
+          <select
+           value={f.category}
+           onChange={e=>
+            setF({
+             ...f,
+             category:e.target.value
+            })
+           }
+          >
+           <option value="booking">
+            {t('supportPages.help.categories.booking')}
+           </option>
+           <option value="billing">
+            {t('supportPages.help.categories.billing')}
+           </option>
+           <option value="verification">
+            Verification
+           </option>
+           <option value="account">
+            {t('supportPages.help.categories.account')}
+           </option>
+           <option value="technical">
+            {t('supportPages.help.categories.technical')}
+           </option>
+           <option value="general">
+            {t('supportPages.help.categories.general')}
+           </option>
+          </select>
+         </label>
+
+         <label>
+          {t('supportPages.help.create.subject')}
+
+          <input
+           value={f.subject}
+           onChange={e=>
+            setF({
+             ...f,
+             subject:e.target.value
+            })
+           }
+          />
+         </label>
+
+         <label>
+          {t('supportPages.help.create.description')}
+
+          <textarea
+           value={f.text}
+           onChange={e=>
+            setF({
+             ...f,
+             text:e.target.value
+            })
+           }
+          />
+         </label>
+
+         <button
+          className="btn btn-dark"
+          onClick={create}
+         >
+          {t('supportPages.help.create.submit')}
+         </button>
+        </>
+      : <p>
+         {t('supportPages.help.create.loginText')}
+        </p>
+     }
+
+    </div>
+   </div>
+
+   {user&&
+    <div className="support-tickets">
+
+     <h3>
+      {t('supportPages.help.tickets.title')}
+     </h3>
+
+     {tickets.length
+      ? tickets.map(t=>
+         <div
+          className="support-ticket"
+          key={t.id}
+         >
+
+          <div className="support-ticket-head">
+           <div>
+            <b>
+             {t.subject}
+            </b>
+
+            <small>
+             {t.category}
+             {' · '}
+             {new Date(
+              t.createdAt
+             ).toLocaleString(locale)}
+            </small>
+           </div>
+
+           <span
+            className={
+             'status '+
+             (
+              t.status==='closed'
+               ? 'completed'
+               : 'pending'
+             )
+            }
+           >
+            {t.status}
+           </span>
+          </div>
+
+          <div className="support-thread">
+           {t.messages.map((m:any)=>
+            <div
+             className={
+              'support-message '+
+              m.fromRole
+             }
+             key={m.id}
+            >
+             <b>
+              {m.fromName}
+             </b>
+
+             <p>
+              {m.text}
+             </p>
+
+             <small>
+              {new Date(
+               m.createdAt
+              ).toLocaleString(locale)}
+             </small>
+            </div>
+           )}
+          </div>
+
+          {t.status!=='closed'&&
+           <div className="support-reply">
+
+            <input
+             placeholder={t(
+              'supportPages.help.reply.placeholder'
+             )}
+             value={reply}
+             onChange={e=>
+              setReply(e.target.value)
+             }
+            />
+
+            <button
+             onClick={()=>send(t.id)}
+            >
+             {t(
+              'supportPages.help.reply.send'
+             )}
+            </button>
+
+           </div>
+          }
+
+         </div>
+        )
+      : <Empty
+         title={t(
+          'supportPages.help.tickets.emptyTitle'
+         )}
+         text={t(
+          'supportPages.help.tickets.emptyText'
+         )}
+        />
+     }
+
+    </div>
+   }
+
+  </div>
+
+ return embedded
+  ? <div className="embedded-page">
+     {body}
+    </div>
+  : <section className="page help-page">
+     {body}
+    </section>
 }
 
 export { NotificationsPage, HelpCenter }
