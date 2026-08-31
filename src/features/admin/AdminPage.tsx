@@ -927,6 +927,7 @@ const platformOperational=
 
 function AdminSmartRequests({token,setToast}:any){
 
+ const {t,i18n}=useTranslation()
  const [rows,setRows]=useState<any[]>([])
  const [summary,setSummary]=useState<any>({})
  const [status,setStatus]=useState('all')
@@ -966,7 +967,7 @@ function AdminSmartRequests({token,setToast}:any){
 
      setToast(
        e.message||
-       'Αποτυχία φόρτωσης Smart Requests.'
+       t('adminSmart.loadError')
      )
 
    }
@@ -990,7 +991,7 @@ function AdminSmartRequests({token,setToast}:any){
 
      specialty=
        window.prompt(
-         'Σε ποια ειδικότητα ανήκει;',
+         t('adminSmart.prompts.specialty'),
          specialty
        )||''
 
@@ -1000,7 +1001,7 @@ function AdminSmartRequests({token,setToast}:any){
 
      service=
        window.prompt(
-         'Υπηρεσία (προαιρετικό):',
+         t('adminSmart.prompts.service'),
          service
        )||''
 
@@ -1013,7 +1014,7 @@ function AdminSmartRequests({token,setToast}:any){
 
      note=
        window.prompt(
-         'Εσωτερική σημείωση (προαιρετικό):',
+         t('adminSmart.prompts.note'),
          note
        )||''
 
@@ -1041,8 +1042,8 @@ function AdminSmartRequests({token,setToast}:any){
 
      setToast(
        nextStatus==='learned'
-         ?'Το Smart Request προστέθηκε στη γνώση της MELEO.'
-         :'Η κατάσταση ενημερώθηκε.'
+         ?t('adminSmart.feedback.learned')
+         :t('adminSmart.feedback.updated')
      )
 
    }
@@ -1050,7 +1051,7 @@ function AdminSmartRequests({token,setToast}:any){
 
      setToast(
        e.message||
-       'Η ενέργεια απέτυχε.'
+       t('adminSmart.actionError')
      )
 
    }
@@ -1067,27 +1068,27 @@ function AdminSmartRequests({token,setToast}:any){
      <div className="admin-grid-4">
 
        <div className="panel">
-         <small>NEW</small>
+         <small>{t('adminSmart.cards.newKicker')}</small>
          <h2>{summary.new||0}</h2>
-         <span>Νέα άγνωστα αιτήματα</span>
+         <span>{t('adminSmart.cards.newLabel')}</span>
        </div>
 
        <div className="panel">
-         <small>LEARNED</small>
+         <small>{t('adminSmart.cards.learnedKicker')}</small>
          <h2>{summary.learned||0}</h2>
-         <span>Εκπαιδευμένες φράσεις</span>
+         <span>{t('adminSmart.cards.learnedLabel')}</span>
        </div>
 
        <div className="panel">
-         <small>TOTAL PATTERNS</small>
+         <small>{t('adminSmart.cards.patternsKicker')}</small>
          <h2>{summary.total||0}</h2>
-         <span>Μοναδικά patterns</span>
+         <span>{t('adminSmart.cards.patternsLabel')}</span>
        </div>
 
        <div className="panel">
-         <small>REQUEST SIGNALS</small>
+         <small>{t('adminSmart.cards.signalsKicker')}</small>
          <h2>{summary.occurrences||0}</h2>
-         <span>Συνολικές εμφανίσεις</span>
+         <span>{t('adminSmart.cards.signalsLabel')}</span>
        </div>
 
      </div>
@@ -1097,10 +1098,9 @@ function AdminSmartRequests({token,setToast}:any){
        <div className="panel-heading">
 
          <div>
-           <h3>🧠 Smart Request Learning</h3>
+           <h3>{t('adminSmart.title')}</h3>
            <span>
-             Πραγματικά αιτήματα που δεν αναγνώρισε
-             ο Smart Request matcher
+             {t('adminSmart.subtitle')}
            </span>
          </div>
 
@@ -1108,7 +1108,7 @@ function AdminSmartRequests({token,setToast}:any){
            className="btn ghost small"
            onClick={load}
          >
-           ↻ Ανανέωση
+           {t('adminSmart.refresh')}
          </button>
 
        </div>
@@ -1121,14 +1121,14 @@ function AdminSmartRequests({token,setToast}:any){
            onKeyDown={e=>{
              if(e.key==='Enter')load()
            }}
-           placeholder="Αναζήτηση αιτήματος…"
+           placeholder={t('adminSmart.searchPlaceholder')}
          />
 
          <select
            value={status}
            onChange={e=>setStatus(e.target.value)}
          >
-           <option value="all">Όλα</option>
+           <option value="all">{t('adminSmart.allStatuses')}</option>
            <option value="new">New</option>
            <option value="reviewed">Reviewed</option>
            <option value="learned">Learned</option>
@@ -1139,7 +1139,7 @@ function AdminSmartRequests({token,setToast}:any){
            className="btn small"
            onClick={load}
          >
-           Αναζήτηση
+           {t('adminSmart.search')}
          </button>
 
        </div>
@@ -1159,8 +1159,7 @@ function AdminSmartRequests({token,setToast}:any){
                </b>
 
                <span>
-                 {r.occurrences} εμφάνιση
-                 {r.occurrences===1?'':'εις'}
+                 {r.occurrences} {r.occurrences===1?t('adminSmart.occurrenceOne'):t('adminSmart.occurrenceMany')}
                </span>
 
                {r.specialty&&(
@@ -1174,17 +1173,15 @@ function AdminSmartRequests({token,setToast}:any){
                )}
 
                <small>
-                 Πρώτη:
-                 {' '}
+                 {t('adminSmart.first')} {' '}
                  {new Date(
                    r.firstSeenAt
-                 ).toLocaleString('el-GR')}
+                 ).toLocaleString(i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}
                  {' · '}
-                 Τελευταία:
-                 {' '}
+                 {t('adminSmart.last')} {' '}
                  {new Date(
                    r.lastSeenAt
-                 ).toLocaleString('el-GR')}
+                 ).toLocaleString(i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}
                </small>
 
              </div>
@@ -1207,7 +1204,7 @@ function AdminSmartRequests({token,setToast}:any){
                      decision(r,'learned')
                    }
                  >
-                   🧠 Learn
+                   {t('adminSmart.actions.learn')}
                  </button>
                )}
 
@@ -1220,7 +1217,7 @@ function AdminSmartRequests({token,setToast}:any){
                      decision(r,'reviewed')
                    }
                  >
-                   Reviewed
+                   {t('adminSmart.actions.reviewed')}
                  </button>
                )}
 
@@ -1234,7 +1231,7 @@ function AdminSmartRequests({token,setToast}:any){
                      decision(r,'ignored')
                    }
                  >
-                   Ignore
+                   {t('adminSmart.actions.ignore')}
                  </button>
                )}
 
@@ -1245,8 +1242,8 @@ function AdminSmartRequests({token,setToast}:any){
          ))
          :(
            <Empty
-             title="Δεν υπάρχουν Smart Requests"
-             text="Όταν ο matcher δεν μπορεί να καταλάβει ένα αίτημα, θα εμφανίζεται εδώ."
+             title={t('adminSmart.emptyTitle')}
+             text={t('adminSmart.emptyText')}
            />
          )
        }
@@ -1259,10 +1256,11 @@ function AdminSmartRequests({token,setToast}:any){
 }
 
 function AdminSupport({token,setToast}:any){
+ const {t,i18n}=useTranslation()
  const [rows,setRows]=useState<any[]>([]);const [reply,setReply]=useState<Record<string,string>>({});async function load(){const d=await api('/support/tickets?limit=100',{},token);setRows(Array.isArray(d)?d:(d.items||[]))}useEffect(()=>{load()},[])
  async function update(id:string,status:string){await api('/support/tickets/'+id,{method:'PATCH',body:JSON.stringify({status})},token);load()}
- async function send(id:string){const text=reply[id]||'';if(!text.trim())return;await api('/support/tickets/'+id+'/message',{method:'POST',body:JSON.stringify({text})},token);setReply({...reply,[id]:''});load();setToast('Η απάντηση στάλθηκε.')}
- return <div className="panel admin-support"><div className="panel-heading"><div><h3>Customer Support</h3><span>Tickets χρηστών και επαγγελματιών</span></div><strong>{rows.filter(x=>x.status!=='closed').length} open</strong></div>{rows.length?rows.map(t=><div className="admin-ticket" key={t.id}><div className="support-ticket-head"><div><b>{t.subject}</b><small>{t.category} · {t.id}</small></div><select value={t.status} onChange={e=>update(t.id,e.target.value)}><option value="open">Open</option><option value="pending">Pending</option><option value="closed">Closed</option></select></div><div className="support-thread">{t.messages.map((m:any)=><div className={'support-message '+m.fromRole} key={m.id}><b>{m.fromName}</b><p>{m.text}</p><small>{new Date(m.createdAt).toLocaleString('el-GR')}</small></div>)}</div><div className="support-reply"><input value={reply[t.id]||''} onChange={e=>setReply({...reply,[t.id]:e.target.value})} placeholder="Απάντηση από MELEO Support…"/><button onClick={()=>send(t.id)}>Αποστολή</button></div></div>):<Empty title="Δεν υπάρχουν tickets" text="Τα νέα αιτήματα υποστήριξης θα εμφανίζονται εδώ."/>}</div>
+ async function send(id:string){const text=reply[id]||'';if(!text.trim())return;await api('/support/tickets/'+id+'/message',{method:'POST',body:JSON.stringify({text})},token);setReply({...reply,[id]:''});load();setToast(t('adminSupport.replySent'))}
+ return <div className="panel admin-support"><div className="panel-heading"><div><h3>{t('adminSupport.title')}</h3><span>{t('adminSupport.subtitle')}</span></div><strong>{rows.filter(x=>x.status!=='closed').length} {t('adminSupport.open')}</strong></div>{rows.length?rows.map(t=><div className="admin-ticket" key={t.id}><div className="support-ticket-head"><div><b>{t.subject}</b><small>{t.category} · {t.id}</small></div><select value={t.status} onChange={e=>update(t.id,e.target.value)}><option value="open">Open</option><option value="pending">Pending</option><option value="closed">Closed</option></select></div><div className="support-thread">{t.messages.map((m:any)=><div className={'support-message '+m.fromRole} key={m.id}><b>{m.fromName}</b><p>{m.text}</p><small>{new Date(m.createdAt).toLocaleString(i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}</small></div>)}</div><div className="support-reply"><input value={reply[t.id]||''} onChange={e=>setReply({...reply,[t.id]:e.target.value})} placeholder={t('adminSupport.replyPlaceholder')}/><button onClick={()=>send(t.id)}>{t('adminSupport.send')}</button></div></div>):<Empty title={t('adminSupport.emptyTitle')} text={t('adminSupport.emptyText')}/>}</div>
 }
 
 export default Admin
