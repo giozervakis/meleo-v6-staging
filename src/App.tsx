@@ -622,6 +622,7 @@ function CalendarActions({booking}:any){
 }
 
 export default function App(){
+  const {t}=useTranslation()
   const [token,setToken]=useState('cookie')
   const [user,setUser]=useState<User|null>(null)
   const [professional,setProfessional]=useState<Professional|null>(null)
@@ -773,21 +774,21 @@ useEffect(()=>{
     const verify=params.get('verify'), reset=params.get('reset'), billing=params.get('billing')
     ;(async()=>{
       if(checkout==='success'){
-        setToast('Επιβεβαίωση πληρωμής…')
-        const t='cookie'
+        setToast(t('accountFlow.checkout.confirming'))
+        const authToken='cookie'
         for(let i=0;i<6;i++){
           try{
-            const r=await api('/professional/subscription/sync',{method:'POST',body:JSON.stringify({sessionId})},t)
-            if(['active','past_due'].includes(r?.professional?.subscriptionStatus)){setToast('Η συνδρομή σου ενεργοποιήθηκε.');break}
+            const r=await api('/professional/subscription/sync',{method:'POST',body:JSON.stringify({sessionId})},authToken)
+            if(['active','past_due'].includes(r?.professional?.subscriptionStatus)){setToast(t('accountFlow.checkout.activated'));break}
           }catch{}
           await new Promise(res=>setTimeout(res,1500))
         }
         await refreshMe('cookie')
         setView('pro-dashboard')
       }
-      if(checkout==='cancel')setToast('Η πληρωμή ακυρώθηκε. Δεν έγινε χρέωση.')
+      if(checkout==='cancel')setToast(t('accountFlow.checkout.cancelled'))
       if(billing==='return'){await refreshMe('cookie');setView('pro-dashboard')}
-      if(verify){try{await api('/auth/verify-email',{method:'POST',body:JSON.stringify({token:verify})});setToast('Το email σου επιβεβαιώθηκε.');await refreshMe('cookie')}catch(e:any){setToast(e.message)}}
+      if(verify){try{await api('/auth/verify-email',{method:'POST',body:JSON.stringify({token:verify})});setToast(t('accountFlow.email.verified'));await refreshMe('cookie')}catch(e:any){setToast(e.message)}}
       if(reset){setResetToken(reset);setView('reset-password')}
       clean()
     })()
@@ -806,7 +807,7 @@ useEffect(()=>{
   )
 
   refreshMe('cookie')
-  setToast(`Καλώς ήρθες, ${u.name.split(' ')[0]}`)
+  setToast(t('accountFlow.welcome',{name:u.name.split(' ')[0]}))
 }
   async function logout(){try{await api('/auth/logout',{method:'POST'},token)}catch{}setToken('cookie');setUser(null);setProfessional(null);setView('home')}
   async function toggleFav(id:string){if(!user){setView('auth');return}if(!['patient','professional'].includes(user.role))return;const r=await api('/favorites/'+id,{method:'POST'},token);setFavorites(x=>r.favorite?[...x,id]:x.filter(v=>v!==id))}
@@ -952,15 +953,15 @@ useEffect(()=>{
 }
 
 function VerifyEmailBanner({user,token,cfg,setToast}:any){
+  const {t}=useTranslation()
   const [sent,setSent]=useState(false)
   if(!user||user.emailVerified||!cfg.mailEnabled)return null
-  async function resend(){try{await api('/auth/verify-email/resend',{method:'POST'},token);setSent(true);setToast('Στάλθηκε νέος σύνδεσμος επιβεβαίωσης.')}catch(e:any){setToast(e.message)}}
+  async function resend(){try{await api('/auth/verify-email/resend',{method:'POST'},token);setSent(true);setToast(t('accountFlow.email.resendSuccess'))}catch(e:any){setToast(e.message)}}
   return <div className="verify-banner">
-    <span>Το email σου δεν έχει επιβεβαιωθεί. Ορισμένες ενέργειες παραμένουν κλειδωμένες μέχρι την επιβεβαίωση.</span>
-    <button onClick={resend} disabled={sent}>{sent?'Στάλθηκε':'Στείλε ξανά τον σύνδεσμο'}</button>
+    <span>{t('accountFlow.email.unverified')}</span>
+    <button onClick={resend} disabled={sent}>{sent?t('accountFlow.email.sent'):t('accountFlow.email.resend')}</button>
   </div>
 }
-
 function Footer({cfg,setView}:any){
   const {t}=useTranslation()
 
