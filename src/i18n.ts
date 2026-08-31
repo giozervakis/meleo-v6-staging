@@ -606,6 +606,16 @@ recommended:'ΠΡΟΤΕΙΝΟΜΕΝΟ'
  history:{title:'Ιστορικό χρεώσεων',text:'Οι πιο πρόσφατες καταγεγραμμένες συναλλαγές της συνδρομής σου.',loading:'Φόρτωση ιστορικού…',date:'Ημερομηνία',amount:'Ποσό',status:'Κατάσταση',view:'Προβολή ↗',emptyTitle:'Δεν υπάρχει ακόμη ιστορικό χρεώσεων',emptyText:'Όταν καταγραφεί συναλλαγή συνδρομής, θα εμφανιστεί εδώ.'},
  footerNote:'Η MELEO δεν αποθηκεύει στοιχεία κάρτας. Η διαχείριση πραγματικών ηλεκτρονικών πληρωμών πραγματοποιείται μέσω του παρόχου πληρωμών. Η MELEO δεν κρατά προμήθεια από τις επισκέψεις σου.'
 },proAvailability:{
+weekdays:{
+monday:{label:'Δευτέρα',short:'Δευ'},
+tuesday:{label:'Τρίτη',short:'Τρι'},
+wednesday:{label:'Τετάρτη',short:'Τετ'},
+thursday:{label:'Πέμπτη',short:'Πεμ'},
+friday:{label:'Παρασκευή',short:'Παρ'},
+saturday:{label:'Σάββατο',short:'Σαβ'},
+sunday:{label:'Κυριακή',short:'Κυρ'}
+},
+
  errors:{load:'Δεν ήταν δυνατή η φόρτωση της διαθεσιμότητας.',save:'Δεν ήταν δυνατή η αποθήκευση της διαθεσιμότητας.'},
  toast:{copiedWeekdays:'Το ωράριο αντιγράφηκε στις εργάσιμες ημέρες.',selectExceptionDate:'Επίλεξε ημερομηνία εξαίρεσης.',selectExceptionSlot:'Επίλεξε τουλάχιστον μία διαθέσιμη ώρα.',saved:'Η πραγματική διαθεσιμότητα αποθηκεύτηκε.'},
  loading:'Φόρτωση προγράμματος…',
@@ -1489,6 +1499,16 @@ recommended:'RECOMMENDED'
  history:{title:'Billing history',text:'Your most recent recorded subscription transactions.',loading:'Loading history…',date:'Date',amount:'Amount',status:'Status',view:'View ↗',emptyTitle:'No billing history yet',emptyText:'Subscription transactions will appear here when recorded.'},
  footerNote:'MELEO does not store card details. Real electronic payments are handled by the payment provider. MELEO does not take a commission from your visits.'
 },proAvailability:{
+weekdays:{
+monday:{label:'Monday',short:'Mon'},
+tuesday:{label:'Tuesday',short:'Tue'},
+wednesday:{label:'Wednesday',short:'Wed'},
+thursday:{label:'Thursday',short:'Thu'},
+friday:{label:'Friday',short:'Fri'},
+saturday:{label:'Saturday',short:'Sat'},
+sunday:{label:'Sunday',short:'Sun'}
+},
+
  errors:{load:'Availability could not be loaded.',save:'Availability could not be saved.'},
  toast:{copiedWeekdays:'The schedule was copied to weekdays.',selectExceptionDate:'Select an exception date.',selectExceptionSlot:'Select at least one available time.',saved:'Your live availability was saved.'},
  loading:'Loading schedule…',

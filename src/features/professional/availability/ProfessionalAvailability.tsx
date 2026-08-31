@@ -27,13 +27,13 @@ type Props = {
 }
 
 const DAYS = [
-  {day:1,label:'Δευτέρα',short:'Δευ'},
-  {day:2,label:'Τρίτη',short:'Τρι'},
-  {day:3,label:'Τετάρτη',short:'Τετ'},
-  {day:4,label:'Πέμπτη',short:'Πεμ'},
-  {day:5,label:'Παρασκευή',short:'Παρ'},
-  {day:6,label:'Σάββατο',short:'Σαβ'},
-  {day:7,label:'Κυριακή',short:'Κυρ'}
+  {day:1,key:'monday'},
+  {day:2,key:'tuesday'},
+  {day:3,key:'wednesday'},
+  {day:4,key:'thursday'},
+  {day:5,key:'friday'},
+  {day:6,key:'saturday'},
+  {day:7,key:'sunday'}
 ]
 
 const SLOT_OPTIONS = [
@@ -569,7 +569,7 @@ export default function ProfessionalAvailability({
                 >
 
                   <span>
-                    {item.short}
+                    {t('proAvailability.weekdays.'+item.key+'.short')}
                   </span>
 
                   <strong>
@@ -590,9 +590,20 @@ export default function ProfessionalAvailability({
 
               <div>
                 <span>
-                  {DAYS.find(
-                    item=>item.day===selectedDay
-                  )?.label}
+                  {(()=>{
+                    const selected=
+                      DAYS.find(
+                        item=>item.day===selectedDay
+                      )
+
+                    return selected
+                      ? t(
+                          'proAvailability.weekdays.'+
+                          selected.key+
+                          '.label'
+                        )
+                      : ''
+                  })()}
                 </span>
 
                 <h3>
@@ -886,7 +897,7 @@ export default function ProfessionalAvailability({
                 <div key={item.day}>
 
                   <strong>
-                    {item.short}
+                    {t('proAvailability.weekdays.'+item.key+'.short')}
                   </strong>
 
                   <span>
