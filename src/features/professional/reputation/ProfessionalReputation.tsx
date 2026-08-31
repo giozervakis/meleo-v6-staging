@@ -7,6 +7,8 @@ import type {
   Booking
 } from '../../../domain/types'
 
+import {useTranslation} from 'react-i18next'
+
 import './professional-reputation.css'
 
 
@@ -89,7 +91,10 @@ function initials(name:string){
 }
 
 
-function formatDate(value:string){
+function formatDate(
+  value:string,
+  locale='el-GR'
+){
   if(!value){
     return ''
   }
@@ -101,7 +106,7 @@ function formatDate(value:string){
   }
 
   return parsed.toLocaleDateString(
-    'el-GR',
+    locale,
     {
       day:'2-digit',
       month:'short',
@@ -113,10 +118,12 @@ function formatDate(value:string){
 
 function Stars({
   rating,
-  compact=false
+  compact=false,
+  ariaLabel
 }:{
   rating:number
   compact?:boolean
+  ariaLabel:string
 }){
   return (
     <span
@@ -125,7 +132,7 @@ function Stars({
           ? 'reputation-stars compact'
           : 'reputation-stars'
       }
-      aria-label={`${rating} από 5 αστέρια`}
+      aria-label={ariaLabel}
     >
       {[1,2,3,4,5].map(star=>
         <span
@@ -150,6 +157,8 @@ export default function ProfessionalReputation({
   analytics,
   setTab
 }:ProfessionalReputationProps){
+
+  const {t,i18n}=useTranslation()
 
   const [filter,setFilter]=
     useState<'all'|'5'|'4'|'3'>('all')
@@ -207,13 +216,13 @@ export default function ProfessionalReputation({
                 review.patientName ??
                 review.authorName ??
                 booking.patientName ??
-                'Ασθενής MELEO'
+                t('proReputation.review.patientFallback')
               ),
 
             service:
               String(
                 booking.service ||
-                'Επίσκεψη'
+                t('proReputation.review.visitFallback')
               ),
 
             date:
@@ -236,7 +245,7 @@ export default function ProfessionalReputation({
             ).getTime()
         )
 
-    },[completedBookings])
+    },[completedBookings,t])
 
 
   const platformRating=
@@ -391,16 +400,11 @@ export default function ProfessionalReputation({
           </span>
 
           <h2>
-            Η επαγγελματική σου φήμη,
-            σε ένα σημείο.
+            {t('proReputation.hero.title')}
           </h2>
 
           <p>
-            Παρακολούθησε τις πραγματικές
-            αξιολογήσεις από ολοκληρωμένες
-            επισκέψεις και την πρόοδό σου
-            προς ισχυρότερη αξιοπιστία
-            μέσα στο MELEO.
+            {t('proReputation.hero.text')}
           </p>
 
         </div>
@@ -409,7 +413,7 @@ export default function ProfessionalReputation({
         <div className="reputation-score-card">
 
           <span>
-            Συνολική βαθμολογία
+            {t('proReputation.hero.totalScore')}
           </span>
 
           <div className="reputation-score-number">
@@ -420,10 +424,14 @@ export default function ProfessionalReputation({
             ?
             <Stars
               rating={platformRating}
+              ariaLabel={t(
+                'proReputation.starsAria',
+                {rating:platformRating}
+              )}
             />
             :
             <span className="reputation-new">
-              Νέο προφίλ
+              {t('proReputation.hero.newProfile')}
             </span>
           }
 
@@ -431,8 +439,8 @@ export default function ProfessionalReputation({
             {platformReviewCount}
             {' '}
             {platformReviewCount===1
-              ? 'αξιολόγηση'
-              : 'αξιολογήσεις'
+              ? t('proReputation.hero.reviewSingular')
+              : t('proReputation.hero.reviewPlural')
             }
           </small>
 
@@ -453,11 +461,11 @@ export default function ProfessionalReputation({
           </strong>
 
           <b>
-            Βαθμολογία
+            {t('proReputation.metrics.rating')}
           </b>
 
           <small>
-            δημόσια εικόνα προφίλ
+            {t('proReputation.metrics.publicProfile')}
           </small>
         </article>
 
@@ -472,11 +480,11 @@ export default function ProfessionalReputation({
           </strong>
 
           <b>
-            Ολοκληρωμένες
+            {t('proReputation.metrics.completed')}
           </b>
 
           <small>
-            πραγματικές επισκέψεις
+            {t('proReputation.metrics.realVisits')}
           </small>
         </article>
 
@@ -491,11 +499,11 @@ export default function ProfessionalReputation({
           </strong>
 
           <b>
-            Αξιολογήσεις
+            {t('proReputation.metrics.reviews')}
           </b>
 
           <small>
-            στο επαγγελματικό προφίλ
+            {t('proReputation.metrics.profileReviews')}
           </small>
         </article>
 
@@ -514,7 +522,7 @@ export default function ProfessionalReputation({
           </b>
 
           <small>
-            στις φορτωμένες ολοκληρωμένες
+            {t('proReputation.metrics.loadedCompleted')}
           </small>
         </article>
 
@@ -529,11 +537,11 @@ export default function ProfessionalReputation({
 
             <div>
               <span>
-                ΑΞΙΟΛΟΓΗΣΕΙΣ
+                {t('proReputation.reviews.eyebrow')}
               </span>
 
               <h3>
-                Τι λένε οι ασθενείς
+                {t('proReputation.reviews.title')}
               </h3>
             </div>
 
@@ -541,11 +549,11 @@ export default function ProfessionalReputation({
             <div
               className="reputation-filters"
               role="group"
-              aria-label="Φίλτρα αξιολογήσεων"
+              aria-label={t('proReputation.reviews.filtersAria')}
             >
 
               {[
-                ['all','Όλες'],
+                ['all',t('proReputation.reviews.all')],
                 ['5','5 ★'],
                 ['4','4 ★'],
                 ['3','3 ★']
@@ -601,8 +609,7 @@ export default function ProfessionalReputation({
                         </strong>
 
                         <small>
-                          Επιβεβαιωμένη ολοκληρωμένη
-                          επίσκεψη
+                          {t('proReputation.review.verifiedVisit')}
                         </small>
                       </div>
 
@@ -614,6 +621,10 @@ export default function ProfessionalReputation({
                       <Stars
                         rating={review.rating}
                         compact
+                        ariaLabel={t(
+                          'proReputation.starsAria',
+                          {rating:review.rating}
+                        )}
                       />
 
                       <b>
@@ -632,8 +643,7 @@ export default function ProfessionalReputation({
                     </p>
                     :
                     <p className="reputation-review-text muted">
-                      Ο ασθενής άφησε βαθμολογία
-                      χωρίς γραπτό σχόλιο.
+                      {t('proReputation.review.noComment')}
                     </p>
                   }
 
@@ -647,7 +657,10 @@ export default function ProfessionalReputation({
                     <span>
                       {formatDate(
                         review.createdAt ||
-                        review.date
+                        review.date,
+                        i18n.resolvedLanguage==='en'
+                          ? 'en-GB'
+                          : 'el-GR'
                       )}
                     </span>
 
@@ -667,15 +680,15 @@ export default function ProfessionalReputation({
 
               <h3>
                 {reviews.length===0
-                  ? 'Δεν υπάρχουν ακόμη αξιολογήσεις'
-                  : 'Δεν υπάρχουν αξιολογήσεις σε αυτό το φίλτρο'
+                  ? t('proReputation.empty.noneTitle')
+                  : t('proReputation.empty.filterTitle')
                 }
               </h3>
 
               <p>
                 {reviews.length===0
-                  ? 'Οι αξιολογήσεις εμφανίζονται μετά από ολοκληρωμένες επισκέψεις και βοηθούν τους επόμενους ασθενείς να επιλέξουν με μεγαλύτερη εμπιστοσύνη.'
-                  : 'Δοκίμασε διαφορετικό φίλτρο για να δεις τις υπόλοιπες αξιολογήσεις.'
+                  ? t('proReputation.empty.noneText')
+                  : t('proReputation.empty.filterText')
                 }
               </p>
 
@@ -694,7 +707,7 @@ export default function ProfessionalReputation({
             </span>
 
             <h3>
-              Αξιοπιστία MELEO
+              {t('proReputation.trust.title')}
             </h3>
 
 
@@ -708,13 +721,11 @@ export default function ProfessionalReputation({
 
                 <div>
                   <strong>
-                    Trust eligibility ενεργή
+                    {t('proReputation.trust.eligibleTitle')}
                   </strong>
 
                   <p>
-                    Έχεις καλύψει το βασικό
-                    ιστορικό ολοκληρωμένων
-                    επισκέψεων και αξιολογήσεων.
+                    {t('proReputation.trust.eligibleText')}
                   </p>
                 </div>
 
@@ -722,16 +733,14 @@ export default function ProfessionalReputation({
               :
               <>
                 <p className="reputation-side-copy">
-                  Το Trust Score ενεργοποιείται
-                  όταν υπάρχει επαρκές πραγματικό
-                  ιστορικό δραστηριότητας.
+                  {t('proReputation.trust.inactiveText')}
                 </p>
 
                 <div className="reputation-progress-row">
 
                   <div>
                     <span>
-                      Ολοκληρωμένες επισκέψεις
+                      {t('proReputation.trust.completedVisits')}
                     </span>
 
                     <b>
@@ -756,7 +765,7 @@ export default function ProfessionalReputation({
 
                   <div>
                     <span>
-                      Αξιολογήσεις
+                      {t('proReputation.trust.reviews')}
                     </span>
 
                     <b>
@@ -780,12 +789,18 @@ export default function ProfessionalReputation({
                 <small className="reputation-progress-note">
 
                   {completedNeeded>0
-                    ? `Χρειάζονται ακόμη ${completedNeeded} ολοκληρωμένες επισκέψεις. `
+                    ? t(
+                        'proReputation.trust.completedNeeded',
+                        {count:completedNeeded}
+                      )+' '
                     : ''
                   }
 
                   {reviewsNeeded>0
-                    ? `Χρειάζονται ακόμη ${reviewsNeeded} αξιολογήσεις.`
+                    ? t(
+                        'proReputation.trust.reviewsNeeded',
+                        {count:reviewsNeeded}
+                      )
                     : ''
                   }
 
@@ -803,7 +818,7 @@ export default function ProfessionalReputation({
             </span>
 
             <h3>
-              Κατανομή βαθμολογιών
+              {t('proReputation.distribution.title')}
             </h3>
 
 
@@ -850,9 +865,7 @@ export default function ProfessionalReputation({
 
             {reviews.length===0 &&
               <small className="reputation-distribution-note">
-                Η κατανομή θα εμφανιστεί όταν
-                υπάρχουν διαθέσιμες αξιολογήσεις
-                στις φορτωμένες κρατήσεις.
+                {t('proReputation.distribution.empty')}
               </small>
             }
 
@@ -866,24 +879,24 @@ export default function ProfessionalReputation({
             </span>
 
             <h3>
-              Τι ενισχύει την εικόνα σου
+              {t('proReputation.guidance.title')}
             </h3>
 
             <ul>
               <li>
-                Ολοκλήρωση πραγματικών επισκέψεων
+                {t('proReputation.guidance.completedVisits')}
               </li>
 
               <li>
-                Σταθερή ανταπόκριση στα αιτήματα
+                {t('proReputation.guidance.steadyResponse')}
               </li>
 
               <li>
-                Θετικές αξιολογήσεις ασθενών
+                {t('proReputation.guidance.positiveReviews')}
               </li>
 
               <li>
-                Επαληθευμένο επαγγελματικό προφίλ
+                {t('proReputation.guidance.verifiedProfile')}
               </li>
             </ul>
 
@@ -896,7 +909,7 @@ export default function ProfessionalReputation({
                   setTab('profile')
                 }
               >
-                Βελτίωσε το προφίλ σου
+                {t('proReputation.guidance.improveProfile')}
               </button>
             }
 
