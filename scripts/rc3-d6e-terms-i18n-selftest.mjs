@@ -14,7 +14,7 @@ need(account.includes("emergency:cfg?.emergencyNumber || '112'"),'terms emergenc
 need(account.includes("t('legalTerms.s9.body',{support})"),'terms support interpolation missing')
 
 need(!account.includes('<h3>1. \u03a0\u03bf\u03b9\u03bf\u03b9 \u03b5\u03af\u03bc\u03b1\u03c3\u03c4\u03b5 \u03ba\u03b1\u03b9 \u03c4\u03b9 \u03ba\u03ac\u03bd\u03bf\u03c5\u03bc\u03b5</h3>'),'hard-coded terms body remains')
-need(account.includes('\u03a0\u03bf\u03b9\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1 \u03c3\u03c5\u03bb\u03bb\u03ad\u03b3\u03bf\u03c5\u03bc\u03b5'),'privacy body must remain untouched in D6E')
+need(account.includes("t('legalPrivacy.s2.title')") || account.includes('\u03a0\u03bf\u03b9\u03b1 \u03b4\u03b5\u03b4\u03bf\u03bc\u03ad\u03bd\u03b1 \u03c3\u03c5\u03bb\u03bb\u03ad\u03b3\u03bf\u03c5\u03bc\u03b5'),'privacy surface must remain present after D6E')
 need(account.includes('\u03a4\u03b9 \u03c7\u03c1\u03b7\u03c3\u03b9\u03bc\u03bf\u03c0\u03bf\u03b9\u03bf\u03cd\u03bc\u03b5'),'cookies body must remain untouched in D6E')
 need(i18n.includes("legalTerms:{s1:{title:'1. Who we are and what we do'"),'English legalTerms translations missing')
 need(pkg.scripts?.['rc3-d6e-check']==='node scripts/rc3-d6e-terms-i18n-selftest.mjs','rc3-d6e-check package script missing')
