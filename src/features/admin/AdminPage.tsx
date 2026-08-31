@@ -443,10 +443,10 @@ const platformOperational=
       <div className="admin-command-section-head">
 
         <div>
-          <small>MARKETPLACE HEALTH</small>
+          <small>{t('adminMarketplaceHealth.kicker')}</small>
 
           <h3>
-            Υγεία marketplace
+            {t('adminMarketplaceHealth.title')}
           </h3>
         </div>
 
@@ -456,7 +456,7 @@ const platformOperational=
       <div className="admin-health-metrics">
 
         <div>
-          <span>Completion</span>
+          <span>{t('adminMarketplaceHealth.metrics.completion')}</span>
 
           <strong>
             {health.bookingCompletionRate||0}%
@@ -477,7 +477,7 @@ const platformOperational=
 
 
         <div>
-          <span>Request fulfillment</span>
+          <span>{t('adminMarketplaceHealth.metrics.fulfillment')}</span>
 
           <strong>
             {health.requestFulfillmentRate||0}%
@@ -498,7 +498,7 @@ const platformOperational=
 
 
         <div>
-          <span>Repeat Care</span>
+          <span>{t('adminMarketplaceHealth.metrics.repeatCare')}</span>
 
           <strong>
             {health.repeatCareRate||0}%
@@ -519,7 +519,7 @@ const platformOperational=
 
 
         <div>
-          <span>Trust Coverage</span>
+          <span>{t('adminMarketplaceHealth.metrics.trustCoverage')}</span>
 
           <strong>
             {health.trustCoverage||0}%
@@ -540,7 +540,7 @@ const platformOperational=
 
 
         <div>
-          <span>Patient activation</span>
+          <span>{t('adminMarketplaceHealth.metrics.patientActivation')}</span>
 
           <strong>
             {health.patientActivationRate||0}%
@@ -561,7 +561,7 @@ const platformOperational=
 
 
         <div>
-          <span>Review coverage</span>
+          <span>{t('adminMarketplaceHealth.metrics.reviewCoverage')}</span>
 
           <strong>
             {health.reviewCoverage||0}%
