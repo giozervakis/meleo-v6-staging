@@ -1103,7 +1103,7 @@ onClick={e=>{
                           <div className="quote-box">
 
                             <span>
-                              Προτεινόμενο τελικό κόστος
+                              {t('patient.bookingActions.quoteTitle')}
                             </span>
 
                             <strong>
@@ -1111,8 +1111,7 @@ onClick={e=>{
                             </strong>
 
                             <small>
-                              Επιβεβαίωσε μόνο εφόσον έχεις
-                              συμφωνήσει με τον επαγγελματία.
+                              {t('patient.bookingActions.quoteHelp')}
                             </small>
 
                             <div>
@@ -1126,7 +1125,7 @@ onClick={e=>{
                                   )
                                 }
                               >
-                                Αποδοχή & επιβεβαίωση
+                                {t('patient.bookingActions.acceptQuote')}
                               </button>
 
                               <button
@@ -1138,7 +1137,7 @@ onClick={e=>{
                                   )
                                 }
                               >
-                                Δεν συμφωνώ
+                                {t('patient.bookingActions.rejectQuote')}
                               </button>
 
                             </div>
@@ -1153,8 +1152,8 @@ onClick={e=>{
                           <div className="reply-box">
 
                             <textarea
-                              aria-label="Απάντηση ή διευκρίνιση για το αίτημα"
-                              placeholder="Απάντησε ή πρόσθεσε διευκρινίσεις…"
+                              aria-label={t('patient.bookingActions.replyAria')}
+                              placeholder={t('patient.bookingActions.replyPlaceholder')}
                               value={reply}
                               onChange={e=>
                                 setReply(e.target.value)
@@ -1167,7 +1166,7 @@ onClick={e=>{
                                 sendReply(b.id)
                               }
                             >
-                              Αποστολή απάντησης
+                              {t('patient.bookingActions.sendReply')}
                             </button>
 
                           </div>
@@ -1183,7 +1182,7 @@ onClick={e=>{
                             className="text-btn danger"
                             onClick={()=>cancel(b.id)}
                           >
-                            Ακύρωση αιτήματος
+                            {t('patient.bookingActions.cancelRequest')}
                           </button>
                         }
 
