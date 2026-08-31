@@ -1767,7 +1767,31 @@ function BecomeProfessional({onLogged,user,professional,token,onRefresh,setView,
    <InlineRegister onLogged={onLogged} setView={setView}/>
  </div></div></section>
 }
-function InlineRegister({onLogged,setView}:any){const [f,setF]=useState({name:'',email:'',phone:'',password:''});const [accepted,setAccepted]=useState(false);const [error,setError]=useState('');const [busy,setBusy]=useState(false);async function submit(e:any){e.preventDefault();setError('');setBusy(true);try{const r=await api('/auth/register',{method:'POST',body:JSON.stringify({...f,role:'professional',acceptedTerms:accepted})});onLogged('cookie',r.user)}catch(e:any){setError(e.message)}finally{setBusy(false)}}return <form onSubmit={submit}><label>Ονοματεπώνυμο<input required value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></label><label>Email<input type="email" required value={f.email} onChange={e=>setF({...f,email:e.target.value})}/></label><label>Τηλέφωνο<input required value={f.phone} onChange={e=>setF({...f,phone:e.target.value})}/></label><label>Κωδικός<input type="password" minLength={8} required value={f.password} onChange={e=>setF({...f,password:e.target.value})}/><small className="field-hint">Τουλάχιστον 8 χαρακτήρες.</small></label><label className="consent-row"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>Αποδέχομαι τους <button type="button" className="inline-link" onClick={()=>setView('terms')}>Όρους Χρήσης</button> και την <button type="button" className="inline-link" onClick={()=>setView('privacy')}>Πολιτική Απορρήτου</button>.</span></label>{error&&<div className="error">{error}</div>}<button className="btn btn-gold wide" disabled={busy||!accepted}>{busy?'Παρακαλώ…':'Δημιουργία επαγγελματικού λογαριασμού'}</button><small className="terms">Μετά τη δημιουργία λογαριασμού επιλέγεις υποχρεωτικά BASIC ή PREMIUM και ολοκληρώνεις την πληρωμή. Μόνο μετά ενεργοποιείται η διαδικασία επαγγελματικής επαλήθευσης.</small></form>}
-
+function InlineRegister({onLogged,setView}:any){
+ const {t}=useTranslation()
+ const [f,setF]=useState({name:'',email:'',phone:'',password:''})
+ const [accepted,setAccepted]=useState(false)
+ const [error,setError]=useState('')
+ const [busy,setBusy]=useState(false)
+ async function submit(e:any){
+   e.preventDefault()
+   setError('')
+   setBusy(true)
+   try{
+     const r=await api('/auth/register',{method:'POST',body:JSON.stringify({...f,role:'professional',acceptedTerms:accepted})})
+     onLogged('cookie',r.user)
+   }catch(e:any){setError(e.message)}finally{setBusy(false)}
+ }
+ return <form onSubmit={submit}>
+   <label>{t('professionalJoin.register.name')}<input required value={f.name} onChange={e=>setF({...f,name:e.target.value})}/></label>
+   <label>{t('professionalJoin.register.email')}<input type="email" required value={f.email} onChange={e=>setF({...f,email:e.target.value})}/></label>
+   <label>{t('professionalJoin.register.phone')}<input required value={f.phone} onChange={e=>setF({...f,phone:e.target.value})}/></label>
+   <label>{t('professionalJoin.register.password')}<input type="password" minLength={8} required value={f.password} onChange={e=>setF({...f,password:e.target.value})}/><small className="field-hint">{t('professionalJoin.register.passwordHint')}</small></label>
+   <label className="consent-row"><input type="checkbox" checked={accepted} onChange={e=>setAccepted(e.target.checked)}/><span>{t('professionalJoin.register.acceptPrefix')} <button type="button" className="inline-link" onClick={()=>setView('terms')}>{t('professionalJoin.register.terms')}</button> {t('professionalJoin.register.and')} <button type="button" className="inline-link" onClick={()=>setView('privacy')}>{t('professionalJoin.register.privacy')}</button>.</span></label>
+   {error&&<div className="error">{error}</div>}
+   <button className="btn btn-gold wide" disabled={busy||!accepted}>{busy?t('professionalJoin.register.submitting'):t('professionalJoin.register.submit')}</button>
+   <small className="terms">{t('professionalJoin.register.afterCreate')}</small>
+ </form>
+}
 function MobileNav({user,view,setView}:any){const {t}=useTranslation();return <nav className="mobile-nav" aria-label={t('patient.mobileNav.aria')}><button className={view==='home'?'active':''} onClick={()=>setView('home')}><span>⌂</span>{t('patient.mobileNav.home')}</button><button className={view==='search'?'active':''} onClick={()=>setView('search')}><span>⌕</span>{t('patient.mobileNav.search')}</button><button className="mobile-center" onClick={()=>setView('now')} aria-label={t('patient.mobileNav.now')}><span>⚡</span></button><button onClick={()=>setView('become-pro')}><span>✦</span>Pro</button><button onClick={()=>setView(user?user.role==='professional'?'pro-dashboard':user.role==='admin'?'admin':'patient-dashboard':'auth')}><span>○</span>{t('patient.mobileNav.profile')}</button></nav>}
 function Empty({title,text}:any){return <div className="empty"><div>◇</div><h3>{title}</h3><p>{text}</p></div>}
