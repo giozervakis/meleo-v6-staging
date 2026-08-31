@@ -26,6 +26,24 @@ function cleanEnv() {
   }
 
   env.NODE_ENV = 'production'
+  env.APP_URL = 'https://meleo.example.test'
+  env.DATABASE_URL =
+    'postgresql://user:pass@db.example.test:5432/meleo?sslmode=require'
+  env.REDIS_URL =
+    'rediss://default:pass@redis.example.test:6379'
+  env.REDIS_REQUIRED = '1'
+  env.STORAGE_DRIVER = 's3'
+  env.S3_ENDPOINT = 'https://s3.example.test'
+  env.S3_BUCKET = 'meleo-ci-test'
+  env.S3_ACCESS_KEY_ID = 'MELEO_CI_TEST_ACCESS'
+  env.S3_SECRET_ACCESS_KEY = ['MELEO','CI','TEST','S3','SECRET'].join('_')
+  env.ADMIN_PASSWORD = ['MELEO','CI','TEST','ADMIN','PASSWORD','2026'].join('_')
+  env.SENSITIVE_DATA_KEY =
+    ['MELEO','CI','TEST','SENSITIVE','DATA','KEY','2026'].join('_')
+  env.OBSERVABILITY_TOKEN =
+    'MELEO_CI_TEST_OBSERVABILITY_TOKEN'
+  env.RESEND_API_KEY =
+    're_MELEO_CI_TEST_ONLY'
 
   // Test-only value. This is not a real production secret.
   env.ADMIN_TOTP_SECRET =
@@ -189,6 +207,127 @@ if (!`${stagingLive.stdout || ''}\n${stagingLive.stderr || ''}`.includes('sk_tes
   process.exit(1)
 }
 console.log('[PASS] Staging rejects Stripe live keys.')
+
+// TEST 6 - missing production infrastructure MUST fail
+for (const key of [
+  'APP_URL',
+  'DATABASE_URL',
+  'REDIS_URL',
+  'SENSITIVE_DATA_KEY',
+  'OBSERVABILITY_TOKEN',
+  'RESEND_API_KEY',
+  'S3_ENDPOINT',
+  'S3_BUCKET',
+  'S3_ACCESS_KEY_ID',
+  'S3_SECRET_ACCESS_KEY'
+]) {
+  const env = cleanEnv()
+  delete env[key]
+
+  const result = runValidator(env)
+
+  if (result.status === 0) {
+    console.error(
+      '[FAIL] Production accepted missing '+key+'.'
+    )
+    process.exit(1)
+  }
+
+  const text =
+    `${result.stdout || ''}\n${result.stderr || ''}`
+
+  if (!text.includes(key)) {
+    console.error(
+      '[FAIL] Missing '+key+' rejection lacks diagnostic.'
+    )
+    console.error(text)
+    process.exit(1)
+  }
+}
+
+console.log(
+  '[PASS] Missing production infrastructure is rejected.'
+)
+
+// TEST 7 - production requires HTTPS
+const insecureAppEnv = cleanEnv()
+insecureAppEnv.APP_URL = 'http://meleo.example.test'
+const insecureApp = runValidator(insecureAppEnv)
+
+if (insecureApp.status === 0) {
+  console.error(
+    '[FAIL] Production accepted non-HTTPS APP_URL.'
+  )
+  process.exit(1)
+}
+
+console.log(
+  '[PASS] Production requires HTTPS APP_URL.'
+)
+
+// TEST 8 - production requires Redis hard mode
+const redisRequiredEnv = cleanEnv()
+redisRequiredEnv.REDIS_REQUIRED = '0'
+const redisRequired = runValidator(redisRequiredEnv)
+
+if (redisRequired.status === 0) {
+  console.error(
+    '[FAIL] Production accepted REDIS_REQUIRED=0.'
+  )
+  process.exit(1)
+}
+
+console.log(
+  '[PASS] Production requires REDIS_REQUIRED=1.'
+)
+
+// TEST 9 - production requires S3 storage
+const localStorageEnv = cleanEnv()
+localStorageEnv.STORAGE_DRIVER = 'local'
+const localStorage = runValidator(localStorageEnv)
+
+if (localStorage.status === 0) {
+  console.error(
+    '[FAIL] Production accepted local storage.'
+  )
+  process.exit(1)
+}
+
+console.log(
+  '[PASS] Production requires S3 storage.'
+)
+
+// TEST 10 - weak sensitive-data key MUST fail
+const weakSensitiveEnv = cleanEnv()
+weakSensitiveEnv.SENSITIVE_DATA_KEY = ['short','key'].join('-')
+const weakSensitive = runValidator(weakSensitiveEnv)
+
+if (weakSensitive.status === 0) {
+  console.error(
+    '[FAIL] Production accepted weak SENSITIVE_DATA_KEY.'
+  )
+  process.exit(1)
+}
+
+console.log(
+  '[PASS] Production rejects weak sensitive-data keys.'
+)
+
+// TEST 11 - weak admin password MUST fail
+const weakAdminEnv = cleanEnv()
+weakAdminEnv.ADMIN_PASSWORD = 'short'
+const weakAdmin = runValidator(weakAdminEnv)
+
+if (weakAdmin.status === 0) {
+  console.error(
+    '[FAIL] Production accepted weak ADMIN_PASSWORD.'
+  )
+  process.exit(1)
+}
+
+console.log(
+  '[PASS] Production rejects weak admin passwords.'
+)
 
 console.log('')
 console.log('MELEO production configuration self-test: ALL TESTS PASSED')

@@ -24,6 +24,105 @@ const paymentsMode = normalized(process.env.PAYMENTS_MODE)
 const stripeMode = stripeKeyMode(process.env.STRIPE_SECRET_KEY)
 
 if (nodeEnv === 'production') {
+  const requiredProduction = [
+    'APP_URL',
+    'DATABASE_URL',
+    'REDIS_URL',
+    'ADMIN_PASSWORD',
+    'ADMIN_TOTP_SECRET',
+    'SENSITIVE_DATA_KEY',
+    'OBSERVABILITY_TOKEN',
+    'RESEND_API_KEY',
+    'S3_ENDPOINT',
+    'S3_BUCKET',
+    'S3_ACCESS_KEY_ID',
+    'S3_SECRET_ACCESS_KEY'
+  ]
+
+  for (const key of requiredProduction) {
+    if (!String(process.env[key] || '').trim()) {
+      failures.push(key + ' is required in production')
+    }
+  }
+
+  const appUrl =
+    String(process.env.APP_URL || '').trim()
+
+  if (
+    appUrl &&
+    !appUrl.toLowerCase().startsWith('https://')
+  ) {
+    failures.push(
+      'APP_URL must use https:// in production'
+    )
+  }
+
+  if (
+    normalized(process.env.STORAGE_DRIVER) !== 's3'
+  ) {
+    failures.push(
+      'STORAGE_DRIVER must be s3 in production'
+    )
+  }
+
+  if (
+    normalized(process.env.REDIS_REQUIRED) !== '1'
+  ) {
+    failures.push(
+      'REDIS_REQUIRED must be 1 in production'
+    )
+  }
+
+  const databaseUrl =
+    String(process.env.DATABASE_URL || '').trim()
+
+  if (
+    databaseUrl &&
+    /sslmode=(?:disable|allow|prefer)/i.test(databaseUrl)
+  ) {
+    failures.push(
+      'DATABASE_URL must not disable or weaken TLS in production'
+    )
+  }
+
+  if (
+    normalized(
+      process.env.DATABASE_SSL_REJECT_UNAUTHORIZED
+    ) === 'false'
+  ) {
+    failures.push(
+      'DATABASE_SSL_REJECT_UNAUTHORIZED=false is forbidden in production'
+    )
+  }
+
+  const sensitiveDataKey =
+    String(
+      process.env.SENSITIVE_DATA_KEY || ''
+    ).trim()
+
+  if (
+    sensitiveDataKey &&
+    sensitiveDataKey.length < 32
+  ) {
+    failures.push(
+      'SENSITIVE_DATA_KEY must be at least 32 characters in production'
+    )
+  }
+
+  const adminPassword =
+    String(
+      process.env.ADMIN_PASSWORD || ''
+    )
+
+  if (
+    adminPassword &&
+    adminPassword.length < 12
+  ) {
+    failures.push(
+      'ADMIN_PASSWORD must be at least 12 characters in production'
+    )
+  }
+
   const adminTotpSecret =
     String(process.env.ADMIN_TOTP_SECRET || '').trim()
 
