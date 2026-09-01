@@ -1,4 +1,4 @@
-﻿export function registerAdminVerificationRoutes(
+export function registerAdminVerificationRoutes(
   app,
   {
     limits,
@@ -369,6 +369,11 @@
           })
       }
 
+      const u =
+        await Users.byId(
+          p.userId
+        )
+
       await tx(
         async c=>{
           await c.query(
@@ -403,32 +408,45 @@
               v.professional_id
             ]
           )
+
+          if(u){
+            if(approved){
+              await Notifications.create(
+                u.id,
+                'verification',
+                'Ο επαγγελματικός σας λογαριασμός ενεργοποιήθηκε',
+                'Η επαλήθευση ολοκληρώθηκε. Από το μενού προφίλ της πλατφόρμας επιλέξτε Professional Dashboard για να διαχειριστείτε το επαγγελματικό σας προφίλ και τα αιτήματα.',
+                {},
+                c
+              )
+            }
+            else {
+              await Notifications.create(
+                u.id,
+                'verification',
+                'Χρειάζεται ενέργεια για τον επαγγελματικό σας λογαριασμό',
+                `Η επαγγελματική ενεργοποίηση δεν ολοκληρώθηκε. Λόγος: ${note}`,
+                {},
+                c
+              )
+            }
+          }
+
+          await audit(
+            req.user.id,
+            `verification.${status}`,
+            {
+              requestId:v.id,
+              professionalId:
+                v.professional_id,
+              reason:note
+            },
+            c
+          )
         }
       )
 
-      const u =
-        await Users.byId(
-          p.userId
-        )
-
       if(u){
-        if(approved){
-          await Notifications.create(
-            u.id,
-            'verification',
-            'Ο επαγγελματικός σας λογαριασμός ενεργοποιήθηκε',
-            'Η επαλήθευση ολοκληρώθηκε. Από το μενού προφίλ της πλατφόρμας επιλέξτε Professional Dashboard για να διαχειριστείτε το επαγγελματικό σας προφίλ και τα αιτήματα.'
-          )
-        }
-        else {
-          await Notifications.create(
-            u.id,
-            'verification',
-            'Χρειάζεται ενέργεια για τον επαγγελματικό σας λογαριασμό',
-            `Η επαγγελματική ενεργοποίηση δεν ολοκληρώθηκε. Λόγος: ${note}`
-          )
-        }
-
         mail
           .verificationDecision(
             u.email,
@@ -440,17 +458,6 @@
             ()=>{}
           )
       }
-
-      await audit(
-        req.user.id,
-        `verification.${status}`,
-        {
-          requestId:v.id,
-          professionalId:
-            v.professional_id,
-          reason:note
-        }
-      )
 
       res.json({
         ok:true

@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs'
+import fs from 'node:fs'
 
 function assert(
   condition,
@@ -18,6 +18,12 @@ const app =
 const route =
   fs.readFileSync(
     'server/routes/admin-verification.routes.js',
+    'utf8'
+  )
+
+const subscriptionRoute =
+  fs.readFileSync(
+    'server/routes/admin-subscriptions.routes.js',
     'utf8'
   )
 
@@ -177,14 +183,17 @@ assert(
 
 
 /*
- * Billing synchronization remains intentionally
- * application-owned in this phase.
+ * Billing synchronization is now intentionally owned by
+ * the modular Admin Subscriptions route.
  */
 assert(
-  app.includes(
+  !app.includes(
+    '/api/admin/professionals/:id/sync-subscription'
+  ) &&
+  subscriptionRoute.includes(
     '/api/admin/professionals/:id/sync-subscription'
   ),
-  'Admin subscription synchronization moved prematurely'
+  'Admin subscription synchronization ownership changed'
 )
 
 
@@ -237,5 +246,5 @@ console.log(
 )
 
 console.log(
-  '[PASS] payment-provider boundaries remain untouched'
+  '[PASS] payment-provider boundaries remain correctly modular'
 )

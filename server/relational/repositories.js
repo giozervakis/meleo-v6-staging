@@ -3358,4 +3358,4 @@ export const Admin={
 }
 
 
-export async function audit(actorId,action,meta={}){await sql(`INSERT INTO audit_logs(id,actor_id,action,meta) VALUES($1,$2,$3,$4)`,[id('log'),actorId||null,action,meta])}
+export async function audit(actorId,action,meta={},client=null){const run=client?.query?client.query.bind(client):sql;await run(`INSERT INTO audit_logs(id,actor_id,action,meta) VALUES($1,$2,$3,$4)`,[id('log'),actorId||null,action,meta])}

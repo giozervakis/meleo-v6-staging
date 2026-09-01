@@ -2331,6 +2331,8 @@ registerProfessionalVerificationRoutes(
     requireVerifiedEmail,
     limits,
     Professionals,
+    many,
+    tx,
     str,
     id,
     verificationObjectKey,
