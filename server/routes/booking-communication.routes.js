@@ -1,3 +1,8 @@
+import {
+  bookingTransitionResult,
+  canUserTransitionBooking
+} from '../relational/booking-state-machine.js'
+
 /*
  * MELEO v6.3.0
  *
@@ -30,7 +35,115 @@ export function registerBookingCommunicationRoutes(
   } = deps
 
 
-app.post('/api/bookings/:id/clarification',auth,requireRole('professional'),limits.write,async(req,res)=>{const b=await Bookings.byId(req.params.id),p=await Professionals.byId(b?.professionalId);if(!b||p.userId!==req.user.id)return res.status(404).json({error:'Not found'});const text=str(req.body.text||req.body.question,1500);await Bookings.update(b.id,{status:'clarification'});const updated=await Bookings.addMessage(b,req.user,text,'clarification');await Notifications.create(b.patientId,'message','Ο επαγγελματίας ζητά διευκρινίσεις',text.slice(0,180));res.json({booking:updated})})
+app.post(
+  '/api/bookings/:id/clarification',
+  auth,
+  requireRole('professional'),
+  limits.write,
+  async(req,res)=>{
+
+    const b=
+      await Bookings.byId(
+        req.params.id
+      )
+
+    const p=
+      await Professionals.byId(
+        b?.professionalId
+      )
+
+    if(
+      !b ||
+      !p ||
+      p.userId!==req.user.id
+    ){
+      return res
+        .status(404)
+        .json({
+          error:'Not found'
+        })
+    }
+
+    const transition=
+      bookingTransitionResult(
+        b.status,
+        'clarification'
+      )
+
+    if(!transition.ok){
+      return res
+        .status(409)
+        .json({
+          error:
+            'Invalid booking status transition',
+          code:
+            transition.code
+        })
+    }
+
+    if(
+      !canUserTransitionBooking({
+        user:req.user,
+        booking:b,
+        professional:p,
+        toStatus:'clarification'
+      })
+    ){
+      return res
+        .status(403)
+        .json({
+          error:
+            '??? ???????????.',
+          code:
+            'BOOKING_TRANSITION_FORBIDDEN'
+        })
+    }
+
+    const text=
+      str(
+        req.body.text ||
+        req.body.question,
+        1500
+      )
+
+    if(!text){
+      return res
+        .status(400)
+        .json({
+          error:'????? ??? ??????'
+        })
+    }
+
+    await Bookings.update(
+      b.id,
+      {
+        status:'clarification'
+      }
+    )
+
+    const updated=
+      await Bookings.addMessage(
+        {
+          ...b,
+          status:'clarification'
+        },
+        req.user,
+        text,
+        'clarification'
+      )
+
+    await Notifications.create(
+      b.patientId,
+      'message',
+      '? ????????????? ???? ?????????????',
+      text.slice(0,180)
+    )
+
+    res.json({
+      booking:updated
+    })
+  }
+)
 
 app.post(
   '/api/bookings/:id/message',

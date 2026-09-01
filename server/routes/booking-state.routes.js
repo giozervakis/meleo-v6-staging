@@ -1,3 +1,9 @@
+import {
+  isBookingStatus,
+  bookingTransitionResult,
+  canUserTransitionBooking
+} from '../relational/booking-state-machine.js'
+
 /*
  * MELEO v6.3.0
  *
@@ -71,19 +77,32 @@ export function registerBookingStateRoutes(
         )
 
       if(
-        ![
-          'pending',
-          'clarification',
-          'quoted',
-          'accepted',
-          'completed',
-          'cancelled'
-        ].includes(status)
+        !isBookingStatus(
+          status
+        )
       ){
         return res
           .status(400)
           .json({
-            error:'Invalid status'
+            error:'Invalid status',
+            code:'BOOKING_TARGET_STATUS_INVALID'
+          })
+      }
+
+      const transition=
+        bookingTransitionResult(
+          b.status,
+          status
+        )
+
+      if(!transition.ok){
+        return res
+          .status(409)
+          .json({
+            error:
+              'Invalid booking status transition',
+            code:
+              transition.code
           })
       }
 
@@ -95,31 +114,22 @@ export function registerBookingStateRoutes(
         p?.userId===req.user.id
 
       if(
-        isRequester &&
-        status!=='cancelled'
+        !canUserTransitionBooking({
+          user:req.user,
+          booking:b,
+          professional:p,
+          toStatus:status
+        })
       ){
         return res
           .status(403)
           .json({
             error:
-              'Ως αιτών μπορείς να ακυρώσεις το αίτημα, όχι να αλλάξεις την επαγγελματική κατάστασή του.'
+              '?? ????????? ?????? ??????????.',
+            code:
+              'BOOKING_TRANSITION_FORBIDDEN'
           })
-      }
-
-      if(
-        isProvider &&
-        ![
-          'accepted',
-          'completed',
-          'cancelled'
-        ].includes(status)
-      ){
-        return res
-          .status(403)
-          .json({
-            error:
-              'Μη επιτρεπτή αλλαγή κατάστασης.'
-          })
+      })
       }
 
       const updated=
