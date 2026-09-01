@@ -35,6 +35,7 @@ import { registerProfessionalBillingRoutes } from '../routes/professional-billin
 import { registerBookingCoreRoutes } from '../routes/booking-core.routes.js'
 import { registerBookingStateRoutes } from '../routes/booking-state.routes.js'
 import { registerBookingCommunicationRoutes } from '../routes/booking-communication.routes.js'
+import { registerBookingQuoteRoutes } from '../routes/booking-quote.routes.js'
 import { registerBookingRecoveryRoutes } from '../routes/booking-recovery.routes.js'
 import { registerBookingReviewRoutes } from '../routes/booking-review.routes.js'
 import { registerBookingCalendarRoutes } from '../routes/booking-calendar.routes.js'
@@ -2422,6 +2423,18 @@ registerBookingCommunicationRoutes(
 )
 
 
+
+registerBookingQuoteRoutes(
+  app,
+  {
+    auth,
+    requireRole,
+    limits,
+    str,
+    Bookings,
+    Professionals
+  }
+)
 
 registerBookingRecoveryRoutes(
   app,

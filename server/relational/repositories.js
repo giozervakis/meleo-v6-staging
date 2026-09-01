@@ -1737,6 +1737,431 @@ async markMessagesRead(
     return this.byId(id)
   },
 
+
+  /*
+   * D10D.5
+   *
+   * Atomically creates or refreshes a professional quote.
+   * Booking state, proposed price, conversation message,
+   * notification and live events commit together.
+   */
+  async quoteWithMessage(
+    booking,
+    sender,
+    amount,
+    extra,
+    recipientUserId
+  ){
+    if(
+      !booking?.id ||
+      !booking?.status ||
+      !sender?.id ||
+      !recipientUserId
+    ){
+      throw new Error(
+        'Invalid booking quote transaction input'
+      )
+    }
+
+    const proposedPrice=
+      Number(
+        Number(amount).toFixed(2)
+      )
+
+    if(
+      !Number.isFinite(proposedPrice) ||
+      proposedPrice<=0 ||
+      proposedPrice>5000
+    ){
+      throw new Error(
+        'Invalid booking quote amount'
+      )
+    }
+
+    const allowedStatuses=
+      new Set([
+        'pending',
+        'clarification',
+        'quoted'
+      ])
+
+    if(
+      !allowedStatuses.has(
+        booking.status
+      )
+    ){
+      return {
+        ok:false,
+        code:
+          'BOOKING_QUOTE_STATE_INVALID',
+        booking
+      }
+    }
+
+    const messageId=id('msg')
+    const createdAt=now()
+
+    const text=
+      '??????? ??????? ???????: '+
+      proposedPrice.toFixed(2)+
+      '?'+
+      (
+        extra
+          ? ' ? '+extra
+          : ''
+      )
+
+    const outcome=
+      await tx(async client=>{
+
+        const changed=
+          await client.query(
+            `
+              UPDATE bookings
+
+              SET
+                status='quoted',
+                proposed_price=$1,
+                agreed_price=NULL,
+                updated_at=now()
+
+              WHERE
+                status=$2
+                AND id=$3
+
+              RETURNING id
+            `,
+            [
+              proposedPrice,
+              booking.status,
+              booking.id
+            ]
+          )
+
+        if(changed.rowCount!==1){
+          return {
+            ok:false
+          }
+        }
+
+        await client.query(
+          `
+            INSERT INTO booking_messages(
+              id,
+              booking_id,
+              sender_user_id,
+              sender_role,
+              sender_name,
+              body_encrypted,
+              kind,
+              recipient_user_id,
+              delivered_at
+            )
+            VALUES(
+              $1,$2,$3,$4,$5,$6,
+              'quote',$7,now()
+            )
+          `,
+          [
+            messageId,
+            booking.id,
+            sender.id,
+            sender.role,
+            sender.name,
+            encryptSensitive(text),
+            recipientUserId
+          ]
+        )
+
+        await Notifications.create(
+          recipientUserId,
+          'quote',
+          '??? ??????? ???????',
+          proposedPrice.toFixed(2)+
+            '? ? '+
+            (
+              extra ||
+              booking.service
+            ),
+          {
+            priority:'normal',
+            actionType:'booking',
+            actionId:booking.id,
+            actionUrl:'/patient'
+          },
+          client
+        )
+
+        return {
+          ok:true,
+          proposedPrice,
+          createdAt
+        }
+      })
+
+    const current=
+      await this.byId(
+        booking.id
+      )
+
+    if(!outcome.ok){
+
+      if(!current){
+        return {
+          ok:false,
+          code:'BOOKING_NOT_FOUND',
+          booking:null
+        }
+      }
+
+      return {
+        ok:false,
+        code:'BOOKING_STATE_CONFLICT',
+        booking:current
+      }
+    }
+
+    if(!current){
+      throw new Error(
+        'Booking missing after quote transaction'
+      )
+    }
+
+    return {
+      ok:true,
+      booking:current
+    }
+  },
+
+  /*
+   * Atomically accepts or declines an active quote.
+   *
+   * Accept:
+   *   quoted -> accepted
+   *   agreed_price := proposed_price
+   *
+   * Decline:
+   *   quoted -> pending
+   *   proposed/agreed prices are cleared so no stale offer
+   *   remains authoritative.
+   */
+  async decideQuoteWithMessage(
+    booking,
+    sender,
+    decision,
+    professionalUserId
+  ){
+    if(
+      !booking?.id ||
+      !sender?.id ||
+      !professionalUserId
+    ){
+      throw new Error(
+        'Invalid quote decision transaction input'
+      )
+    }
+
+    if(booking.status!=='quoted'){
+      return {
+        ok:false,
+        code:
+          'BOOKING_QUOTE_NOT_ACTIVE',
+        booking
+      }
+    }
+
+    if(
+      decision!=='accept' &&
+      decision!=='decline'
+    ){
+      return {
+        ok:false,
+        code:
+          'BOOKING_QUOTE_DECISION_INVALID',
+        booking
+      }
+    }
+
+    const proposedPrice=
+      Number(
+        booking.proposedPrice
+      )
+
+    if(
+      !Number.isFinite(proposedPrice) ||
+      proposedPrice<=0
+    ){
+      return {
+        ok:false,
+        code:
+          'BOOKING_QUOTE_PRICE_INVALID',
+        booking
+      }
+    }
+
+    const accepted=
+      decision==='accept'
+
+    const nextStatus=
+      accepted
+        ? 'accepted'
+        : 'pending'
+
+    const agreedPrice=
+      accepted
+        ? Number(
+            proposedPrice.toFixed(2)
+          )
+        : null
+
+    const messageId=id('msg')
+
+    const text=
+      accepted
+        ? (
+            '??????? ??????? ??????? '+
+            agreedPrice.toFixed(2)+
+            '? ??? ??????????? ?????????.'
+          )
+        : (
+            '??? ????? ???????? ? ??????? ???????. '+
+            '?????????? ??? ??????????.'
+          )
+
+    const outcome=
+      await tx(async client=>{
+
+        const changed=
+          await client.query(
+            `
+              UPDATE bookings
+
+              SET
+                status=$1,
+                proposed_price=
+                  CASE
+                    WHEN $1='accepted'
+                      THEN proposed_price
+                    ELSE NULL
+                  END,
+                agreed_price=$2,
+                updated_at=now()
+
+              WHERE
+                status='quoted'
+                AND id=$3
+
+              RETURNING id
+            `,
+            [
+              nextStatus,
+              agreedPrice,
+              booking.id
+            ]
+          )
+
+        if(changed.rowCount!==1){
+          return {
+            ok:false
+          }
+        }
+
+        await client.query(
+          `
+            INSERT INTO booking_messages(
+              id,
+              booking_id,
+              sender_user_id,
+              sender_role,
+              sender_name,
+              body_encrypted,
+              kind,
+              recipient_user_id,
+              delivered_at
+            )
+            VALUES(
+              $1,$2,$3,$4,$5,$6,
+              'quote',$7,now()
+            )
+          `,
+          [
+            messageId,
+            booking.id,
+            sender.id,
+            sender.role,
+            sender.name,
+            encryptSensitive(text),
+            professionalUserId
+          ]
+        )
+
+        await Notifications.create(
+          professionalUserId,
+          accepted
+            ? 'accepted'
+            : 'quote',
+          accepted
+            ? '? ??????? ??????? ????? ????????'
+            : '? ??????? ??????? ??? ????? ????????',
+          accepted
+            ? (
+                sender.name+
+                ' ? '+
+                agreedPrice.toFixed(2)+
+                '?'
+              )
+            : booking.service,
+          {
+            priority:
+              accepted
+                ? 'high'
+                : 'normal',
+            actionType:'booking',
+            actionId:booking.id,
+            actionUrl:'/dashboard'
+          },
+          client
+        )
+
+        return {
+          ok:true
+        }
+      })
+
+    const current=
+      await this.byId(
+        booking.id
+      )
+
+    if(!outcome.ok){
+
+      if(!current){
+        return {
+          ok:false,
+          code:'BOOKING_NOT_FOUND',
+          booking:null
+        }
+      }
+
+      return {
+        ok:false,
+        code:'BOOKING_STATE_CONFLICT',
+        booking:current
+      }
+    }
+
+    if(!current){
+      throw new Error(
+        'Booking missing after quote decision transaction'
+      )
+    }
+
+    return {
+      ok:true,
+      booking:current
+    }
+  },
+
   /*
    * D10D.4
    *

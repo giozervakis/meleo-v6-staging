@@ -9,6 +9,7 @@ import {
 
 const valid=[
   ['pending','clarification'],
+  ['pending','quoted'],
   ['pending','accepted'],
   ['pending','cancelled'],
 
@@ -16,6 +17,7 @@ const valid=[
   ['clarification','accepted'],
   ['clarification','cancelled'],
 
+  ['quoted','pending'],
   ['quoted','accepted'],
   ['quoted','cancelled'],
 
@@ -39,7 +41,6 @@ const invalid=[
   ['clarification','pending'],
 
   ['quoted','completed'],
-  ['quoted','pending'],
 
   ['accepted','quoted'],
   ['accepted','pending'],

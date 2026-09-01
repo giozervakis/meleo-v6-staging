@@ -26,6 +26,7 @@ const TRANSITIONS =
     pending:
       Object.freeze([
         'clarification',
+        'quoted',
         'accepted',
         'cancelled'
       ]),
@@ -39,6 +40,7 @@ const TRANSITIONS =
 
     quoted:
       Object.freeze([
+        'pending',
         'accepted',
         'cancelled'
       ]),
