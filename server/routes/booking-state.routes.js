@@ -131,13 +131,45 @@ export function registerBookingStateRoutes(
           })
       }
 
-      const updated=
-        await Bookings.update(
+      const write=
+        await Bookings.transition(
           b.id,
+          b.status,
           {
             status
           }
         )
+
+      if(!write.ok){
+
+        if(
+          write.code===
+            'BOOKING_NOT_FOUND'
+        ){
+          return res
+            .status(404)
+            .json({
+              error:'Not found',
+              code:
+                'BOOKING_NOT_FOUND'
+            })
+        }
+
+        return res
+          .status(409)
+          .json({
+            error:
+              'Booking state changed concurrently',
+            code:
+              'BOOKING_STATE_CONFLICT',
+            currentStatus:
+              write.booking?.status ||
+              null
+          })
+      }
+
+      const updated=
+        write.booking
 
       const recipientUserId=
         isProvider

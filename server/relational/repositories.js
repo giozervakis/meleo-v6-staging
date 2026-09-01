@@ -1693,7 +1693,137 @@ async markMessagesRead(
     count:changed.length
   }
 },
-  async update(id,patch){const map={status:'status',proposedPrice:'proposed_price',agreedPrice:'agreed_price'};const sets=[],vals=[];let i=1;for(const [k,v] of Object.entries(patch)){if(!map[k])continue;sets.push(`${map[k]}=$${i++}`);vals.push(v)}if(!sets.length)return this.byId(id);vals.push(id);await sql(`UPDATE bookings SET ${sets.join(',')},updated_at=now() WHERE id=$${i}`,[...vals]);return this.byId(id)}
+  async update(id,patch){
+    const map={
+      status:'status',
+      proposedPrice:'proposed_price',
+      agreedPrice:'agreed_price'
+    }
+
+    const sets=[]
+    const vals=[]
+    let i=1
+
+    for(const [k,v] of Object.entries(patch)){
+      if(!map[k])continue
+      sets.push(`${map[k]}=${i++}`)
+      vals.push(v)
+    }
+
+    if(!sets.length){
+      return this.byId(id)
+    }
+
+    vals.push(id)
+
+    await sql(
+      `UPDATE bookings
+       SET ${sets.join(',')},updated_at=now()
+       WHERE id=${i}`,
+      vals
+    )
+
+    return this.byId(id)
+  },
+
+  /*
+   * Atomic booking lifecycle compare-and-set.
+   *
+   * The write succeeds only while the database row still has
+   * the status that was validated by the caller.
+   *
+   * This prevents two concurrent requests from both committing
+   * transitions based on the same stale booking state.
+   */
+  async transition(
+    id,
+    expectedStatus,
+    patch
+  ){
+    const map={
+      status:'status',
+      proposedPrice:'proposed_price',
+      agreedPrice:'agreed_price'
+    }
+
+    if(
+      !patch ||
+      !Object.prototype.hasOwnProperty.call(
+        patch,
+        'status'
+      )
+    ){
+      throw new Error(
+        'Booking transition requires target status'
+      )
+    }
+
+    const sets=[]
+    const vals=[]
+    let i=1
+
+    for(const [k,v] of Object.entries(patch)){
+      if(!map[k])continue
+
+      const placeholder='$'+i++
+
+      sets.push(
+        map[k]+'='+placeholder
+      )
+
+      vals.push(v)
+    }
+
+    if(!sets.length){
+      throw new Error(
+        'Booking transition has no writable fields'
+      )
+    }
+
+    const expectedPlaceholder='$'+i++
+    vals.push(expectedStatus)
+
+    const idPlaceholder='$'+i++
+    vals.push(id)
+
+    const result=
+      await sql(
+        `
+          UPDATE bookings
+          SET
+            ${sets.join(',')},
+            updated_at=now()
+          WHERE status=${expectedPlaceholder}
+            AND id=${idPlaceholder}
+        `,
+        vals
+      )
+
+    if(result.rowCount===1){
+      return {
+        ok:true,
+        booking:
+          await this.byId(id)
+      }
+    }
+
+    const current=
+      await this.byId(id)
+
+    if(!current){
+      return {
+        ok:false,
+        code:'BOOKING_NOT_FOUND',
+        booking:null
+      }
+    }
+
+    return {
+      ok:false,
+      code:'BOOKING_STATE_CONFLICT',
+      booking:current
+    }
+  }
 }
 
 export const Analytics={

@@ -114,19 +114,49 @@ app.post(
         })
     }
 
-    await Bookings.update(
-      b.id,
-      {
-        status:'clarification'
+    const write=
+      await Bookings.transition(
+        b.id,
+        b.status,
+        {
+          status:'clarification'
+        }
+      )
+
+    if(!write.ok){
+
+      if(
+        write.code===
+          'BOOKING_NOT_FOUND'
+      ){
+        return res
+          .status(404)
+          .json({
+            error:'Not found',
+            code:
+              'BOOKING_NOT_FOUND'
+          })
       }
-    )
+
+      return res
+        .status(409)
+        .json({
+          error:
+            'Booking state changed concurrently',
+          code:
+            'BOOKING_STATE_CONFLICT',
+          currentStatus:
+            write.booking?.status ||
+            null
+        })
+    }
+
+    const transitioned=
+      write.booking
 
     const updated=
       await Bookings.addMessage(
-        {
-          ...b,
-          status:'clarification'
-        },
+        transitioned,
         req.user,
         text,
         'clarification'
