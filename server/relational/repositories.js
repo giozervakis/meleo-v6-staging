@@ -1735,7 +1735,7 @@ async markMessagesRead(
     )
 
     return this.byId(id)
-  }
+  },
 
   /*
    * Atomic booking lifecycle compare-and-set.
