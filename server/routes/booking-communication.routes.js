@@ -115,12 +115,10 @@ app.post(
     }
 
     const write=
-      await Bookings.transition(
-        b.id,
-        b.status,
-        {
-          status:'clarification'
-        }
+      await Bookings.clarifyWithMessage(
+        b,
+        req.user,
+        text
       )
 
     if(!write.ok){
@@ -151,16 +149,8 @@ app.post(
         })
     }
 
-    const transitioned=
-      write.booking
-
     const updated=
-      await Bookings.addMessage(
-        transitioned,
-        req.user,
-        text,
-        'clarification'
-      )
+      write.booking
 
     await Notifications.create(
       b.patientId,

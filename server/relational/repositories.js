@@ -1738,6 +1738,211 @@ async markMessagesRead(
   },
 
   /*
+   * D10D.4
+   *
+   * Atomically moves a booking into clarification and persists
+   * the clarification message + live event in the same database
+   * transaction.
+   *
+   * If any database write fails, PostgreSQL rolls the entire
+   * operation back. A concurrent booking-state change is handled
+   * with compare-and-set semantics.
+   */
+  async clarifyWithMessage(
+    booking,
+    sender,
+    text
+  ){
+    if(
+      !booking?.id ||
+      !booking?.status ||
+      !sender?.id ||
+      !text
+    ){
+      throw new Error(
+        'Invalid clarification transaction input'
+      )
+    }
+
+    const messageId=id('msg')
+    const createdAt=now()
+    const recipientUserId=
+      booking.patientId
+
+    if(!recipientUserId){
+      throw new Error(
+        'Clarification recipient not found'
+      )
+    }
+
+    const senderRole=
+      sender.id===booking.patientId
+        ? 'patient'
+        : sender.role
+
+    const outcome=
+      await tx(async client=>{
+
+        /*
+         * Compare-and-set first.
+         *
+         * The remaining writes are performed only if this request
+         * successfully owns the lifecycle transition.
+         */
+        const changed=
+          await client.query(
+            \`
+              UPDATE bookings
+
+              SET
+                status='clarification',
+                updated_at=now()
+
+              WHERE
+                status=$1
+                AND id=$2
+
+              RETURNING id
+            \`,
+            [
+              booking.status,
+              booking.id
+            ]
+          )
+
+        if(changed.rowCount!==1){
+          return {
+            ok:false
+          }
+        }
+
+        await client.query(
+          \`
+            INSERT INTO booking_messages(
+              id,
+              booking_id,
+              sender_user_id,
+              sender_role,
+              sender_name,
+              body_encrypted,
+              kind,
+              recipient_user_id,
+              delivered_at
+            )
+            VALUES(
+              $1,$2,$3,$4,$5,$6,
+              'clarification',$7,now()
+            )
+          \`,
+          [
+            messageId,
+            booking.id,
+            sender.id,
+            senderRole,
+            sender.name,
+            encryptSensitive(text),
+            recipientUserId
+          ]
+        )
+
+        const event=
+          await client.query(
+            \`
+              INSERT INTO live_events(
+                user_id,
+                payload
+              )
+              VALUES($1,$2)
+              RETURNING id
+            \`,
+            [
+              recipientUserId,
+              {
+                kind:'message.created',
+
+                message:{
+                  id:messageId,
+                  bookingId:booking.id,
+                  senderUserId:sender.id,
+                  senderRole,
+                  senderName:sender.name,
+                  recipientUserId,
+                  kind:'clarification',
+                  text,
+                  delivered:true,
+                  deliveredAt:createdAt,
+                  read:false,
+                  readAt:null,
+                  createdAt
+                }
+              }
+            ]
+          )
+
+        const eventId=
+          event.rows?.[0]?.id
+
+        /*
+         * PostgreSQL delivers NOTIFY only after the surrounding
+         * transaction commits successfully.
+         */
+        if(eventId){
+          await client.query(
+            \`
+              SELECT pg_notify(
+                'meleo_live',
+                $1
+              )
+            \`,
+            [
+              JSON.stringify({
+                userId:recipientUserId,
+                eventId
+              })
+            ]
+          )
+        }
+
+        return {
+          ok:true
+        }
+      })
+
+    const current=
+      await this.byId(
+        booking.id
+      )
+
+    if(!outcome.ok){
+
+      if(!current){
+        return {
+          ok:false,
+          code:'BOOKING_NOT_FOUND',
+          booking:null
+        }
+      }
+
+      return {
+        ok:false,
+        code:'BOOKING_STATE_CONFLICT',
+        booking:current
+      }
+    }
+
+    if(!current){
+      throw new Error(
+        'Booking missing after clarification transaction'
+      )
+    }
+
+    return {
+      ok:true,
+      booking:current
+    }
+  },
+
+  /*
    * Atomic booking lifecycle compare-and-set.
    *
    * The write succeeds only while the database row still has
