@@ -1,4 +1,4 @@
-﻿export function registerSupportRoutes(
+export function registerSupportRoutes(
   app,
   {
     auth,
@@ -19,7 +19,7 @@
 
   app.post('/api/support/tickets',auth,limits.write,async(req,res)=>{const tid=id('tic'),subject=str(req.body.subject,160),text=str(req.body.text,2000);if(!subject||!text)return res.status(400).json({error:'Συμπλήρωσε θέμα και μήνυμα.'});await tx(async c=>{await c.query(`INSERT INTO support_tickets(id,user_id,subject,category) VALUES($1,$2,$3,$4)`,[tid,req.user.id,subject,str(req.body.category,40)||'general']);await c.query(`INSERT INTO support_messages(id,ticket_id,sender_user_id,sender_role,body) VALUES($1,$2,$3,$4,$5)`,[id('tmsg'),tid,req.user.id,req.user.role,text])});res.json({ok:true,id:tid})})
 
-  app.post('/api/support/tickets/:id/message',auth,limits.write,async(req,res)=>{const t=await one('SELECT * FROM support_tickets WHERE id=$1',[req.params.id]);if(!t||(req.user.role!=='admin'&&t.user_id!==req.user.id))return res.status(404).json({error:'Not found'});const text=str(req.body.text,2000);await sql(`INSERT INTO support_messages(id,ticket_id,sender_user_id,sender_role,body) VALUES($1,$2,$3,$4,$5)`,[id('tmsg'),t.id,req.user.id,req.user.role,text]);await sql('UPDATE support_tickets SET updated_at=now() WHERE id=$1',[t.id]);await Notifications.create(req.user.role==='admin'?t.user_id:req.user.id,'support','Νέα απάντηση υποστήριξης',text.slice(0,180));res.json({ok:true})})
+  app.post('/api/support/tickets/:id/message',auth,limits.write,async(req,res)=>{const t=await one('SELECT * FROM support_tickets WHERE id=$1',[req.params.id]);if(!t||(req.user.role!=='admin'&&t.user_id!==req.user.id))return res.status(404).json({error:'Not found'});const text=str(req.body.text,2000);await tx(async c=>{await c.query(`INSERT INTO support_messages(id,ticket_id,sender_user_id,sender_role,body) VALUES($1,$2,$3,$4,$5)`,[id('tmsg'),t.id,req.user.id,req.user.role,text]);await c.query('UPDATE support_tickets SET updated_at=now() WHERE id=$1',[t.id]);await Notifications.create(req.user.role==='admin'?t.user_id:req.user.id,'support','Νέα απάντηση υποστήριξης',text.slice(0,180),{},c)});res.json({ok:true})})
 
   app.patch('/api/support/tickets/:id',auth,requireRole('admin'),limits.write,async(req,res)=>{const status=['open','pending','closed'].includes(req.body.status)?req.body.status:'open';await sql('UPDATE support_tickets SET status=$1,updated_at=now() WHERE id=$2',[status,req.params.id]);res.json({ok:true})})
 }
