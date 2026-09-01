@@ -83,14 +83,6 @@ export function mapReconciliationStripeStatus(status) {
 
 function derivePlan(subscription) {
 
-  if (
-    isPlan(
-      subscription?.metadata?.plan
-    )
-  ) {
-    return subscription.metadata.plan
-  }
-
   const price =
     subscription
       ?.items
@@ -117,16 +109,21 @@ function derivePlan(subscription) {
     return 'basic'
   }
 
-  const amount =
-    Number(
-      price?.unit_amount
+  const error =
+    new Error(
+      'Unknown Stripe subscription Price ID'
     )
 
-  if (amount === 1499) {
-    return 'premium'
-  }
+  error.code =
+    'STRIPE_UNKNOWN_PRICE'
 
-  return 'basic'
+  error.stripeSubscriptionId =
+    subscription?.id || null
+
+  error.stripePriceId =
+    priceId || null
+
+  throw error
 }
 
 

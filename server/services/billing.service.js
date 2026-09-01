@@ -26,7 +26,8 @@ export function createBillingService(
     now,
     PLANS,
     isPlan,
-    mapStripeStatus
+    mapStripeStatus,
+    priceIdFor
   } = deps
 
   async function ensureStripeCustomer(u){if(u.stripe_customer_id)return u.stripe_customer_id;const s=getStripe();const c=await s.customers.create({email:u.email,name:u.name,phone:u.phone||undefined,metadata:{meleoUserId:u.id}});await Users.update(u.id,{stripe_customer_id:c.id});return c.id}
@@ -56,10 +57,34 @@ export function createBillingService(
       incomingEventCreated===lastEventCreated&&
       incomingEventId&&existingLedger?.lastStripeEventId===incomingEventId
     )return p
+    const priceId=String(
+      sub.items?.data?.[0]?.price?.id||''
+    )
 
-    let plan=isPlan(sub.metadata?.plan)?sub.metadata.plan:'basic'
-    const amount=sub.items?.data?.[0]?.price?.unit_amount
-    if(amount===1499)plan='premium'
+    let plan=null
+
+    if(
+      priceId &&
+      priceId===priceIdFor('premium')
+    ){
+      plan='premium'
+    }else if(
+      priceId &&
+      priceId===priceIdFor('basic')
+    ){
+      plan='basic'
+    }
+
+    if(!plan){
+      const error=new Error(
+        'Unknown Stripe subscription Price ID'
+      )
+      error.code='STRIPE_UNKNOWN_PRICE'
+      error.stripeSubscriptionId=sub.id||null
+      error.stripePriceId=priceId||null
+      throw error
+    }
+
     const status=mapStripeStatus(sub.status)
     const period=sub.items?.data?.[0]?.current_period_end??sub.current_period_end
     const patch={

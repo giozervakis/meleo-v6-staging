@@ -72,16 +72,31 @@ export const subscriptionAllowsVisibility = (status, professional=null) => {
 }
 
 function planFromSubscription(sub) {
-  const fromMeta = sub?.metadata?.plan
-  if (isPlan(fromMeta)) return fromMeta
-  const priceId = sub?.items?.data?.[0]?.price?.id
-  if (priceId && priceId === config.stripe.pricePremium) return 'premium'
-  if (priceId && priceId === config.stripe.priceBasic) return 'basic'
-  const amount = sub?.items?.data?.[0]?.price?.unit_amount
-  if (amount === 1499) return 'premium'
-  if (amount === 999) return 'basic'
-  const productMeta = sub?.items?.data?.[0]?.price?.product?.metadata?.plan
-  return isPlan(productMeta) ? productMeta : 'basic'
+  const priceId = String(
+    sub?.items?.data?.[0]?.price?.id || ''
+  )
+
+  if (
+    config.stripe.pricePremium &&
+    priceId === config.stripe.pricePremium
+  ) {
+    return 'premium'
+  }
+
+  if (
+    config.stripe.priceBasic &&
+    priceId === config.stripe.priceBasic
+  ) {
+    return 'basic'
+  }
+
+  const error = new Error(
+    'Unknown Stripe subscription Price ID'
+  )
+  error.code = 'STRIPE_UNKNOWN_PRICE'
+  error.stripeSubscriptionId = sub?.id || null
+  error.stripePriceId = priceId || null
+  throw error
 }
 
 export async function ensureCustomer(user) {

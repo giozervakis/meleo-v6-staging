@@ -1540,7 +1540,8 @@ const {
     now,
     PLANS,
     isPlan,
-    mapStripeStatus
+    mapStripeStatus,
+    priceIdFor
   }
 )
 
