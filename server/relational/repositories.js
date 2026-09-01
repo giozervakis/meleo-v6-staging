@@ -201,7 +201,7 @@ byId: async pid=>{
       const lat=Number(q.lat),lon=Number(q.lon);vals.push(lat,lon);const a=i++,b=i++
       distanceExpr=`(6371 * acos(LEAST(1,GREATEST(-1,cos(radians($${a})) * cos(radians(p.latitude)) * cos(radians(p.longitude)-radians($${b})) + sin(radians($${a})) * sin(radians(p.latitude)))))) AS distance_km`
       where.push(`p.latitude IS NOT NULL AND p.longitude IS NOT NULL`)
-      // Bounding box Ο€ΟΟΟ„Ξ± ΟΟƒΟ„Ξµ Ξ· Ξ±ΞΊΟΞΉΞ²Ξ® trigonometrΞΉΞΊΞ® Ξ±Ο€ΟΟƒΟ„Ξ±ΟƒΞ· Ξ½Ξ± Ο„ΟΞ­Ο‡ΞµΞΉ ΟƒΞµ ΞΌΞΉΞΊΟΟ Ο…Ο€ΞΏΟƒΟΞ½ΞΏΞ»ΞΏ.
+      // Bounding box πρώτα ώστε η ακριβή trigonometrική απόσταση να τρέχει σε μικρό υποσύνολο.
       where.push(`p.latitude BETWEEN $${a}-3.0 AND $${a}+3.0`)
       where.push(`p.longitude BETWEEN $${b}-3.5 AND $${b}+3.5`)
       where.push(`(6371 * acos(LEAST(1,GREATEST(-1,cos(radians($${a})) * cos(radians(p.latitude)) * cos(radians(p.longitude)-radians($${b})) + sin(radians($${a})) * sin(radians(p.latitude)))))) <= p.service_radius_km`)
@@ -244,7 +244,7 @@ const smartScoreExpr=`
     GREATEST(
       0,
 
-      /* Verified professional β€” max 6 */
+      /* Verified professional — max 6 */
       CASE
         WHEN verified=true THEN 6
         ELSE 0
@@ -252,7 +252,7 @@ const smartScoreExpr=`
 
       +
 
-      /* MELEO Trust β€” max 28 */
+      /* MELEO Trust — max 28 */
       CASE
         WHEN trust_eligible=true
         THEN (coalesce(trust_score,0) / 100.0) * 28
@@ -263,7 +263,7 @@ const smartScoreExpr=`
 
       +
 
-      /* Rating quality β€” max 14 */
+      /* Rating quality — max 14 */
       CASE
         WHEN coalesce(reviews_count,0)=0 THEN 7
 
@@ -278,7 +278,7 @@ const smartScoreExpr=`
 
       +
 
-      /* Review confidence β€” max 5 */
+      /* Review confidence — max 5 */
       CASE
         WHEN coalesce(reviews_count,0) >= 20 THEN 5
         WHEN coalesce(reviews_count,0) >= 10 THEN 4
@@ -289,33 +289,33 @@ const smartScoreExpr=`
 
       +
 
-      /* Distance β€” max 20 */
+      /* Distance — max 20 */
       ${smartDistanceScore}
 
       +
 
-      /* Availability β€” max 8 */
+      /* Availability — max 8 */
       CASE
-        WHEN lower(coalesce(available,'')) LIKE '%ΟƒΞ®ΞΌΞµΟΞ±%' THEN 8
-        WHEN lower(coalesce(available,'')) LIKE '%Ξ¬ΞΌΞµΟƒΞ±%' THEN 8
-        WHEN lower(coalesce(available,'')) LIKE '%Ξ΄ΞΉΞ±ΞΈΞ­Οƒ%' THEN 6
+        WHEN lower(coalesce(available,'')) LIKE '%σήμερα%' THEN 8
+        WHEN lower(coalesce(available,'')) LIKE '%άμεσα%' THEN 8
+        WHEN lower(coalesce(available,'')) LIKE '%διαθέσ%' THEN 6
         ELSE 3
       END
 
       +
 
-      /* Response behaviour β€” max 6 */
+      /* Response behaviour — max 6 */
       CASE
-        WHEN lower(coalesce(response_time,'')) LIKE '%Ξ»ΞµΟ€Ο„%' THEN 6
-        WHEN lower(coalesce(response_time,'')) LIKE '%ΟΟΞ±%' THEN 5
-        WHEN lower(coalesce(response_time,'')) LIKE '%Ο‰Ο%' THEN 5
+        WHEN lower(coalesce(response_time,'')) LIKE '%λεπτ%' THEN 6
+        WHEN lower(coalesce(response_time,'')) LIKE '%ώρα%' THEN 5
+        WHEN lower(coalesce(response_time,'')) LIKE '%ωρ%' THEN 5
         WHEN coalesce(response_time,'') <> '' THEN 4
         ELSE 2
       END
 
       +
 
-      /* Experience β€” max 3 */
+      /* Experience — max 3 */
       CASE
         WHEN coalesce(years,0) >= 10 THEN 3
         WHEN coalesce(years,0) >= 5 THEN 2
@@ -325,7 +325,7 @@ const smartScoreExpr=`
 
       +
 
-      /* Premium commercial boost β€” max 8 */
+      /* Premium commercial boost — max 8 */
       CASE
         WHEN subscription_plan='premium'
           AND subscription_status='active'
@@ -571,14 +571,14 @@ const smartScoreExpr=`
 
 const trustLabel=score=>
   score>=90
-    ? 'Ξ•ΞΎΞ±ΞΉΟΞµΟ„ΞΉΞΊΞ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
+    ? 'Εξαιρετική αξιοπιστία'
     : score>=80
-      ? 'Ξ ΞΏΞ»Ο Ο…ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
+      ? 'Πολύ υψηλή αξιοπιστία'
       : score>=70
-        ? 'Ξ¥ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
+        ? 'Υψηλή αξιοπιστία'
         : score>=60
-          ? 'ΞΞ±Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
-          : 'Ξ‘Ξ½Ξ±Ο€Ο„Ο…ΟƒΟƒΟΞΌΞµΞ½Ξ· Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
+          ? 'Καλή αξιοπιστία'
+          : 'Αναπτυσσόμενη αξιοπιστία'
 
 const items=rows.map((r,index)=>{
   const p=professionalFromRow(r)
@@ -608,7 +608,7 @@ const items=rows.map((r,index)=>{
       }
     : {
         eligible:false,
-        label:'MELEO Verified Β· ΞΞ­ΞΏΟ‚ ΞµΟ€Ξ±Ξ³Ξ³ΞµΞ»ΞΌΞ±Ο„Ξ―Ξ±Ο‚',
+        label:'MELEO Verified · Νέος επαγγελματίας',
         completed:Number(r.trust_completed||0),
         reviews:Number(p.reviews||0),
         minCompleted:5,
@@ -619,21 +619,21 @@ const items=rows.map((r,index)=>{
 
   if(trustEligible){
     if(trustScore>=90){
-      reasons.push('Ξ•ΞΎΞ±ΞΉΟΞµΟ„ΞΉΞΊΞ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±')
+      reasons.push('Εξαιρετική αξιοπιστία')
     }else if(trustScore>=80){
-      reasons.push('Ξ ΞΏΞ»Ο Ο…ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±')
+      reasons.push('Πολύ υψηλή αξιοπιστία')
     }else if(trustScore>=70){
-      reasons.push('Ξ¥ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±')
+      reasons.push('Υψηλή αξιοπιστία')
     }
   }else{
-    reasons.push('MELEO Verified Β· ΞΞ­ΞΏΟ‚ ΞµΟ€Ξ±Ξ³Ξ³ΞµΞ»ΞΌΞ±Ο„Ξ―Ξ±Ο‚')
+    reasons.push('MELEO Verified · Νέος επαγγελματίας')
   }
 
   if(distance!=null){
     if(distance<=2){
-      reasons.push('Ξ ΞΏΞ»Ο ΞΊΞΏΞ½Ο„Ξ¬ ΟƒΞΏΟ…')
+      reasons.push('Πολύ κοντά σου')
     }else if(distance<=5){
-      reasons.push(`${distance} km Ξ±Ο€Ο ΞµΟƒΞ­Ξ½Ξ±`)
+      reasons.push(`${distance} km από εσένα`)
     }
   }
 
@@ -641,27 +641,27 @@ const items=rows.map((r,index)=>{
     Number(p.rating||0)>=4.8 &&
     Number(p.reviews||0)>=3
   ){
-    reasons.push('Ξ•ΞΎΞ±ΞΉΟΞµΟ„ΞΉΞΊΞ­Ο‚ Ξ±ΞΎΞΉΞΏΞ»ΞΏΞ³Ξ®ΟƒΞµΞΉΟ‚')
+    reasons.push('Εξαιρετικές αξιολογήσεις')
   }
 
   if(
-    String(p.available||'').toLowerCase().includes('ΟƒΞ®ΞΌΞµΟΞ±') ||
-    String(p.available||'').toLowerCase().includes('Ξ¬ΞΌΞµΟƒΞ±')
+    String(p.available||'').toLowerCase().includes('σήμερα') ||
+    String(p.available||'').toLowerCase().includes('άμεσα')
   ){
-    reasons.push('Ξ”ΞΉΞ±ΞΈΞ­ΟƒΞΉΞΌΞΏΟ‚ ΟƒΞ®ΞΌΞµΟΞ±')
+    reasons.push('Διαθέσιμος σήμερα')
   }
 
   if(
-    String(p.responseTime||'').toLowerCase().includes('Ξ»ΞµΟ€Ο„')
+    String(p.responseTime||'').toLowerCase().includes('λεπτ')
   ){
-    reasons.push('Ξ“ΟΞ®Ξ³ΞΏΟΞ· Ξ±Ξ½Ο„Ξ±Ο€ΟΞΊΟΞΉΟƒΞ·')
+    reasons.push('Γρήγορη ανταπόκριση')
   }
 
   if(
     p.subscriptionPlan==='premium' &&
     p.subscriptionStatus==='active'
   ){
-    reasons.push('PREMIUM Ο€ΟΞΏΟ„ΞµΟΞ±ΞΉΟΟ„Ξ·Ο„Ξ±')
+    reasons.push('PREMIUM προτεραιότητα')
   }
 
   return {
@@ -1487,7 +1487,7 @@ async addMessage(
 
   if(!recipientUserId){
     throw new Error(
-      'Ξ”ΞµΞ½ Ξ²ΟΞ­ΞΈΞ·ΞΊΞµ Ο€Ξ±ΟΞ±Ξ»Ξ®Ο€Ο„Ξ·Ο‚ ΞΌΞ·Ξ½ΟΞΌΞ±Ο„ΞΏΟ‚.'
+      'Δεν βρέθηκε παραλήπτης μηνύματος.'
     )
   }
 
@@ -2370,6 +2370,15 @@ async markMessagesRead(
   /*
    * Atomic booking lifecycle compare-and-set.
    *
+   * The write succeeds only while the database row still has
+   * the status that was validated by the caller.
+   *
+   * This prevents two concurrent requests from both committing
+   * transitions based on the same stale booking state.
+   */
+  /*
+   * Atomic booking lifecycle compare-and-set.
+   *
    * D10D.6
    *
    * Booking state and durable notification/live-event writes
@@ -2551,8 +2560,8 @@ export const Admin={
     const conv=(n,d)=>d?Number((100*n/d).toFixed(1)):0
     const revenue={subscriptionMrr:Number(sub.mrr||0),subscriptionArr:Number(sub.mrr||0)*12,collectedRevenue:Number(pay.collected||0),failedRevenue:Number(pay.failed||0),failedPayments:pay.failedPayments,outstanding:Number(sub.outstanding||0),platformMonthlyRevenue:Number(pay.collected||0),marketplaceGmv:bookings.completedGmv}
     const marketplace={active30:accounts.active30,suspendedUsers:accounts.suspendedUsers,uniquePatientsWithBooking:mk.uniquePatientsWithBooking,repeatPatients:mk.repeatPatients,totalReviews:mk.totalReviews,avgRating:Number(mk.avgRating||0),verificationRate:conv(professionals.verified,professionals.total),bookingCompletionRate:conv(bookings.completed,Math.max(0,bookings.total-bookings.cancelled)),requestToAcceptedRate:conv(bookings.accepted+bookings.completed,bookings.total),reviewCoverage:conv(mk.totalReviews,bookings.completed),patientActivationRate:conv(mk.uniquePatientsWithBooking,accounts.patients),premiumShare:conv(professionals.premium,professionals.basic+professionals.premium)}
-    const specialties=await many(`SELECT coalesce(nullif(specialty,''),'Ξ§Ο‰ΟΞ―Ο‚ ΞµΞΉΞ΄ΞΉΞΊΟΟ„Ξ·Ο„Ξ±') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
-    const cities=await many(`SELECT coalesce(nullif(city,''),'ΞΞ· ΞΏΟΞΉΟƒΞΌΞ­Ξ½Ξ·') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
+    const specialties=await many(`SELECT coalesce(nullif(specialty,''),'Χωρίς ειδικότητα') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
+    const cities=await many(`SELECT coalesce(nullif(city,''),'Μη ορισμένη') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
     const registrations14=await many(`SELECT d::date::text date,count(u.id)::int count FROM generate_series(current_date-13,current_date,interval '1 day') d LEFT JOIN users u ON u.created_at::date=d::date AND u.deleted_at IS NULL GROUP BY d ORDER BY d`)
     const bookings14=await many(`SELECT d::date::text date,count(b.id)::int count FROM generate_series(current_date-13,current_date,interval '1 day') d LEFT JOIN bookings b ON b.created_at::date=d::date GROUP BY d ORDER BY d`)
     delete accounts.active30; delete accounts.suspendedUsers
@@ -2869,7 +2878,7 @@ export const Admin={
         SELECT
           coalesce(
             nullif(p.specialty,''),
-            'Ξ§Ο‰ΟΞ―Ο‚ ΞµΞΉΞ΄ΞΉΞΊΟΟ„Ξ·Ο„Ξ±'
+            'Χωρίς ειδικότητα'
           ) name,
 
           count(
@@ -2911,7 +2920,7 @@ export const Admin={
         SELECT
           coalesce(
             nullif(p.city,''),
-            'ΞΞ· ΞΏΟΞΉΟƒΞΌΞ­Ξ½Ξ·'
+            'Μη ορισμένη'
           ) name,
 
           count(
@@ -3080,8 +3089,8 @@ export const Admin={
         count:Number(
           operations.pendingVerifications
         ),
-        title:'Ξ‘ΞΉΟ„Ξ®ΞΌΞ±Ο„Ξ± ΞµΟ€Ξ±Ξ»Ξ®ΞΈΞµΟ…ΟƒΞ·Ο‚',
-        text:'Ξ•Ο€Ξ±Ξ³Ξ³ΞµΞ»ΞΌΞ±Ο„Ξ―ΞµΟ‚ Ο€ΞµΟΞΉΞΌΞ­Ξ½ΞΏΟ…Ξ½ Ξ­Ξ»ΞµΞ³Ο‡ΞΏ.'
+        title:'Αιτήματα επαλήθευσης',
+        text:'Επαγγελματίες περιμένουν έλεγχο.'
       })
     }
 
@@ -3092,8 +3101,8 @@ export const Admin={
         count:Number(
           operations.pastDueSubscriptions
         ),
-        title:'Past-due ΟƒΟ…Ξ½Ξ΄ΟΞΏΞΌΞ­Ο‚',
-        text:'Ξ‘Ο€Ξ±ΞΉΟ„ΞµΞ―Ο„Ξ±ΞΉ Ξ­Ξ»ΞµΞ³Ο‡ΞΏΟ‚ ΞΊΞ±Ο„Ξ¬ΟƒΟ„Ξ±ΟƒΞ·Ο‚ Ο‡ΟΞ­Ο‰ΟƒΞ·Ο‚.'
+        title:'Past-due συνδρομές',
+        text:'Απαιτείται έλεγχος κατάστασης χρέωσης.'
       })
     }
 
@@ -3104,8 +3113,8 @@ export const Admin={
         count:Number(
           operations.failedPayments
         ),
-        title:'Ξ‘Ο€ΞΏΟ„Ο…Ο‡Ξ·ΞΌΞ­Ξ½ΞµΟ‚ Ο€Ξ»Ξ·ΟΟ‰ΞΌΞ­Ο‚',
-        text:'Ξ‘Ο€ΞΏΟ„Ο…Ο‡Ξ―ΞµΟ‚ Ο€Ξ»Ξ·ΟΟ‰ΞΌΟΞ½ ΞΌΞ­ΟƒΞ± ΟƒΟ„ΞΏΞ½ Ο„ΟΞ­Ο‡ΞΏΞ½Ο„Ξ± ΞΌΞ®Ξ½Ξ±.'
+        title:'Αποτυχημένες πληρωμές',
+        text:'Αποτυχίες πληρωμών μέσα στον τρέχοντα μήνα.'
       })
     }
 
@@ -3117,7 +3126,7 @@ export const Admin={
           operations.suspendedAccounts
         ),
         title:'Suspended accounts',
-        text:'Ξ›ΞΏΞ³Ξ±ΟΞΉΞ±ΟƒΞΌΞΏΞ― Ξ²ΟΞ―ΟƒΞΊΞΏΞ½Ο„Ξ±ΞΉ ΟƒΞµ Ξ±Ξ½Ξ±ΟƒΟ„ΞΏΞ»Ξ®.'
+        text:'Λογαριασμοί βρίσκονται σε αναστολή.'
       })
     }
 
@@ -3128,8 +3137,8 @@ export const Admin={
         count:Number(
           operations.openReports
         ),
-        title:'Ξ‘Ξ½ΞΏΞΉΟ‡Ο„Ξ­Ο‚ Ξ±Ξ½Ξ±Ο†ΞΏΟΞ­Ο‚',
-        text:'Ξ¥Ο€Ξ¬ΟΟ‡ΞΏΟ…Ξ½ reports Ο€ΞΏΟ… Ο‡ΟΞµΞΉΞ¬Ξ¶ΞΏΞ½Ο„Ξ±ΞΉ Ξ΄ΞΉΞ±Ο‡ΞµΞΉΟΞΉΟƒΟ„ΞΉΞΊΟ Ξ­Ξ»ΞµΞ³Ο‡ΞΏ.'
+        title:'Ανοιχτές αναφορές',
+        text:'Υπάρχουν reports που χρειάζονται διαχειριστικό έλεγχο.'
       })
     }
 
@@ -3140,8 +3149,8 @@ export const Admin={
         count:Number(
           operations.deletionPending
         ),
-        title:'Ξ‘ΞΉΟ„Ξ®ΞΌΞ±Ο„Ξ± Ξ΄ΞΉΞ±Ξ³ΟΞ±Ο†Ξ®Ο‚',
-        text:'Ξ›ΞΏΞ³Ξ±ΟΞΉΞ±ΟƒΞΌΞΏΞ― Ο€ΞµΟΞΉΞΌΞ­Ξ½ΞΏΟ…Ξ½ ΞΏΞ»ΞΏΞΊΞ»Ξ®ΟΟ‰ΟƒΞ· Ξ΄ΞΉΞ±Ξ΄ΞΉΞΊΞ±ΟƒΞ―Ξ±Ο‚ Ξ΄ΞΉΞ±Ξ³ΟΞ±Ο†Ξ®Ο‚.'
+        title:'Αιτήματα διαγραφής',
+        text:'Λογαριασμοί περιμένουν ολοκλήρωση διαδικασίας διαγραφής.'
       })
     }
 

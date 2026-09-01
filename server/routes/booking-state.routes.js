@@ -1,4 +1,4 @@
-﻿import {
+import {
   isBookingStatus,
   bookingTransitionResult,
   canUserTransitionBooking
@@ -66,7 +66,7 @@ export function registerBookingStateRoutes(
         return res
           .status(403)
           .json({
-            error:'Ξ”ΞµΞ½ ΞµΟ€ΞΉΟ„ΟΞ­Ο€ΞµΟ„Ξ±ΞΉ.'
+            error:'Δεν επιτρέπεται.'
           })
       }
 
@@ -155,6 +155,7 @@ export function registerBookingStateRoutes(
               'BOOKING_SPECIALIZED_TRANSITION_REQUIRED'
           })
       }
+
       const recipientUserId=
         isProvider
           ? b.patientId
