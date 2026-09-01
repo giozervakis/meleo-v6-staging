@@ -20,7 +20,27 @@ export function canViewBooking(user, booking, professional){
 }
 
 export function canEditBooking(user, booking, professional){
-  return canViewBooking(user,booking,professional)
+  if(!user||!booking)return false
+
+  if(user.role==='admin'){
+    return true
+  }
+
+  if(
+    user.role==='patient' &&
+    booking.patientId===user.id
+  ){
+    return true
+  }
+
+  if(
+    user.role==='professional' &&
+    professional?.userId===user.id
+  ){
+    return true
+  }
+
+  return false
 }
 
 export function canViewPatientContact(user, booking, professional){

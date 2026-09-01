@@ -25,19 +25,19 @@ const route =
     'utf8'
   )
 
-const target =
-  "app.patch('/api/bookings/:id/status'"
+const statusRoutePattern =
+  /app\.patch\s*\(\s*['"]\/api\/bookings\/:id\/status['"]/
 
 assert(
-  route.includes(
-    target
+  statusRoutePattern.test(
+    route
   ),
   'Booking status route missing from booking-state.routes.js'
 )
 
 assert(
-  !app.includes(
-    target
+  !statusRoutePattern.test(
+    app
   ),
   'Booking status route still application-owned'
 )
