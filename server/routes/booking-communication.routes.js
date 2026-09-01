@@ -93,7 +93,7 @@ app.post(
         .status(403)
         .json({
           error:
-            '??? ???????????.',
+            '\u0394\u03b5\u03bd \u03b5\u03c0\u03b9\u03c4\u03c1\u03ad\u03c0\u03b5\u03c4\u03b1\u03b9.',
           code:
             'BOOKING_TRANSITION_FORBIDDEN'
         })
@@ -110,7 +110,7 @@ app.post(
       return res
         .status(400)
         .json({
-          error:'????? ??? ??????'
+          error:'\u0393\u03c1\u03ac\u03c8\u03b5 \u03ad\u03bd\u03b1 \u03bc\u03ae\u03bd\u03c5\u03bc\u03b1'
         })
     }
 
@@ -135,7 +135,7 @@ app.post(
     await Notifications.create(
       b.patientId,
       'message',
-      '? ????????????? ???? ?????????????',
+      '\u039f \u03b5\u03c0\u03b1\u03b3\u03b3\u03b5\u03bb\u03bc\u03b1\u03c4\u03af\u03b1\u03c2 \u03b6\u03b7\u03c4\u03ac \u03b4\u03b9\u03b5\u03c5\u03ba\u03c1\u03b9\u03bd\u03af\u03c3\u03b5\u03b9\u03c2',
       text.slice(0,180)
     )
 
