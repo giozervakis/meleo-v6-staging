@@ -1419,43 +1419,66 @@ export const Bookings={
   },
 
 
-  async create(data){
-    await sql(
-      `
-        INSERT INTO bookings(
-          id,
-          patient_id,
-          professional_id,
-          service,
-          visit_date,
-          visit_time,
-          address,
-          notes_encrypted,
-          repeat_rule,
-          status,
-          base_price,
-          patient_contact_consent_at,
-          recovery_parent_id
+  /**
+   * D10D.8
+   *
+   * Booking creation and durable notification/live-event writes
+   * commit in the same PostgreSQL transaction.
+   */
+  async create(
+    data,
+    notification=null
+  ){
+    await tx(async client=>{
+
+      await client.query(
+        `
+          INSERT INTO bookings(
+            id,
+            patient_id,
+            professional_id,
+            service,
+            visit_date,
+            visit_time,
+            address,
+            notes_encrypted,
+            repeat_rule,
+            status,
+            base_price,
+            patient_contact_consent_at,
+            recovery_parent_id
+          )
+          VALUES(
+            $1,$2,$3,$4,$5,$6,$7,$8,$9,
+            'pending',$10,now(),$11
+          )
+        `,
+        [
+          data.id,
+          data.patientId,
+          data.professionalId,
+          data.service,
+          data.date,
+          data.time,
+          data.address||'',
+          encryptSensitive(data.notes||''),
+          data.repeat||'μία φορά',
+          data.price||0,
+          data.recoveryParentId||null
+        ]
+      )
+
+      if(notification){
+        await Notifications.create(
+          notification.userId,
+          notification.type || 'booking',
+          notification.title || 'Booking created',
+          notification.body || '',
+          notification.options || {},
+          client
         )
-        VALUES(
-          $1,$2,$3,$4,$5,$6,$7,$8,$9,
-          'pending',$10,now(),$11
-        )
-      `,
-      [
-        data.id,
-        data.patientId,
-        data.professionalId,
-        data.service,
-        data.date,
-        data.time,
-        data.address||'',
-        encryptSensitive(data.notes||''),
-        data.repeat||'\u03BC\u03AF\u03B1 \u03C6\u03BF\u03C1\u03AC',
-        data.price||0,
-        data.recoveryParentId||null
-      ]
-    )
+      }
+    })
 
     return this.byId(
       data.id

@@ -317,7 +317,6 @@ export function registerBookingCoreRoutes(
     allowsVisibility,
     id,
     Bookings,
-    Notifications,
     mail,
     audit
   } = deps
@@ -453,6 +452,11 @@ export function registerBookingCoreRoutes(
                 120
               )||'Μία φορά',
             price:p.price
+          },{
+            userId:p.userId,
+            type:'booking',
+            title:'Νέο αίτημα επίσκεψης',
+            body:`${req.user.name} · ${service}`
           })
 
       }catch(error){
@@ -471,14 +475,6 @@ export function registerBookingCoreRoutes(
 
         throw error
       }
-
-
-      await Notifications.create(
-        p.userId,
-        'booking',
-        'Νέο αίτημα επίσκεψης',
-        `${req.user.name} · ${service}`
-      )
 
 
 
