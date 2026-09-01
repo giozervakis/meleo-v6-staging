@@ -68,13 +68,19 @@ const checks=[
   [
     'Bookings.update SET remains parameterized',
     update.includes(
-      'sets.push(`${map[k]}=${i++}`)'
+      "const placeholder='$'+i++"
+    ) &&
+    update.includes(
+      "map[k]+'='+placeholder"
     )
   ],
   [
     'Bookings.update id predicate remains parameterized',
     update.includes(
-      'WHERE id=${i}'
+      "const idPlaceholder='$'+i++"
+    ) &&
+    update.includes(
+      'WHERE id=${idPlaceholder}'
     )
   ],
   [
