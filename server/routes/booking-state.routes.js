@@ -1,4 +1,4 @@
-import {
+﻿import {
   isBookingStatus,
   bookingTransitionResult,
   canUserTransitionBooking
@@ -66,7 +66,7 @@ export function registerBookingStateRoutes(
         return res
           .status(403)
           .json({
-            error:'Δεν επιτρέπεται.'
+            error:'Ξ”ΞµΞ½ ΞµΟ€ΞΉΟ„ΟΞ­Ο€ΞµΟ„Ξ±ΞΉ.'
           })
       }
 
@@ -131,12 +131,63 @@ export function registerBookingStateRoutes(
           })
       }
 
+      /*
+       * D10D.6
+       *
+       * clarification and quote lifecycle changes own
+       * additional domain data and therefore must use
+       * their dedicated workflow endpoints.
+       */
+      if(
+        status==='clarification' ||
+        status==='quoted' ||
+        (
+          b.status==='quoted' &&
+          status==='accepted'
+        )
+      ){
+        return res
+          .status(409)
+          .json({
+            error:
+              'This booking transition requires its dedicated workflow',
+            code:
+              'BOOKING_SPECIALIZED_TRANSITION_REQUIRED'
+          })
+      }
+      const recipientUserId=
+        isProvider
+          ? b.patientId
+          : p.userId
+
       const write=
         await Bookings.transition(
           b.id,
           b.status,
           {
             status
+          },
+          {
+            userId:recipientUserId,
+            type:'booking',
+            title:
+              `Ενημέρωση κράτησης: ${status}`,
+            body:
+              b.service,
+            options:{
+              priority:
+                status==='cancelled'
+                  ? 'high'
+                  : 'normal',
+
+              actionType:'booking',
+              actionId:b.id,
+
+              actionUrl:
+                isProvider
+                  ? '/dashboard'
+                  : '/professional'
+            }
           }
         )
 
@@ -170,32 +221,6 @@ export function registerBookingStateRoutes(
 
       const updated=
         write.booking
-
-      const recipientUserId=
-        isProvider
-          ? b.patientId
-          : p.userId
-
-      await Notifications.create(
-        recipientUserId,
-        'booking',
-        `Ενημέρωση κράτησης: ${status}`,
-        b.service,
-        {
-          priority:
-            status==='cancelled'
-              ? 'high'
-              : 'normal',
-
-          actionType:'booking',
-          actionId:b.id,
-
-          actionUrl:
-            isProvider
-              ? '/dashboard'
-              : '/professional'
-        }
-      )
 
       if(
         status==='cancelled' ||

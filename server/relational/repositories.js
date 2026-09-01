@@ -201,7 +201,7 @@ byId: async pid=>{
       const lat=Number(q.lat),lon=Number(q.lon);vals.push(lat,lon);const a=i++,b=i++
       distanceExpr=`(6371 * acos(LEAST(1,GREATEST(-1,cos(radians($${a})) * cos(radians(p.latitude)) * cos(radians(p.longitude)-radians($${b})) + sin(radians($${a})) * sin(radians(p.latitude)))))) AS distance_km`
       where.push(`p.latitude IS NOT NULL AND p.longitude IS NOT NULL`)
-      // Bounding box πρώτα ώστε η ακριβή trigonometrική απόσταση να τρέχει σε μικρό υποσύνολο.
+      // Bounding box Ο€ΟΟΟ„Ξ± ΟΟƒΟ„Ξµ Ξ· Ξ±ΞΊΟΞΉΞ²Ξ® trigonometrΞΉΞΊΞ® Ξ±Ο€ΟΟƒΟ„Ξ±ΟƒΞ· Ξ½Ξ± Ο„ΟΞ­Ο‡ΞµΞΉ ΟƒΞµ ΞΌΞΉΞΊΟΟ Ο…Ο€ΞΏΟƒΟΞ½ΞΏΞ»ΞΏ.
       where.push(`p.latitude BETWEEN $${a}-3.0 AND $${a}+3.0`)
       where.push(`p.longitude BETWEEN $${b}-3.5 AND $${b}+3.5`)
       where.push(`(6371 * acos(LEAST(1,GREATEST(-1,cos(radians($${a})) * cos(radians(p.latitude)) * cos(radians(p.longitude)-radians($${b})) + sin(radians($${a})) * sin(radians(p.latitude)))))) <= p.service_radius_km`)
@@ -244,7 +244,7 @@ const smartScoreExpr=`
     GREATEST(
       0,
 
-      /* Verified professional — max 6 */
+      /* Verified professional β€” max 6 */
       CASE
         WHEN verified=true THEN 6
         ELSE 0
@@ -252,7 +252,7 @@ const smartScoreExpr=`
 
       +
 
-      /* MELEO Trust — max 28 */
+      /* MELEO Trust β€” max 28 */
       CASE
         WHEN trust_eligible=true
         THEN (coalesce(trust_score,0) / 100.0) * 28
@@ -263,7 +263,7 @@ const smartScoreExpr=`
 
       +
 
-      /* Rating quality — max 14 */
+      /* Rating quality β€” max 14 */
       CASE
         WHEN coalesce(reviews_count,0)=0 THEN 7
 
@@ -278,7 +278,7 @@ const smartScoreExpr=`
 
       +
 
-      /* Review confidence — max 5 */
+      /* Review confidence β€” max 5 */
       CASE
         WHEN coalesce(reviews_count,0) >= 20 THEN 5
         WHEN coalesce(reviews_count,0) >= 10 THEN 4
@@ -289,33 +289,33 @@ const smartScoreExpr=`
 
       +
 
-      /* Distance — max 20 */
+      /* Distance β€” max 20 */
       ${smartDistanceScore}
 
       +
 
-      /* Availability — max 8 */
+      /* Availability β€” max 8 */
       CASE
-        WHEN lower(coalesce(available,'')) LIKE '%σήμερα%' THEN 8
-        WHEN lower(coalesce(available,'')) LIKE '%άμεσα%' THEN 8
-        WHEN lower(coalesce(available,'')) LIKE '%διαθέσ%' THEN 6
+        WHEN lower(coalesce(available,'')) LIKE '%ΟƒΞ®ΞΌΞµΟΞ±%' THEN 8
+        WHEN lower(coalesce(available,'')) LIKE '%Ξ¬ΞΌΞµΟƒΞ±%' THEN 8
+        WHEN lower(coalesce(available,'')) LIKE '%Ξ΄ΞΉΞ±ΞΈΞ­Οƒ%' THEN 6
         ELSE 3
       END
 
       +
 
-      /* Response behaviour — max 6 */
+      /* Response behaviour β€” max 6 */
       CASE
-        WHEN lower(coalesce(response_time,'')) LIKE '%λεπτ%' THEN 6
-        WHEN lower(coalesce(response_time,'')) LIKE '%ώρα%' THEN 5
-        WHEN lower(coalesce(response_time,'')) LIKE '%ωρ%' THEN 5
+        WHEN lower(coalesce(response_time,'')) LIKE '%Ξ»ΞµΟ€Ο„%' THEN 6
+        WHEN lower(coalesce(response_time,'')) LIKE '%ΟΟΞ±%' THEN 5
+        WHEN lower(coalesce(response_time,'')) LIKE '%Ο‰Ο%' THEN 5
         WHEN coalesce(response_time,'') <> '' THEN 4
         ELSE 2
       END
 
       +
 
-      /* Experience — max 3 */
+      /* Experience β€” max 3 */
       CASE
         WHEN coalesce(years,0) >= 10 THEN 3
         WHEN coalesce(years,0) >= 5 THEN 2
@@ -325,7 +325,7 @@ const smartScoreExpr=`
 
       +
 
-      /* Premium commercial boost — max 8 */
+      /* Premium commercial boost β€” max 8 */
       CASE
         WHEN subscription_plan='premium'
           AND subscription_status='active'
@@ -571,14 +571,14 @@ const smartScoreExpr=`
 
 const trustLabel=score=>
   score>=90
-    ? 'Εξαιρετική αξιοπιστία'
+    ? 'Ξ•ΞΎΞ±ΞΉΟΞµΟ„ΞΉΞΊΞ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
     : score>=80
-      ? 'Πολύ υψηλή αξιοπιστία'
+      ? 'Ξ ΞΏΞ»Ο Ο…ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
       : score>=70
-        ? 'Υψηλή αξιοπιστία'
+        ? 'Ξ¥ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
         : score>=60
-          ? 'Καλή αξιοπιστία'
-          : 'Αναπτυσσόμενη αξιοπιστία'
+          ? 'ΞΞ±Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
+          : 'Ξ‘Ξ½Ξ±Ο€Ο„Ο…ΟƒΟƒΟΞΌΞµΞ½Ξ· Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±'
 
 const items=rows.map((r,index)=>{
   const p=professionalFromRow(r)
@@ -608,7 +608,7 @@ const items=rows.map((r,index)=>{
       }
     : {
         eligible:false,
-        label:'MELEO Verified · Νέος επαγγελματίας',
+        label:'MELEO Verified Β· ΞΞ­ΞΏΟ‚ ΞµΟ€Ξ±Ξ³Ξ³ΞµΞ»ΞΌΞ±Ο„Ξ―Ξ±Ο‚',
         completed:Number(r.trust_completed||0),
         reviews:Number(p.reviews||0),
         minCompleted:5,
@@ -619,21 +619,21 @@ const items=rows.map((r,index)=>{
 
   if(trustEligible){
     if(trustScore>=90){
-      reasons.push('Εξαιρετική αξιοπιστία')
+      reasons.push('Ξ•ΞΎΞ±ΞΉΟΞµΟ„ΞΉΞΊΞ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±')
     }else if(trustScore>=80){
-      reasons.push('Πολύ υψηλή αξιοπιστία')
+      reasons.push('Ξ ΞΏΞ»Ο Ο…ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±')
     }else if(trustScore>=70){
-      reasons.push('Υψηλή αξιοπιστία')
+      reasons.push('Ξ¥ΟΞ·Ξ»Ξ® Ξ±ΞΎΞΉΞΏΟ€ΞΉΟƒΟ„Ξ―Ξ±')
     }
   }else{
-    reasons.push('MELEO Verified · Νέος επαγγελματίας')
+    reasons.push('MELEO Verified Β· ΞΞ­ΞΏΟ‚ ΞµΟ€Ξ±Ξ³Ξ³ΞµΞ»ΞΌΞ±Ο„Ξ―Ξ±Ο‚')
   }
 
   if(distance!=null){
     if(distance<=2){
-      reasons.push('Πολύ κοντά σου')
+      reasons.push('Ξ ΞΏΞ»Ο ΞΊΞΏΞ½Ο„Ξ¬ ΟƒΞΏΟ…')
     }else if(distance<=5){
-      reasons.push(`${distance} km από εσένα`)
+      reasons.push(`${distance} km Ξ±Ο€Ο ΞµΟƒΞ­Ξ½Ξ±`)
     }
   }
 
@@ -641,27 +641,27 @@ const items=rows.map((r,index)=>{
     Number(p.rating||0)>=4.8 &&
     Number(p.reviews||0)>=3
   ){
-    reasons.push('Εξαιρετικές αξιολογήσεις')
+    reasons.push('Ξ•ΞΎΞ±ΞΉΟΞµΟ„ΞΉΞΊΞ­Ο‚ Ξ±ΞΎΞΉΞΏΞ»ΞΏΞ³Ξ®ΟƒΞµΞΉΟ‚')
   }
 
   if(
-    String(p.available||'').toLowerCase().includes('σήμερα') ||
-    String(p.available||'').toLowerCase().includes('άμεσα')
+    String(p.available||'').toLowerCase().includes('ΟƒΞ®ΞΌΞµΟΞ±') ||
+    String(p.available||'').toLowerCase().includes('Ξ¬ΞΌΞµΟƒΞ±')
   ){
-    reasons.push('Διαθέσιμος σήμερα')
+    reasons.push('Ξ”ΞΉΞ±ΞΈΞ­ΟƒΞΉΞΌΞΏΟ‚ ΟƒΞ®ΞΌΞµΟΞ±')
   }
 
   if(
-    String(p.responseTime||'').toLowerCase().includes('λεπτ')
+    String(p.responseTime||'').toLowerCase().includes('Ξ»ΞµΟ€Ο„')
   ){
-    reasons.push('Γρήγορη ανταπόκριση')
+    reasons.push('Ξ“ΟΞ®Ξ³ΞΏΟΞ· Ξ±Ξ½Ο„Ξ±Ο€ΟΞΊΟΞΉΟƒΞ·')
   }
 
   if(
     p.subscriptionPlan==='premium' &&
     p.subscriptionStatus==='active'
   ){
-    reasons.push('PREMIUM προτεραιότητα')
+    reasons.push('PREMIUM Ο€ΟΞΏΟ„ΞµΟΞ±ΞΉΟΟ„Ξ·Ο„Ξ±')
   }
 
   return {
@@ -1487,7 +1487,7 @@ async addMessage(
 
   if(!recipientUserId){
     throw new Error(
-      'Δεν βρέθηκε παραλήπτης μηνύματος.'
+      'Ξ”ΞµΞ½ Ξ²ΟΞ­ΞΈΞ·ΞΊΞµ Ο€Ξ±ΟΞ±Ξ»Ξ®Ο€Ο„Ξ·Ο‚ ΞΌΞ·Ξ½ΟΞΌΞ±Ο„ΞΏΟ‚.'
     )
   }
 
@@ -2370,16 +2370,16 @@ async markMessagesRead(
   /*
    * Atomic booking lifecycle compare-and-set.
    *
-   * The write succeeds only while the database row still has
-   * the status that was validated by the caller.
+   * D10D.6
    *
-   * This prevents two concurrent requests from both committing
-   * transitions based on the same stale booking state.
+   * Booking state and durable notification/live-event writes
+   * commit in the same PostgreSQL transaction.
    */
   async transition(
     id,
     expectedStatus,
-    patch
+    patch,
+    notification=null
   ){
     const map={
       status:'status',
@@ -2427,41 +2427,73 @@ async markMessagesRead(
     const idPlaceholder='$'+i++
     vals.push(id)
 
-    const result=
-      await sql(
-        `
-          UPDATE bookings
-          SET
-            ${sets.join(',')},
-            updated_at=now()
-          WHERE status=${expectedPlaceholder}
-            AND id=${idPlaceholder}
-        `,
-        vals
-      )
+    const outcome=
+      await tx(async client=>{
 
-    if(result.rowCount===1){
-      return {
-        ok:true,
-        booking:
-          await this.byId(id)
-      }
-    }
+        const result=
+          await client.query(
+            `
+              UPDATE bookings
+              SET
+                ${sets.join(',')},
+                updated_at=now()
+              WHERE status=${expectedPlaceholder}
+                AND id=${idPlaceholder}
+            `,
+            vals
+          )
+
+        if(result.rowCount===1){
+
+          if(notification){
+            await Notifications.create(
+              notification.userId,
+              notification.type || 'booking',
+              notification.title || 'Booking update',
+              notification.body || '',
+              notification.options || {},
+              client
+            )
+          }
+
+          return {
+            ok:true
+          }
+        }
+
+        return {
+          ok:false
+        }
+      })
 
     const current=
       await this.byId(id)
 
-    if(!current){
+    if(!outcome.ok){
+
+      if(!current){
+        return {
+          ok:false,
+          code:'BOOKING_NOT_FOUND',
+          booking:null
+        }
+      }
+
       return {
         ok:false,
-        code:'BOOKING_NOT_FOUND',
-        booking:null
+        code:'BOOKING_STATE_CONFLICT',
+        booking:current
       }
     }
 
+    if(!current){
+      throw new Error(
+        'Booking missing after transition transaction'
+      )
+    }
+
     return {
-      ok:false,
-      code:'BOOKING_STATE_CONFLICT',
+      ok:true,
       booking:current
     }
   }
@@ -2519,8 +2551,8 @@ export const Admin={
     const conv=(n,d)=>d?Number((100*n/d).toFixed(1)):0
     const revenue={subscriptionMrr:Number(sub.mrr||0),subscriptionArr:Number(sub.mrr||0)*12,collectedRevenue:Number(pay.collected||0),failedRevenue:Number(pay.failed||0),failedPayments:pay.failedPayments,outstanding:Number(sub.outstanding||0),platformMonthlyRevenue:Number(pay.collected||0),marketplaceGmv:bookings.completedGmv}
     const marketplace={active30:accounts.active30,suspendedUsers:accounts.suspendedUsers,uniquePatientsWithBooking:mk.uniquePatientsWithBooking,repeatPatients:mk.repeatPatients,totalReviews:mk.totalReviews,avgRating:Number(mk.avgRating||0),verificationRate:conv(professionals.verified,professionals.total),bookingCompletionRate:conv(bookings.completed,Math.max(0,bookings.total-bookings.cancelled)),requestToAcceptedRate:conv(bookings.accepted+bookings.completed,bookings.total),reviewCoverage:conv(mk.totalReviews,bookings.completed),patientActivationRate:conv(mk.uniquePatientsWithBooking,accounts.patients),premiumShare:conv(professionals.premium,professionals.basic+professionals.premium)}
-    const specialties=await many(`SELECT coalesce(nullif(specialty,''),'Χωρίς ειδικότητα') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
-    const cities=await many(`SELECT coalesce(nullif(city,''),'Μη ορισμένη') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
+    const specialties=await many(`SELECT coalesce(nullif(specialty,''),'Ξ§Ο‰ΟΞ―Ο‚ ΞµΞΉΞ΄ΞΉΞΊΟΟ„Ξ·Ο„Ξ±') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
+    const cities=await many(`SELECT coalesce(nullif(city,''),'ΞΞ· ΞΏΟΞΉΟƒΞΌΞ­Ξ½Ξ·') name,count(*)::int count FROM professionals GROUP BY 1 ORDER BY count DESC`)
     const registrations14=await many(`SELECT d::date::text date,count(u.id)::int count FROM generate_series(current_date-13,current_date,interval '1 day') d LEFT JOIN users u ON u.created_at::date=d::date AND u.deleted_at IS NULL GROUP BY d ORDER BY d`)
     const bookings14=await many(`SELECT d::date::text date,count(b.id)::int count FROM generate_series(current_date-13,current_date,interval '1 day') d LEFT JOIN bookings b ON b.created_at::date=d::date GROUP BY d ORDER BY d`)
     delete accounts.active30; delete accounts.suspendedUsers
@@ -2837,7 +2869,7 @@ export const Admin={
         SELECT
           coalesce(
             nullif(p.specialty,''),
-            'Χωρίς ειδικότητα'
+            'Ξ§Ο‰ΟΞ―Ο‚ ΞµΞΉΞ΄ΞΉΞΊΟΟ„Ξ·Ο„Ξ±'
           ) name,
 
           count(
@@ -2879,7 +2911,7 @@ export const Admin={
         SELECT
           coalesce(
             nullif(p.city,''),
-            'Μη ορισμένη'
+            'ΞΞ· ΞΏΟΞΉΟƒΞΌΞ­Ξ½Ξ·'
           ) name,
 
           count(
@@ -3048,8 +3080,8 @@ export const Admin={
         count:Number(
           operations.pendingVerifications
         ),
-        title:'Αιτήματα επαλήθευσης',
-        text:'Επαγγελματίες περιμένουν έλεγχο.'
+        title:'Ξ‘ΞΉΟ„Ξ®ΞΌΞ±Ο„Ξ± ΞµΟ€Ξ±Ξ»Ξ®ΞΈΞµΟ…ΟƒΞ·Ο‚',
+        text:'Ξ•Ο€Ξ±Ξ³Ξ³ΞµΞ»ΞΌΞ±Ο„Ξ―ΞµΟ‚ Ο€ΞµΟΞΉΞΌΞ­Ξ½ΞΏΟ…Ξ½ Ξ­Ξ»ΞµΞ³Ο‡ΞΏ.'
       })
     }
 
@@ -3060,8 +3092,8 @@ export const Admin={
         count:Number(
           operations.pastDueSubscriptions
         ),
-        title:'Past-due συνδρομές',
-        text:'Απαιτείται έλεγχος κατάστασης χρέωσης.'
+        title:'Past-due ΟƒΟ…Ξ½Ξ΄ΟΞΏΞΌΞ­Ο‚',
+        text:'Ξ‘Ο€Ξ±ΞΉΟ„ΞµΞ―Ο„Ξ±ΞΉ Ξ­Ξ»ΞµΞ³Ο‡ΞΏΟ‚ ΞΊΞ±Ο„Ξ¬ΟƒΟ„Ξ±ΟƒΞ·Ο‚ Ο‡ΟΞ­Ο‰ΟƒΞ·Ο‚.'
       })
     }
 
@@ -3072,8 +3104,8 @@ export const Admin={
         count:Number(
           operations.failedPayments
         ),
-        title:'Αποτυχημένες πληρωμές',
-        text:'Αποτυχίες πληρωμών μέσα στον τρέχοντα μήνα.'
+        title:'Ξ‘Ο€ΞΏΟ„Ο…Ο‡Ξ·ΞΌΞ­Ξ½ΞµΟ‚ Ο€Ξ»Ξ·ΟΟ‰ΞΌΞ­Ο‚',
+        text:'Ξ‘Ο€ΞΏΟ„Ο…Ο‡Ξ―ΞµΟ‚ Ο€Ξ»Ξ·ΟΟ‰ΞΌΟΞ½ ΞΌΞ­ΟƒΞ± ΟƒΟ„ΞΏΞ½ Ο„ΟΞ­Ο‡ΞΏΞ½Ο„Ξ± ΞΌΞ®Ξ½Ξ±.'
       })
     }
 
@@ -3085,7 +3117,7 @@ export const Admin={
           operations.suspendedAccounts
         ),
         title:'Suspended accounts',
-        text:'Λογαριασμοί βρίσκονται σε αναστολή.'
+        text:'Ξ›ΞΏΞ³Ξ±ΟΞΉΞ±ΟƒΞΌΞΏΞ― Ξ²ΟΞ―ΟƒΞΊΞΏΞ½Ο„Ξ±ΞΉ ΟƒΞµ Ξ±Ξ½Ξ±ΟƒΟ„ΞΏΞ»Ξ®.'
       })
     }
 
@@ -3096,8 +3128,8 @@ export const Admin={
         count:Number(
           operations.openReports
         ),
-        title:'Ανοιχτές αναφορές',
-        text:'Υπάρχουν reports που χρειάζονται διαχειριστικό έλεγχο.'
+        title:'Ξ‘Ξ½ΞΏΞΉΟ‡Ο„Ξ­Ο‚ Ξ±Ξ½Ξ±Ο†ΞΏΟΞ­Ο‚',
+        text:'Ξ¥Ο€Ξ¬ΟΟ‡ΞΏΟ…Ξ½ reports Ο€ΞΏΟ… Ο‡ΟΞµΞΉΞ¬Ξ¶ΞΏΞ½Ο„Ξ±ΞΉ Ξ΄ΞΉΞ±Ο‡ΞµΞΉΟΞΉΟƒΟ„ΞΉΞΊΟ Ξ­Ξ»ΞµΞ³Ο‡ΞΏ.'
       })
     }
 
@@ -3108,8 +3140,8 @@ export const Admin={
         count:Number(
           operations.deletionPending
         ),
-        title:'Αιτήματα διαγραφής',
-        text:'Λογαριασμοί περιμένουν ολοκλήρωση διαδικασίας διαγραφής.'
+        title:'Ξ‘ΞΉΟ„Ξ®ΞΌΞ±Ο„Ξ± Ξ΄ΞΉΞ±Ξ³ΟΞ±Ο†Ξ®Ο‚',
+        text:'Ξ›ΞΏΞ³Ξ±ΟΞΉΞ±ΟƒΞΌΞΏΞ― Ο€ΞµΟΞΉΞΌΞ­Ξ½ΞΏΟ…Ξ½ ΞΏΞ»ΞΏΞΊΞ»Ξ®ΟΟ‰ΟƒΞ· Ξ΄ΞΉΞ±Ξ΄ΞΉΞΊΞ±ΟƒΞ―Ξ±Ο‚ Ξ΄ΞΉΞ±Ξ³ΟΞ±Ο†Ξ®Ο‚.'
       })
     }
 
