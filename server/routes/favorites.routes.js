@@ -19,14 +19,44 @@ export function registerFavoritesRoutes(
     auth,
     requireConsumer,
     limits,
-    one,
-    sql,
+    tx,
     id,
     many
   } = deps
 
 
-app.post('/api/favorites/:professionalId',auth,requireConsumer,limits.write,async(req,res)=>{const pid=req.params.professionalId;const existing=await one('SELECT id FROM favorites WHERE user_id=$1 AND professional_id=$2',[req.user.id,pid]);if(existing){await sql('DELETE FROM favorites WHERE id=$1',[existing.id]);return res.json({favorite:false})}await sql('INSERT INTO favorites(id,user_id,professional_id) VALUES($1,$2,$3)',[id('fav'),req.user.id,pid]);res.json({favorite:true})})
+app.post('/api/favorites/:professionalId',auth,requireConsumer,limits.write,async(req,res)=>{
+  const pid=req.params.professionalId
+  let favorite=false
+
+  await tx(async c=>{
+    const lockKey=`${req.user.id}:${pid}`
+
+    await c.query(
+      'SELECT pg_advisory_xact_lock(hashtextextended($1,0))',
+      [lockKey]
+    )
+
+    const removed=await c.query(
+      'DELETE FROM favorites WHERE user_id=$1 AND professional_id=$2 RETURNING id',
+      [req.user.id,pid]
+    )
+
+    if(removed.rowCount===1){
+      favorite=false
+      return
+    }
+
+    await c.query(
+      'INSERT INTO favorites(id,user_id,professional_id) VALUES($1,$2,$3)',
+      [id('fav'),req.user.id,pid]
+    )
+
+    favorite=true
+  })
+
+  res.json({favorite})
+})
 
 app.get('/api/favorites',auth,async(req,res)=>{const rows=await many('SELECT professional_id FROM favorites WHERE user_id=$1 ORDER BY created_at DESC',[req.user.id]);res.json(rows.map(x=>x.professional_id))})
 

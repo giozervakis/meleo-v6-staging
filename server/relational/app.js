@@ -2499,8 +2499,7 @@ registerFavoritesRoutes(
     auth,
     requireConsumer,
     limits,
-    one,
-    sql,
+    tx,
     id,
     many
   }
@@ -2558,13 +2557,13 @@ registerSmartRequestRoutes(
   app,
   {
     limits,
-    sql,
     one,
     many,
     id,
     str,
     now,
     audit,
+    tx,
     ensureSmartLearningSchema,
     normalizeSmartRequest
   }

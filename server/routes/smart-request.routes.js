@@ -1,14 +1,14 @@
-﻿export function registerSmartRequestRoutes(
+export function registerSmartRequestRoutes(
   app,
   {
     limits,
-    sql,
     one,
     many,
     id,
     str,
     now,
     audit,
+    tx,
     ensureSmartLearningSchema,
     normalizeSmartRequest
   }
@@ -35,65 +35,50 @@
         })
       }
 
-      const existing =
+      const row =
         await one(
-          `SELECT *
-           FROM smart_request_learning
-           WHERE normalized_text=$1`,
-          [normalized]
-        )
-
-      if(existing){
-        await sql(
-          `UPDATE smart_request_learning
-           SET occurrences=occurrences+1,
-               sample_text=$2,
-               last_seen_at=now()
-           WHERE normalized_text=$1`,
+          `INSERT INTO smart_request_learning(
+             id,
+             normalized_text,
+             sample_text,
+             occurrences,
+             status,
+             first_seen_at,
+             last_seen_at
+           )
+           VALUES(
+             $1,
+             $2,
+             $3,
+             1,
+             'new',
+             $4,
+             $4
+           )
+           ON CONFLICT(normalized_text)
+           DO UPDATE SET
+             occurrences=
+               smart_request_learning.occurrences+1,
+             sample_text=
+               EXCLUDED.sample_text,
+             last_seen_at=
+               EXCLUDED.last_seen_at
+           RETURNING occurrences`,
           [
+            id('srl'),
             normalized,
-            text
+            text,
+            now()
           ]
         )
-
-        return res.json({
-          ok:true,
-          learned:false,
-          existing:true
-        })
-      }
-
-      await sql(
-        `INSERT INTO smart_request_learning(
-          id,
-          normalized_text,
-          sample_text,
-          occurrences,
-          status,
-          first_seen_at,
-          last_seen_at
-        )
-        VALUES(
-          $1,
-          $2,
-          $3,
-          1,
-          'new',
-          $4,
-          $4
-        )`,
-        [
-          id('srl'),
-          normalized,
-          text,
-          now()
-        ]
-      )
 
       res.json({
         ok:true,
         learned:false,
-        existing:false
+        existing:
+          Number(
+            row?.occurrences || 0
+          ) > 1
       })
     }
   )
@@ -296,31 +281,36 @@
           1000
         )
 
-      await sql(
-        `UPDATE smart_request_learning
-         SET status=$1,
-             learned_specialty=$2,
-             learned_service=$3,
-             admin_note=$4,
-             reviewed_at=$5
-         WHERE id=$6`,
-        [
-          status,
-          learnedSpecialty || null,
-          learnedService || null,
-          adminNote,
-          now(),
-          existing.id
-        ]
-      )
+      await tx(
+        async c=>{
+          await c.query(
+            `UPDATE smart_request_learning
+             SET status=$1,
+                 learned_specialty=$2,
+                 learned_service=$3,
+                 admin_note=$4,
+                 reviewed_at=$5
+             WHERE id=$6`,
+            [
+              status,
+              learnedSpecialty || null,
+              learnedService || null,
+              adminNote,
+              now(),
+              existing.id
+            ]
+          )
 
-      await audit(
-        req.user.id,
-        'smart_request.review',
-        {
-          smartRequestId:
-            existing.id,
-          status
+          await audit(
+            req.user.id,
+            'smart_request.review',
+            {
+              smartRequestId:
+                existing.id,
+              status
+            },
+            c
+          )
         }
       )
 
