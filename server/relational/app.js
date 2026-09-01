@@ -2312,7 +2312,8 @@ registerProfessionalCoreRoutes(
     one,
     sanitizeProfilePatch,
     auth,
-    requireRole
+    requireRole,
+    tx
   }
 )
 

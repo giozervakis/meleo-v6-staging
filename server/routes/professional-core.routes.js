@@ -28,7 +28,8 @@ export function registerProfessionalCoreRoutes(
     one,
     sanitizeProfilePatch,
     auth,
-    requireRole
+    requireRole,
+    tx
   } = deps
 
 
@@ -49,7 +50,8 @@ export function registerProfessionalCoreRoutes(
     one,
     sanitizeProfilePatch,
     auth,
-    requireRole
+    requireRole,
+    tx
   }
 
 
@@ -75,7 +77,124 @@ export function registerProfessionalCoreRoutes(
 app.get('/api/professionals',async(req,res)=>{const result=await Professionals.search(req.query);res.json(result)})
 app.get('/api/professionals/:id',limits.profile,async(req,res)=>{const p=await Professionals.byId(req.params.id);if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))return res.status(404).json({error:'Ο επαγγελματίας δεν είναι διαθέσιμος.'});const trust=await meleoTrustForProfessional(p.id);res.json({professional:{...p,trust}})})
 app.get('/api/professionals/:id/reviews',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:10,maxLimit:50});const items=await many(`SELECT r.id,r.rating,r.comment,r.created_at "createdAt",u.name "patientName" FROM reviews r JOIN users u ON u.id=r.patient_id WHERE r.professional_id=$1 ORDER BY r.created_at DESC LIMIT $2 OFFSET $3`,[req.params.id,limit,offset]);const c=await one('SELECT count(*)::int total FROM reviews WHERE professional_id=$1',[req.params.id]);res.json({items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)})})
-app.put('/api/professional/profile',auth,requireRole('professional'),limits.write,async(req,res)=>{const p=await Professionals.byUser(req.user.id);const patch=sanitizeProfilePatch(req.body);if(Object.keys(patch).length)await Professionals.update(p.id,patch);const updated=await Professionals.byId(p.id);if(updated.specialty&&updated.title&&updated.city&&!['pending_verification','approved'].includes(updated.onboardingStage))await Professionals.update(p.id,{onboardingStage:'verification'});res.json({professional:await Professionals.byId(p.id)})})
+app.put('/api/professional/profile',auth,requireRole('professional'),limits.write,async(req,res)=>{
+  const p=
+    await Professionals.byUser(
+      req.user.id
+    )
+
+  const patch=
+    sanitizeProfilePatch(
+      req.body
+    )
+
+  await tx(async c=>{
+
+    const map={
+      title:'title',
+      specialty:'specialty',
+      city:'city',
+      area:'area',
+      region:'region',
+      latitude:'latitude',
+      longitude:'longitude',
+      serviceRadiusKm:'service_radius_km',
+      bio:'bio',
+      languages:'languages',
+      credentials:'credentials',
+      responseTime:'response_time',
+      years:'years',
+      price:'price',
+      pricingMode:'pricing_mode',
+      services:'services',
+      availability:'availability'
+    }
+
+    const sets=[]
+    const vals=[]
+    let i=1
+
+    for(
+      const [key,value]
+      of Object.entries(patch)
+    ){
+      const column=
+        map[key]
+
+      if(!column){
+        continue
+      }
+
+      sets.push(
+        `${column}=$${i++}`
+      )
+
+      vals.push(value)
+    }
+
+    if(sets.length){
+      vals.push(p.id)
+
+      await c.query(
+        `
+          UPDATE professionals
+          SET
+            ${sets.join(',')},
+            updated_at=now()
+          WHERE id=$${i}
+        `,
+        vals
+      )
+    }
+
+    const result=
+      await c.query(
+        `
+          SELECT
+            specialty,
+            title,
+            city,
+            onboarding_stage
+          FROM professionals
+          WHERE id=$1
+        `,
+        [p.id]
+      )
+
+    const row=
+      result.rows?.[0]
+
+    if(
+      row?.specialty &&
+      row?.title &&
+      row?.city &&
+      ![
+        'pending_verification',
+        'approved'
+      ].includes(
+        row.onboarding_stage
+      )
+    ){
+      await c.query(
+        `
+          UPDATE professionals
+          SET
+            onboarding_stage='verification',
+            updated_at=now()
+          WHERE id=$1
+        `,
+        [p.id]
+      )
+    }
+  })
+
+  res.json({
+    professional:
+      await Professionals.byId(
+        p.id
+      )
+  })
+})
 
 
 // MELEO V7 PHASE 6E.2 PROFESSIONAL AVAILABILITY ROUTES
