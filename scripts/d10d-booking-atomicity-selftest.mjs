@@ -19,6 +19,29 @@ const communication=
     'utf8'
   )
 
+const updateStart=
+  repo.indexOf(
+    '  async update(id,patch){'
+  )
+
+const updateEnd=
+  repo.indexOf(
+    '  async transition(',
+    updateStart
+  )
+
+assert.ok(
+  updateStart>=0 &&
+  updateEnd>updateStart,
+  'Bookings.update boundary not found'
+)
+
+const update=
+  repo.slice(
+    updateStart,
+    updateEnd
+  )
+
 const start=
   repo.indexOf(
     '  async transition('
@@ -42,6 +65,18 @@ const transition=
   )
 
 const checks=[
+  [
+    'Bookings.update SET remains parameterized',
+    update.includes(
+      'sets.push(`${map[k]}=${i++}`)'
+    )
+  ],
+  [
+    'Bookings.update id predicate remains parameterized',
+    update.includes(
+      'WHERE id=${i}'
+    )
+  ],
   [
     'Bookings.transition exists',
     /async\s+transition\s*\(/.test(

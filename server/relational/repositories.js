@@ -1706,7 +1706,13 @@ async markMessagesRead(
 
     for(const [k,v] of Object.entries(patch)){
       if(!map[k])continue
-      sets.push(`${map[k]}=${i++}`)
+
+      const placeholder='$'+i++
+
+      sets.push(
+        map[k]+'='+placeholder
+      )
+
       vals.push(v)
     }
 
@@ -1714,17 +1720,22 @@ async markMessagesRead(
       return this.byId(id)
     }
 
+    const idPlaceholder='$'+i++
     vals.push(id)
 
     await sql(
-      `UPDATE bookings
-       SET ${sets.join(',')},updated_at=now()
-       WHERE id=${i}`,
+      `
+        UPDATE bookings
+        SET
+          ${sets.join(',')},
+          updated_at=now()
+        WHERE id=${idPlaceholder}
+      `,
       vals
     )
 
     return this.byId(id)
-  },
+  }
 
   /*
    * Atomic booking lifecycle compare-and-set.
