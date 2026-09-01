@@ -1791,7 +1791,7 @@ async markMessagesRead(
          */
         const changed=
           await client.query(
-            \`
+            `
               UPDATE bookings
 
               SET
@@ -1803,7 +1803,7 @@ async markMessagesRead(
                 AND id=$2
 
               RETURNING id
-            \`,
+            `,
             [
               booking.status,
               booking.id
@@ -1817,7 +1817,7 @@ async markMessagesRead(
         }
 
         await client.query(
-          \`
+          `
             INSERT INTO booking_messages(
               id,
               booking_id,
@@ -1833,7 +1833,7 @@ async markMessagesRead(
               $1,$2,$3,$4,$5,$6,
               'clarification',$7,now()
             )
-          \`,
+          `,
           [
             messageId,
             booking.id,
@@ -1847,14 +1847,14 @@ async markMessagesRead(
 
         const event=
           await client.query(
-            \`
+            `
               INSERT INTO live_events(
                 user_id,
                 payload
               )
               VALUES($1,$2)
               RETURNING id
-            \`,
+            `,
             [
               recipientUserId,
               {
@@ -1888,12 +1888,12 @@ async markMessagesRead(
          */
         if(eventId){
           await client.query(
-            \`
+            `
               SELECT pg_notify(
                 'meleo_live',
                 $1
               )
-            \`,
+            `,
             [
               JSON.stringify({
                 userId:recipientUserId,

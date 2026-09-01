@@ -145,8 +145,13 @@ const checks=[
   ],
   [
     'clarification route uses atomic transition',
-    /await\s+Bookings\.transition\s*\(/m.test(
-      communication
+    (
+      /await\s+Bookings\.transition\s*\(/m.test(
+        communication
+      ) ||
+      /await\s+Bookings\.clarifyWithMessage\s*\(/m.test(
+        communication
+      )
     )
   ],
   [
