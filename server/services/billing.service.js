@@ -22,6 +22,7 @@ export function createBillingService(
     mail,
     sql,
     one,
+    tx,
     id,
     now,
     PLANS,
@@ -43,20 +44,6 @@ export function createBillingService(
 
     const incomingEventCreated=Number(eventContext?.eventCreated||0)||null
     const incomingEventId=eventContext?.eventId?String(eventContext.eventId):null
-    const existingLedger=sub.id?await one(
-      `SELECT last_stripe_event_created "lastStripeEventCreated",
-              last_stripe_event_id "lastStripeEventId"
-       FROM subscriptions WHERE stripe_subscription_id=$1`,
-      [sub.id]
-    ):null
-    const lastEventCreated=Number(existingLedger?.lastStripeEventCreated||0)||null
-
-    if(incomingEventCreated&&lastEventCreated&&incomingEventCreated<lastEventCreated)return p
-    if(
-      incomingEventCreated&&lastEventCreated&&
-      incomingEventCreated===lastEventCreated&&
-      incomingEventId&&existingLedger?.lastStripeEventId===incomingEventId
-    )return p
     const priceId=String(
       sub.items?.data?.[0]?.price?.id||''
     )
@@ -87,6 +74,251 @@ export function createBillingService(
 
     const status=mapStripeStatus(sub.status)
     const period=sub.items?.data?.[0]?.current_period_end??sub.current_period_end
+
+    /*
+     * Webhook mutations are serialized on the professional row.
+     *
+     * The professional row exists before the first subscription
+     * ledger row, so it is a safe lock boundary for first-event
+     * and concurrent-event processing.
+     */
+    if(eventContext){
+      let applied=false
+
+      await tx(async client=>{
+
+        /*
+         * Acquire serialization lock BEFORE reading the event ledger.
+         */
+        const lockedResult=await client.query(
+          `SELECT
+             id,
+             user_id,
+             subscription_since,
+             onboarding_stage,
+             past_due_since
+           FROM professionals
+           WHERE id=$1
+           FOR UPDATE`,
+          [p.id]
+        )
+
+        const locked=lockedResult.rows[0]
+
+        if(!locked){
+          return
+        }
+
+        /*
+         * Ordering state is read only after the professional lock.
+         */
+        const ledgerResult=await client.query(
+          `SELECT
+             last_stripe_event_created,
+             last_stripe_event_id
+           FROM subscriptions
+           WHERE stripe_subscription_id=$1`,
+          [sub.id]
+        )
+
+        const ledger=ledgerResult.rows[0]||null
+
+        const lastEventCreated=
+          Number(
+            ledger?.last_stripe_event_created||0
+          )||null
+
+        const lastEventId=
+          ledger?.last_stripe_event_id
+            ? String(ledger.last_stripe_event_id)
+            : null
+
+        /*
+         * Older Stripe event cannot overwrite newer state.
+         */
+        if(
+          incomingEventCreated &&
+          lastEventCreated &&
+          incomingEventCreated < lastEventCreated
+        ){
+          return
+        }
+
+        /*
+         * Exact event replay is a no-op.
+         *
+         * Different event IDs with the same created timestamp are
+         * allowed because Stripe created timestamps have second
+         * precision and the webhook handler re-fetches canonical
+         * subscription state.
+         */
+        if(
+          incomingEventCreated &&
+          lastEventCreated &&
+          incomingEventCreated === lastEventCreated &&
+          incomingEventId &&
+          incomingEventId === lastEventId
+        ){
+          return
+        }
+
+        const currentPeriodEnd=
+          period
+            ? new Date(period*1000).toISOString()
+            : null
+
+        const nextPastDueSince=
+          status==='past_due'
+            ? (
+                locked.past_due_since ||
+                now()
+              )
+            : status==='active'
+              ? null
+              : locked.past_due_since
+
+        const nextSubscriptionSince=
+          status==='active' &&
+          !locked.subscription_since
+            ? now()
+            : locked.subscription_since
+
+        const nextOnboardingStage=
+          status==='active' &&
+          (
+            !locked.onboarding_stage ||
+            locked.onboarding_stage==='plan'
+          )
+            ? 'profile'
+            : locked.onboarding_stage
+
+        /*
+         * Professional subscription state is updated using the SAME
+         * PostgreSQL transaction client.
+         */
+        await client.query(
+          `UPDATE professionals
+           SET
+             subscription_plan=$2,
+             subscription_price=$3,
+             subscription_status=$4,
+             billing_mode='stripe',
+             stripe_subscription_id=$5,
+             current_period_end=$6,
+             cancel_at_period_end=$7,
+             featured=$8,
+             past_due_since=$9,
+             subscription_since=$10,
+             onboarding_stage=$11,
+             updated_at=now()
+           WHERE id=$1`,
+          [
+            p.id,
+            plan,
+            PLANS[plan].price,
+            status,
+            sub.id,
+            currentPeriodEnd,
+            !!sub.cancel_at_period_end,
+            plan==='premium'&&status==='active',
+            nextPastDueSince,
+            nextSubscriptionSince,
+            nextOnboardingStage
+          ]
+        )
+
+        /*
+         * Event ordering ledger is updated in that same transaction.
+         */
+        await client.query(
+          `INSERT INTO subscriptions(
+             id,
+             professional_id,
+             stripe_subscription_id,
+             plan,
+             price,
+             status,
+             stripe_status,
+             billing_mode,
+             started_at,
+             current_period_end,
+             cancel_at_period_end,
+             last_stripe_event_created,
+             last_stripe_event_id
+           )
+           VALUES(
+             $1,$2,$3,$4,$5,$6,$7,
+             'stripe',
+             now(),
+             $8,$9,$10,$11
+           )
+           ON CONFLICT(stripe_subscription_id)
+           DO UPDATE SET
+             plan=$4,
+             price=$5,
+             status=$6,
+             stripe_status=$7,
+             current_period_end=$8,
+             cancel_at_period_end=$9,
+             last_stripe_event_created=$10,
+             last_stripe_event_id=$11,
+             updated_at=now()`,
+          [
+            id('sub'),
+            p.id,
+            sub.id,
+            plan,
+            PLANS[plan].price,
+            status,
+            sub.status,
+            currentPeriodEnd,
+            !!sub.cancel_at_period_end,
+            incomingEventCreated,
+            incomingEventId
+          ]
+        )
+
+        applied=true
+      })
+
+      /*
+       * Reload only after COMMIT.
+       */
+      p=await Professionals.byId(p.id)
+
+      /*
+       * External side effects must never happen before commit.
+       */
+      if(
+        applied &&
+        notifyUser &&
+        status==='active'
+      ){
+        await Notifications.create(
+          p.userId,
+          'subscription',
+          `? ???????? ${plan.toUpperCase()} ????? ??????`,
+          `${PLANS[plan].price.toFixed(2)}?/????`
+        )
+
+        const u=await Users.byId(p.userId)
+
+        mail.subscriptionActive(
+          u.email,
+          u.name,
+          plan.toUpperCase(),
+          PLANS[plan].price.toFixed(2)
+        ).catch(()=>{})
+      }
+
+      return p
+    }
+
+    /*
+     * Non-webhook path remains canonical synchronous Stripe sync.
+     * eventContext is absent, therefore the existing UPSERT below
+     * preserves ordering metadata through its COALESCE behaviour.
+     */
     const patch={
       subscriptionPlan:plan,
       subscriptionPrice:PLANS[plan].price,
