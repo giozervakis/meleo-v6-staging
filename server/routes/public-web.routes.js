@@ -9,7 +9,7 @@ function htmlEscape(value) {
 }
 
 /**
- * MELEO v6.2.1
+ * MELEO public web routes
  * Public Web / SEO / SSR routes.
  *
  * Infrastructure-sensitive endpoints intentionally excluded:
