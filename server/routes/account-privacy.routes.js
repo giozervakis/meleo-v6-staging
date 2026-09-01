@@ -79,17 +79,33 @@ export function registerAccountPrivacyRoutes(
           )
       }
 
-      await Users.update(
-        u.id,
-        {
-          password_hash:
-            await hashPassword(np)
-        }
-      )
+      const passwordHash=
+        await hashPassword(np)
 
-      await Sessions.revokeUser(
-        u.id
-      )
+      await tx(async client=>{
+
+        await client.query(
+          `
+            UPDATE users
+            SET
+              password_hash=$2,
+              updated_at=now()
+            WHERE id=$1
+          `,
+          [
+            u.id,
+            passwordHash
+          ]
+        )
+
+        await client.query(
+          `
+            DELETE FROM sessions
+            WHERE user_id=$1
+          `,
+          [u.id]
+        )
+      })
 
       clearSessionCookie(res)
 
@@ -241,22 +257,33 @@ export function registerAccountPrivacyRoutes(
 
         }catch(error){
 
-          await Users.update(
-            u.id,
-            {
-              deletion_pending:true,
-              deletion_requested_at:now()
-            }
-          )
+          await tx(async client=>{
 
-          await audit(
-            u.id,
-            'privacy.deletion_pending',
-            {
-              reason:
-                'stripe_cancel_failed'
-            }
-          ).catch(()=>{})
+            await client.query(
+              `
+                UPDATE users
+                SET
+                  deletion_pending=true,
+                  deletion_requested_at=$2,
+                  updated_at=now()
+                WHERE id=$1
+              `,
+              [
+                u.id,
+                now()
+              ]
+            )
+
+            await audit(
+              u.id,
+              'privacy.deletion_pending',
+              {
+                reason:
+                  'stripe_cancel_failed'
+              },
+              client
+            )
+          })
 
           return res
             .status(202)
@@ -309,22 +336,33 @@ export function registerAccountPrivacyRoutes(
 
         }catch(error){
 
-          await Users.update(
-            u.id,
-            {
-              deletion_pending:true,
-              deletion_requested_at:now()
-            }
-          )
+          await tx(async client=>{
 
-          await audit(
-            u.id,
-            'privacy.verification_storage_delete_failed',
-            {
-              documentCount:
-                verificationDocuments.length
-            }
-          ).catch(()=>{})
+            await client.query(
+              `
+                UPDATE users
+                SET
+                  deletion_pending=true,
+                  deletion_requested_at=$2,
+                  updated_at=now()
+                WHERE id=$1
+              `,
+              [
+                u.id,
+                now()
+              ]
+            )
+
+            await audit(
+              u.id,
+              'privacy.verification_storage_delete_failed',
+              {
+                documentCount:
+                  verificationDocuments.length
+              },
+              client
+            )
+          })
 
           return res
             .status(202)
@@ -574,19 +612,20 @@ export function registerAccountPrivacyRoutes(
             deletedEmail
           ]
         )
+
+        await audit(
+          u.id,
+          'privacy.account_deleted',
+          {
+            anonymized:true,
+            credentialsRemoved:true,
+            verificationObjectsRemoved:
+              verificationDocuments.length
+          },
+          client
+        )
       })
 
-
-      await audit(
-        u.id,
-        'privacy.account_deleted',
-        {
-          anonymized:true,
-          credentialsRemoved:true,
-          verificationObjectsRemoved:
-            verificationDocuments.length
-        }
-      ).catch(()=>{})
 
       mail
         .accountDeleted(

@@ -28,28 +28,58 @@ const assert =
   }
 
 
+// ----------------------------------------------------------
+// Extracted route ownership
+// Formatting is intentionally whitespace-tolerant.
+// ----------------------------------------------------------
+
+const routes = [
+  {
+    pattern:
+      /app\.post\(\s*['"]\/api\/me\/change-password['"]/,
+    label:
+      'POST /api/me/change-password'
+  },
+  {
+    pattern:
+      /app\.get\(\s*['"]\/api\/me\/export['"]/,
+    label:
+      'GET /api/me/export'
+  },
+  {
+    pattern:
+      /app\.delete\(\s*['"]\/api\/me['"]/,
+    label:
+      'DELETE /api/me'
+  }
+]
+
+
 for (
-  const route of [
-    "app.post('/api/me/change-password'",
-    "app.get('/api/me/export'",
-    "app.delete('/api/me'"
-  ]
+  const {
+    pattern,
+    label
+  } of routes
 ) {
   assert(
-    privacy.includes(
-      route
+    pattern.test(
+      privacy
     ),
-    `privacy route missing: ${route}`
+    `privacy route missing: ${label}`
   )
 
   assert(
-    !app.includes(
-      route
+    !pattern.test(
+      app
     ),
-    `privacy route still directly owned by app.js: ${route}`
+    `privacy route still directly owned by app.js: ${label}`
   )
 }
 
+
+// ----------------------------------------------------------
+// Module registration
+// ----------------------------------------------------------
 
 assert(
   app.includes(
@@ -67,11 +97,14 @@ assert(
 )
 
 
+// ----------------------------------------------------------
+// Security / privacy behavior
+// ----------------------------------------------------------
+
 for (
   const marker of [
     'verifyPassword',
     'hashPassword',
-    'Sessions.revokeUser',
     'clearSessionCookie'
   ]
 ) {
@@ -83,6 +116,38 @@ for (
   )
 }
 
+
+// D10E.5A:
+// Password mutation and session revocation now belong to
+// one PostgreSQL transaction rather than split repository calls.
+
+assert(
+  privacy.includes(
+    'await tx(async client=>{'
+  ),
+  'privacy transaction boundary missing'
+)
+
+
+assert(
+  privacy.includes(
+    'DELETE FROM sessions'
+  ),
+  'transactional session revocation missing'
+)
+
+
+assert(
+  !privacy.includes(
+    'Sessions.revokeUser('
+  ),
+  'privacy route still contains split Sessions.revokeUser call'
+)
+
+
+// ----------------------------------------------------------
+// Existing architectural boundary
+// ----------------------------------------------------------
 
 assert(
   app.includes(
@@ -98,6 +163,10 @@ console.log(
 
 console.log(
   '[PASS] password lifecycle modular'
+)
+
+console.log(
+  '[PASS] password/session lifecycle transactional'
 )
 
 console.log(
