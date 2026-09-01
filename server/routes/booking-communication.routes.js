@@ -30,8 +30,7 @@ export function registerBookingCommunicationRoutes(
     str,
     Bookings,
     Professionals,
-    canViewBooking,
-    Notifications
+    canViewBooking
   } = deps
 
 
@@ -152,13 +151,6 @@ app.post(
     const updated=
       write.booking
 
-    await Notifications.create(
-      b.patientId,
-      'message',
-      '\u039f \u03b5\u03c0\u03b1\u03b3\u03b3\u03b5\u03bb\u03bc\u03b1\u03c4\u03af\u03b1\u03c2 \u03b6\u03b7\u03c4\u03ac \u03b4\u03b9\u03b5\u03c5\u03ba\u03c1\u03b9\u03bd\u03af\u03c3\u03b5\u03b9\u03c2',
-      text.slice(0,180)
-    )
-
     res.json({
       booking:updated
     })
@@ -217,24 +209,6 @@ const updated =
     req.user,
     text
   )
-
-await Notifications.create(
-  req.user.id===b.patientId
-    ? p.userId
-    : b.patientId,
-  'message',
-  'Νέο μήνυμα MELEO',
-  text.slice(0,180),
-  {
-    priority:'normal',
-    actionType:'booking',
-    actionId:b.id,
-    actionUrl:
-      req.user.id===b.patientId
-        ? '/professional'
-        : '/dashboard'
-  }
-)
 
 res.json({
   booking:updated

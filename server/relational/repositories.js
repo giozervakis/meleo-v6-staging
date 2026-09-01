@@ -1487,90 +1487,114 @@ async addMessage(
 
   if(!recipientUserId){
     throw new Error(
-      'Δεν βρέθηκε παραλήπτης μηνύματος.'
+      'Message recipient not found'
     )
   }
 
   const createdAt=now()
 
-  await sql(
-    `
-      INSERT INTO booking_messages(
-        id,
-        booking_id,
-        sender_user_id,
-        sender_role,
-        sender_name,
-        body_encrypted,
-        kind,
-        recipient_user_id,
-        delivered_at
-      )
-      VALUES(
-        $1,$2,$3,$4,$5,$6,$7,$8,now()
-      )
-    `,
-    [
-      mid,
-      booking.id,
-      sender.id,
-      bookingRole,
-      sender.name,
-      encryptSensitive(text),
-      kind,
-      recipientUserId
-    ]
-  )
+  await tx(async client=>{
 
-  const event=await one(
-    `
-      INSERT INTO live_events(
-        user_id,
-        payload
-      )
-      VALUES($1,$2)
-      RETURNING id
-    `,
-    [
-      recipientUserId,
-      {
-        kind:'message.created',
-
-        message:{
-          id:mid,
-          bookingId:booking.id,
-          senderUserId:sender.id,
-          senderRole:bookingRole,
-          senderName:sender.name,
-          recipientUserId,
-          kind,
-          text,
-          delivered:true,
-          deliveredAt:createdAt,
-          read:false,
-          readAt:null,
-          createdAt
-        }
-      }
-    ]
-  )
-
-  if(event?.id){
-    await sql(
+    await client.query(
       `
-        SELECT pg_notify(
-          'meleo_live',
-          $1
+        INSERT INTO booking_messages(
+          id,
+          booking_id,
+          sender_user_id,
+          sender_role,
+          sender_name,
+          body_encrypted,
+          kind,
+          recipient_user_id,
+          delivered_at
+        )
+        VALUES(
+          $1,$2,$3,$4,$5,$6,$7,$8,now()
         )
       `,
       [
-        JSON.stringify({
-          userId:recipientUserId,
-          eventId:event.id
-        })
+        mid,
+        booking.id,
+        sender.id,
+        bookingRole,
+        sender.name,
+        encryptSensitive(text),
+        kind,
+        recipientUserId
       ]
     )
-  }
+
+    const event=
+      await client.query(
+        `
+          INSERT INTO live_events(
+            user_id,
+            payload
+          )
+          VALUES($1,$2)
+          RETURNING id
+        `,
+        [
+          recipientUserId,
+          {
+            kind:'message.created',
+
+            message:{
+              id:mid,
+              bookingId:booking.id,
+              senderUserId:sender.id,
+              senderRole:bookingRole,
+              senderName:sender.name,
+              recipientUserId,
+              kind,
+              text,
+              delivered:true,
+              deliveredAt:createdAt,
+              read:false,
+              readAt:null,
+              createdAt
+            }
+          }
+        ]
+      )
+
+    const eventId=
+      event.rows?.[0]?.id
+
+    if(eventId){
+      await client.query(
+        `
+          SELECT pg_notify(
+            'meleo_live',
+            $1
+          )
+        `,
+        [
+          JSON.stringify({
+            userId:recipientUserId,
+            eventId
+          })
+        ]
+      )
+    }
+
+    await Notifications.create(
+      recipientUserId,
+      'message',
+      '\u039d\u03ad\u03bf \u03bc\u03ae\u03bd\u03c5\u03bc\u03b1 MELEO',
+      text.slice(0,180),
+      {
+        priority:'normal',
+        actionType:'booking',
+        actionId:booking.id,
+        actionUrl:
+          sender.id===booking.patientId
+            ? '/professional'
+            : '/dashboard'
+      },
+      client
+    )
+  })
 
   return this.byId(
     booking.id
@@ -2327,6 +2351,20 @@ async markMessagesRead(
             ]
           )
         }
+
+        await Notifications.create(
+          recipientUserId,
+          'message',
+          '\u039f \u03b5\u03c0\u03b1\u03b3\u03b3\u03b5\u03bb\u03bc\u03b1\u03c4\u03af\u03b1\u03c2 \u03b6\u03b7\u03c4\u03ac \u03b4\u03b9\u03b5\u03c5\u03ba\u03c1\u03b9\u03bd\u03af\u03c3\u03b5\u03b9\u03c2',
+          text.slice(0,180),
+          {
+            priority:'normal',
+            actionType:'booking',
+            actionId:booking.id,
+            actionUrl:'/dashboard'
+          },
+          client
+        )
 
         return {
           ok:true
