@@ -22,48 +22,5 @@ export function registerAdminMembersRoutes({
   }) {
   app.get('/api/admin/members',async(req,res)=>{const {page,limit,offset}=pagination(req.query,{defaultLimit:30,maxLimit:100});const q=str(req.query.q,100),role=str(req.query.role,30);const where=["u.deleted_at IS NULL","u.role<>'admin'"],vals=[];let i=1;if(q){where.push(`(u.name ILIKE $${i} OR u.email ILIKE $${i})`);vals.push(`%${q}%`);i++}if(role){where.push(`u.role=$${i++}`);vals.push(role)}vals.push(limit,offset);const rows=await many(`SELECT u.id,u.name,u.email,u.phone,u.role,u.email_verified "emailVerified",u.account_status "accountStatus",u.suspended_at "suspendedAt",u.suspension_reason "suspensionReason",u.deletion_pending "deletionPending",u.last_login_at "lastLoginAt",u.created_at "createdAt",p.id "professionalId",p.specialty,p.verified,p.featured,p.rating,p.reviews_count reviews,p.city,p.subscription_plan "subscriptionPlan",p.subscription_status "subscriptionStatus",p.subscription_price "subscriptionPrice",p.billing_mode "billingMode",p.current_period_end "currentPeriodEnd",p.onboarding_stage "onboardingStage",p.onboarding_completed "onboardingCompleted",v.id "verificationRequestId",v.status "verificationStatus" FROM users u LEFT JOIN professionals p ON p.user_id=u.id LEFT JOIN LATERAL (SELECT id,status FROM verification_requests vr WHERE vr.professional_id=p.id ORDER BY submitted_at DESC LIMIT 1) v ON true WHERE ${where.join(' AND ')} ORDER BY u.created_at DESC LIMIT $${i++} OFFSET $${i}`,[...vals]);const items=rows.map(m=>{let lifecycleStatus='';if(m.deletionPending)lifecycleStatus='deletion_pending';else if(m.role==='professional'){if(m.verified)lifecycleStatus='approved';else if(m.verificationStatus==='pending')lifecycleStatus='pending_verification';else if(m.verificationStatus==='rejected')lifecycleStatus='verification_rejected';else if(!['active','past_due'].includes(m.subscriptionStatus||''))lifecycleStatus='awaiting_subscription';else if(!m.specialty||!m.city)lifecycleStatus='profile_incomplete';else lifecycleStatus='verification_required'}return {...m,lifecycleStatus,subscriptionPrice:Number(m.subscriptionPrice||0),rating:Number(m.rating||0),reviews:Number(m.reviews||0)}});const c=await one(`SELECT count(*)::int total FROM users u WHERE u.deleted_at IS NULL AND u.role<>'admin'`);res.json({items,page,limit,total:c.total,totalPages:Math.ceil(c.total/limit)})})
 
-
-  /*
-   * TEMPORARY STAGING-ONLY DIAGNOSTIC.
-   *
-   * Read-only account inventory used to reconcile
-   * /api/health user counts with Admin Members.
-   *
-   * Remove immediately after staging investigation.
-   */
-  if (process.env.NODE_ENV === 'staging') {
-    app.get(
-      '/api/admin/_diagnostics/user-inventory',
-      async (_req, res) => {
-        const rows = await many(
-          `SELECT
-             u.id,
-             u.name,
-             u.email,
-             u.role,
-             u.account_status "accountStatus",
-             u.deleted_at "deletedAt",
-             u.deletion_pending "deletionPending",
-             u.created_at "createdAt",
-             u.last_login_at "lastLoginAt",
-             p.id "professionalId"
-           FROM users u
-           LEFT JOIN professionals p
-             ON p.user_id = u.id
-           ORDER BY u.created_at ASC`
-        )
-
-        res.json({
-          count: rows.length,
-          activeCount:
-            rows.filter(
-              row => !row.deletedAt
-            ).length,
-          users: rows
-        })
-      }
-    )
-  }
-
   app.patch('/api/admin/members/:id/action',limits.write,async(req,res)=>{const u=await Users.byId(req.params.id);if(!u)return res.status(404).json({error:'Not found'});const p=u.role==='professional'?await Professionals.byUser(u.id):null,action=str(req.body.action,40),reason=str(req.body.reason,500);if(action==='suspend'){await Users.update(u.id,{account_status:'suspended',suspended_at:now(),suspension_reason:reason});await Sessions.revokeUser(u.id)}else if(action==='reactivate')await Users.update(u.id,{account_status:'active',suspended_at:null,suspension_reason:''});else if(action==='verify'&&p)await Professionals.update(p.id,{verified:true,onboardingStage:'approved',onboardingCompleted:true});else if(action==='unverify'&&p)await Professionals.update(p.id,{verified:false,onboardingStage:'verification'});else if(action==='feature'&&p&&p.subscriptionPlan==='premium')await Professionals.update(p.id,{featured:true});else if(action==='unfeature'&&p)await Professionals.update(p.id,{featured:false});else return res.status(400).json({error:'Μη έγκυρη ενέργεια.'});await audit(req.user.id,`admin.member.${action}`,{targetUserId:u.id,reason});res.json({ok:true})})
 }
