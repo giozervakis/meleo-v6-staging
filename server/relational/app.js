@@ -1515,8 +1515,46 @@ const PLANS={
 }
 const isPlan=p=>p==='basic'||p==='premium'
 let stripe=null; const getStripe=()=>config.stripeEnabled?(stripe||(stripe=new Stripe(config.stripe.secretKey,{apiVersion:'2025-06-30.basil',maxNetworkRetries:2,timeout:20000}))):null
-const priceIdFor=plan=>plan==='premium'?config.stripe.pricePremium:config.stripe.priceBasic
-const lineItemFor=plan=>priceIdFor(plan)?{price:priceIdFor(plan),quantity:1}:{quantity:1,price_data:{currency:'eur',unit_amount:Math.round(PLANS[plan].price*100),recurring:{interval:'month'},product_data:{name:`MELEO Professional ${PLANS[plan].name}`,metadata:{plan}}}}
+const priceIdFor=plan=>{
+  if(plan==='premium')return config.stripe.pricePremium
+  if(plan==='basic')return config.stripe.priceBasic
+  return ''
+}
+
+const lineItemFor=plan=>{
+  if(!isPlan(plan)){
+    const error=
+      new Error(
+        'Invalid Stripe subscription plan'
+      )
+
+    error.code='STRIPE_INVALID_PLAN'
+    error.statusCode=400
+
+    throw error
+  }
+
+  const price=
+    priceIdFor(plan)
+
+  if(!price){
+    const error=
+      new Error(
+        `Stripe ${plan.toUpperCase()} price is not configured`
+      )
+
+    error.code='STRIPE_PRICE_NOT_CONFIGURED'
+    error.statusCode=503
+    error.plan=plan
+
+    throw error
+  }
+
+  return {
+    price,
+    quantity:1
+  }
+}
 const mapStripeStatus=s=>['active','trialing'].includes(s)?'active':s==='past_due'?'past_due':['canceled','unpaid','incomplete_expired','paused'].includes(s)?'cancelled':'pending'
 const allowsVisibility=p=>p?.subscriptionStatus==='active'||(p?.subscriptionStatus==='past_due'&&p?.pastDueSince&&(Date.now()-new Date(p.pastDueSince).getTime())<=config.security.subscriptionGraceDays*86400000)
 

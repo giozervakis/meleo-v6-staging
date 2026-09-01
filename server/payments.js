@@ -31,21 +31,49 @@ export function getStripe() {
   return stripe
 }
 
-const priceIdFor = plan => (plan === 'premium' ? config.stripe.pricePremium : config.stripe.priceBasic)
+const priceIdFor = plan => {
+  if (plan === 'premium') return config.stripe.pricePremium
+  if (plan === 'basic') return config.stripe.priceBasic
+  return ''
+}
 
-/** Line item: σταθερό Price ID αν υπάρχει, διαφορετικά inline τιμή (λειτουργεί χωρίς setup στο Dashboard). */
+/** Stripe subscription line item ? configured Price IDs only. */
 function lineItemFor(plan) {
-  const configured = priceIdFor(plan)
-  if (configured) return { price: configured, quantity: 1 }
-  const p = PLANS[plan]
+  if (!isPlan(plan)) {
+    const error =
+      new Error(
+        'Invalid Stripe subscription plan'
+      )
+
+    error.code =
+      'STRIPE_INVALID_PLAN'
+
+    error.statusCode = 400
+
+    throw error
+  }
+
+  const price =
+    priceIdFor(plan)
+
+  if (!price) {
+    const error =
+      new Error(
+        `Stripe ${plan.toUpperCase()} price is not configured`
+      )
+
+    error.code =
+      'STRIPE_PRICE_NOT_CONFIGURED'
+
+    error.statusCode = 503
+    error.plan = plan
+
+    throw error
+  }
+
   return {
-    quantity: 1,
-    price_data: {
-      currency: 'eur',
-      unit_amount: Math.round(p.price * 100),
-      recurring: { interval: 'month' },
-      product_data: { name: `MELEO Professional ${p.name}`, metadata: { plan } }
-    }
+    price,
+    quantity: 1
   }
 }
 
