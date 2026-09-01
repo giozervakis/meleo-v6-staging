@@ -51,9 +51,9 @@ for(const token of [
   'last_stripe_event_created',
   'last_stripe_event_id',
   'incomingEventCreated<lastEventCreated',
-  'existingLedger?.lastStripeEventId===incomingEventId',
+  'incomingEventId===lastEventId',
   'COALESCE($10,subscriptions.last_stripe_event_created)'
-])assert.ok(billing.includes(token),`Missing ordering invariant: ${token}`)
+])assert.ok(billing.replace(/\s+/g,'').includes(token),`Missing ordering invariant: ${token}`)
 
 assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS last_stripe_event_created bigint'))
 assert.ok(migration.includes('ADD COLUMN IF NOT EXISTS last_stripe_event_id text'))
