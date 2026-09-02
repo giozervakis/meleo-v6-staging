@@ -1784,7 +1784,37 @@ function requireVerifiedEmail(req,res,next){if(config.mailEnabled&&!req.user.ema
 
 async function issueSession(user,req,res){const ttl=user.role==='admin'?ADMIN_SESSION_TTL_MS:SESSION_TTL_MS;const raw=newToken();await Sessions.issue(user.id,raw,new Date(Date.now()+ttl).toISOString(),{ipHash:sha256(req.ip||''),uaHash:sha256(req.headers['user-agent']||'')});setSessionCookie(res,raw,ttl)}
 async function createToken(userId,type,ttl){const raw=newToken();await sql('DELETE FROM one_time_tokens WHERE user_id=$1 AND type=$2',[userId,type]);await sql(`INSERT INTO one_time_tokens(id,user_id,type,token_hash,expires_at) VALUES($1,$2,$3,$4,now()+($5||' milliseconds')::interval)`,[id('tok'),userId,type,sha256(raw),String(ttl)]);return raw}
-async function consumeToken(raw,type){return tx(async c=>{const {rows}=await c.query(`SELECT * FROM one_time_tokens WHERE token_hash=$1 AND type=$2 AND used_at IS NULL AND expires_at>now() FOR UPDATE`,[sha256(raw),type]);const r=rows[0];if(!r)return null;await c.query('UPDATE one_time_tokens SET used_at=now() WHERE id=$1',[r.id]);return r})}
+async function consumeToken(raw,type,client=null){
+  const consume=async c=>{
+    const {rows}=await c.query(
+      `SELECT *
+       FROM one_time_tokens
+       WHERE token_hash=$1
+         AND type=$2
+         AND used_at IS NULL
+         AND expires_at>now()
+       FOR UPDATE`,
+      [sha256(raw),type]
+    )
+
+    const r=rows[0]
+
+    if(!r){
+      return null
+    }
+
+    await c.query(
+      'UPDATE one_time_tokens SET used_at=now() WHERE id=$1',
+      [r.id]
+    )
+
+    return r
+  }
+
+  return client
+    ? consume(client)
+    : tx(consume)
+}
 
 const PROFILE_EDITABLE=['title','specialty','bio','city','area','region','countryCode','latitude','longitude','serviceRadiusKm','price','pricingMode','years','services','availability','languages','available','showPhone','showEmail','preferPlatformContact']
 const SPECIALTIES=['Ιατροί','Νοσηλευτική','Φυσικοθεραπεία','Διαιτολογία / Διατροφή','Εργοθεραπεία','Λογοθεραπεία','Μαιευτική φροντίδα','Ψυχολογία','Φροντίδα ηλικιωμένων','Αποκατάσταση']
@@ -1852,6 +1882,7 @@ registerAuthAccountRoutes(
     consumeToken,
     issueSession,
     clearSessionCookie,
+    tx,
 
     mail,
     audit,

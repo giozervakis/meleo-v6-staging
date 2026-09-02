@@ -35,6 +35,7 @@ export function registerAuthAccountRoutes(
     consumeToken,
     issueSession,
     clearSessionCookie,
+    tx,
 
     mail,
     audit,
@@ -87,6 +88,7 @@ export function registerAuthAccountRoutes(
     consumeToken,
     issueSession,
     clearSessionCookie,
+    tx,
 
     mail,
     audit,
@@ -629,13 +631,273 @@ export function registerAuthAccountRoutes(
   )
 
   app.post('/api/auth/forgot-password',limits.password,async(req,res)=>{const u=await Users.byEmail(str(req.body.email,200).toLowerCase());if(u&&config.mailEnabled){const t=await createToken(u.id,'password_reset',3600000);mail.resetPassword(u.email,u.name,`${config.appUrl}/?reset=${encodeURIComponent(t)}`).catch(()=>{})}res.json({ok:true})})
-  app.post('/api/auth/reset-password',limits.password,async(req,res)=>{const password=String(req.body.password||'');if(!passwordPolicy(password).valid)return res.status(400).json(passwordPolicyError);const rec=await consumeToken(str(req.body.token,300),'password_reset');if(!rec)return res.status(400).json({error:'\u039F \u03C3\u03CD\u03BD\u03B4\u03B5\u03C3\u03BC\u03BF\u03C2 \u03AD\u03C7\u03B5\u03B9 \u03BB\u03AE\u03BE\u03B5\u03B9 \u03AE \u03C7\u03C1\u03B7\u03C3\u03B9\u03BC\u03BF\u03C0\u03BF\u03B9\u03B7\u03B8\u03B5\u03AF.'});await Users.update(rec.user_id,{password_hash:await hashPassword(password)});await Sessions.revokeUser(rec.user_id);res.json({ok:true})})
-  app.post('/api/auth/verify-email',async(req,res)=>{const rec=await consumeToken(str(req.body.token,300),'verify_email');if(!rec)return res.status(400).json({error:'\u039F \u03C3\u03CD\u03BD\u03B4\u03B5\u03C3\u03BC\u03BF\u03C2 \u03B4\u03B5\u03BD \u03B5\u03AF\u03BD\u03B1\u03B9 \u03AD\u03B3\u03BA\u03C5\u03C1\u03BF\u03C2.'});await Users.update(rec.user_id,{email_verified:true});res.json({ok:true})})
+  app.post(
+    '/api/auth/reset-password',
+    limits.password,
+    async(req,res)=>{
+      const password=
+        String(req.body.password||'')
+
+      if(
+        !passwordPolicy(password).valid
+      ){
+        return res
+          .status(400)
+          .json(passwordPolicyError)
+      }
+
+      const passwordHash=
+        await hashPassword(password)
+
+      const rec=
+        await tx(async client=>{
+
+          const token=
+            await consumeToken(
+              str(
+                req.body.token,
+                300
+              ),
+              'password_reset',
+              client
+            )
+
+          if(!token){
+            return null
+          }
+
+          await client.query(
+            `
+              UPDATE users
+              SET
+                password_hash=$2,
+                updated_at=now()
+              WHERE id=$1
+            `,
+            [
+              token.user_id,
+              passwordHash
+            ]
+          )
+
+          await client.query(
+            `
+              DELETE FROM sessions
+              WHERE user_id=$1
+            `,
+            [token.user_id]
+          )
+
+          return token
+        })
+
+      if(!rec){
+        return res
+          .status(400)
+          .json({
+            error:
+              '\u039F \u03C3\u03CD\u03BD\u03B4\u03B5\u03C3\u03BC\u03BF\u03C2 \u03AD\u03C7\u03B5\u03B9 \u03BB\u03AE\u03BE\u03B5\u03B9 \u03AE \u03C7\u03C1\u03B7\u03C3\u03B9\u03BC\u03BF\u03C0\u03BF\u03B9\u03B7\u03B8\u03B5\u03AF.'
+          })
+      }
+
+      res.json({
+        ok:true
+      })
+    }
+  )
+  app.post(
+    '/api/auth/verify-email',
+    async(req,res)=>{
+
+      const rec=
+        await tx(async client=>{
+
+          const token=
+            await consumeToken(
+              str(
+                req.body.token,
+                300
+              ),
+              'verify_email',
+              client
+            )
+
+          if(!token){
+            return null
+          }
+
+          await client.query(
+            `
+              UPDATE users
+              SET
+                email_verified=true,
+                updated_at=now()
+              WHERE id=$1
+            `,
+            [token.user_id]
+          )
+
+          return token
+        })
+
+      if(!rec){
+        return res
+          .status(400)
+          .json({
+            error:
+              '\u039F \u03C3\u03CD\u03BD\u03B4\u03B5\u03C3\u03BC\u03BF\u03C2 \u03B4\u03B5\u03BD \u03B5\u03AF\u03BD\u03B1\u03B9 \u03AD\u03B3\u03BA\u03C5\u03C1\u03BF\u03C2.'
+          })
+      }
+
+      res.json({
+        ok:true
+      })
+    }
+  )
   app.post('/api/auth/verify-email/resend',auth,limits.password,async(req,res)=>{if(!config.mailEnabled)return res.json({ok:true});const u=await Users.byId(req.user.id);const t=await createToken(u.id,'verify_email',24*3600000);mail.verifyEmail(u.email,u.name,`${config.appUrl}/?verify_email=${encodeURIComponent(t)}`).catch(()=>{});res.json({ok:true})})
 
   app.get('/api/me',auth,async(req,res)=>{const u=await Users.byId(req.user.id);res.json({user:publicUser(u),professional:await Professionals.byUser(u.id)})})
-  app.post('/api/me/enable-professional',auth,requireVerifiedEmail,limits.write,async(req,res)=>{const u=await Users.byId(req.user.id);if(u.role==='admin')return res.status(403).json({error:'\u039F \u03BB\u03BF\u03B3\u03B1\u03C1\u03B9\u03B1\u03C3\u03BC\u03CC\u03C2 \u03B4\u03B9\u03B1\u03C7\u03B5\u03B9\u03C1\u03B9\u03C3\u03C4\u03AE \u03B4\u03B5\u03BD \u03BC\u03C0\u03BF\u03C1\u03B5\u03AF \u03BD\u03B1 \u03B5\u03BD\u03B5\u03C1\u03B3\u03BF\u03C0\u03BF\u03B9\u03B7\u03B8\u03B5\u03AF \u03C9\u03C2 \u03B5\u03C0\u03B1\u03B3\u03B3\u03B5\u03BB\u03BC\u03B1\u03C4\u03B9\u03BA\u03CC\u03C2.'});let p=await Professionals.byUser(u.id);if(!p)p=await Professionals.createForUser(u.id);if(u.role!=='professional')await Users.update(u.id,{role:'professional'});await Professionals.update(p.id,{onboardingStage:p.onboardingStage||'plan',onboardingCompleted:false});await audit(u.id,'professional.enable',{source:'existing_consumer_account'});const updated=await Users.byId(u.id);res.json({ok:true,user:publicUser(updated),professional:await Professionals.byUser(u.id),next:'professional_onboarding'})})
+  app.post(
+    '/api/me/enable-professional',
+    auth,
+    requireVerifiedEmail,
+    limits.write,
+    async(req,res)=>{
+
+      const u=
+        await Users.byId(
+          req.user.id
+        )
+
+      if(
+        u.role==='admin'
+      ){
+        return res
+          .status(403)
+          .json({
+            error:
+              '\u039F \u03BB\u03BF\u03B3\u03B1\u03C1\u03B9\u03B1\u03C3\u03BC\u03CC\u03C2 \u03B4\u03B9\u03B1\u03C7\u03B5\u03B9\u03C1\u03B9\u03C3\u03C4\u03AE \u03B4\u03B5\u03BD \u03BC\u03C0\u03BF\u03C1\u03B5\u03AF \u03BD\u03B1 \u03B5\u03BD\u03B5\u03C1\u03B3\u03BF\u03C0\u03BF\u03B9\u03B7\u03B8\u03B5\u03AF \u03C9\u03C2 \u03B5\u03C0\u03B1\u03B3\u03B3\u03B5\u03BB\u03BC\u03B1\u03C4\u03B9\u03BA\u03CC\u03C2.'
+          })
+      }
+
+      await tx(async client=>{
+
+        await client.query(
+          `
+            INSERT INTO professionals(
+              id,
+              user_id,
+              onboarding_stage
+            )
+            VALUES(
+              $1,
+              $2,
+              'plan'
+            )
+            ON CONFLICT(user_id)
+            DO NOTHING
+          `,
+          [
+            id('pro'),
+            u.id
+          ]
+        )
+
+        await client.query(
+          `
+            UPDATE users
+            SET
+              role='professional',
+              updated_at=now()
+            WHERE id=$1
+              AND role<>'professional'
+          `,
+          [u.id]
+        )
+
+        await client.query(
+          `
+            UPDATE professionals
+            SET
+              onboarding_stage=
+                COALESCE(
+                  NULLIF(
+                    onboarding_stage,
+                    ''
+                  ),
+                  'plan'
+                ),
+              onboarding_completed=false,
+              updated_at=now()
+            WHERE user_id=$1
+          `,
+          [u.id]
+        )
+
+        await audit(
+          u.id,
+          'professional.enable',
+          {
+            source:
+              'existing_consumer_account'
+          },
+          client
+        )
+      })
+
+      const updated=
+        await Users.byId(
+          u.id
+        )
+
+      res.json({
+        ok:true,
+        user:
+          publicUser(updated),
+        professional:
+          await Professionals.byUser(
+            u.id
+          ),
+        next:
+          'professional_onboarding'
+      })
+    }
+  )
   app.get('/api/me/sessions',auth,async(req,res)=>{res.json({items:await Sessions.listForUser(req.user.id,req.sessionRaw)})})
-  app.delete('/api/me/sessions/others',auth,limits.password,async(req,res)=>{await Sessions.revokeOthers(req.user.id,req.sessionRaw);await audit(req.user.id,'security.sessions_revoke_others',{});res.json({ok:true})})
+  app.delete(
+    '/api/me/sessions/others',
+    auth,
+    limits.password,
+    async(req,res)=>{
+
+      await tx(async client=>{
+
+        await client.query(
+          `
+            DELETE FROM sessions
+            WHERE user_id=$1
+              AND token_hash<>$2
+          `,
+          [
+            req.user.id,
+            sha256(
+              req.sessionRaw
+            )
+          ]
+        )
+
+        await audit(
+          req.user.id,
+          'security.sessions_revoke_others',
+          {},
+          client
+        )
+      })
+
+      res.json({
+        ok:true
+      })
+    }
+  )
   app.put('/api/me',auth,limits.write,async(req,res)=>{const u=await Users.update(req.user.id,{name:str(req.body.name,120)||req.user.name,phone:str(req.body.phone,40)});res.json({user:publicUser(u)})})
 }

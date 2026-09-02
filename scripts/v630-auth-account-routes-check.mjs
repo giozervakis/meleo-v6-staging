@@ -53,6 +53,8 @@ const expected = [
   'POST /api/auth/login',
   'POST /api/auth/logout',
   'POST /api/auth/social-demo',
+  'GET /api/auth/google/start',
+  'GET /api/auth/google/callback',
   'POST /api/auth/forgot-password',
   'POST /api/auth/reset-password',
   'POST /api/auth/verify-email',
@@ -166,7 +168,7 @@ console.log(
 )
 
 console.log(
-  '[PASS] 13 core auth/account routes modular'
+  '[PASS] 15 core auth/account routes modular'
 )
 
 console.log(
