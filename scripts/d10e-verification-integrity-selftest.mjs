@@ -207,8 +207,8 @@ check(
 )
 
 check(
-  upload.includes(
-    'deleteVerificationObject(storageKey)'
+  /deleteVerificationObject\s*\(\s*storageKey\s*\)/s.test(
+    upload
   ),
   'verification document compensating delete preserved'
 )
