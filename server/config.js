@@ -74,7 +74,17 @@ export const config = {
     accessKeyId: process.env.S3_ACCESS_KEY_ID || '',
     secretAccessKey: process.env.S3_SECRET_ACCESS_KEY || '',
     signedUrlTtlSeconds: Math.min(300, Math.max(30, Number(process.env.SIGNED_DOCUMENT_URL_TTL_SECONDS || 120))),
-    signedUrlMaxTtlSeconds: 300
+    signedUrlMaxTtlSeconds: 300,
+    requestTimeoutMs: Math.max(
+      500,
+      Math.min(
+        30000,
+        Number(
+          process.env.S3_REQUEST_TIMEOUT_MS ||
+          5000
+        )
+      )
+    )
   },
 
   // ----- Πληρωμές (Stripe) -----

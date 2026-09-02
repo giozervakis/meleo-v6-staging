@@ -48,7 +48,39 @@ async function s3Request(method, key = '', body = Buffer.alloc(0), extraHeaders 
   const stringToSign = ['AWS4-HMAC-SHA256', amz, scope, sha256(canonicalRequest)].join('\n')
   const signature = hmac(signingKey(config.storage.secretAccessKey, day, config.storage.region), stringToSign, 'hex')
   headers.authorization = `AWS4-HMAC-SHA256 Credential=${config.storage.accessKeyId}/${scope}, SignedHeaders=${signedHeaders}, Signature=${signature}`
-  const res = await fetch(url, { method, headers, body: ['GET', 'HEAD'].includes(method) ? undefined : payload })
+  let res
+
+  try {
+    res = await fetch(
+      url,
+      {
+        method,
+        headers,
+        body: ['GET', 'HEAD'].includes(method) ? undefined : payload,
+        signal: AbortSignal.timeout(
+          config.storage.requestTimeoutMs
+        )
+      }
+    )
+  } catch (error) {
+    if (
+      error?.name === 'TimeoutError' ||
+      error?.name === 'AbortError'
+    ) {
+      const timeoutError =
+        new Error(
+          `S3 ${method} timeout`
+        )
+
+      timeoutError.code =
+        'S3_REQUEST_TIMEOUT'
+
+      throw timeoutError
+    }
+
+    throw error
+  }
+
   if (!res.ok) {
     const text = await res.text().catch(() => '')
     const err = new Error(`S3 ${method} failed: ${res.status} ${text.slice(0, 300)}`)
