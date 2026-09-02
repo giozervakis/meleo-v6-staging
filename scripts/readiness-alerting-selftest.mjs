@@ -13,13 +13,19 @@ for(const marker of [
   "app.get('/api/liveness'",
   "app.get('/api/ready'",
   "state:'live'",
-  "state:'ready'",
   "state:'degraded'",
   "state:'draining'",
   "criticalFailures",
   "operational.worker_up===1",
   "operational.postgres_operational_up===1"
 ]) if(!lifecycle.includes(marker)) fail(`lifecycle missing ${marker}`)
+
+const hasReadyState =
+  /state\s*:\s*(?:'ready'|degraded\s*\?\s*'degraded'\s*:\s*'ready')/s
+    .test(lifecycle)
+
+if(!hasReadyState)
+  fail('lifecycle missing ready state contract')
 
 for(const marker of [
   'alert_database_down',

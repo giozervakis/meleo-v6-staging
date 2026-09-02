@@ -92,37 +92,94 @@ export function registerLifecycleRoutes(
 
       const criticalFailures=[]
 
+      const degradedCapabilities=[]
+
+
       if(!checks.database)
         criticalFailures.push('database')
 
-      if(config.redis.required&&!checks.redis)
+
+      if(
+        config.redis.required &&
+        !checks.redis
+      ){
         criticalFailures.push('redis')
-
-      if(workerRequired&&!checks.worker)
-        criticalFailures.push('worker')
-
-      if(config.isProd&&!checks.objectStorage)
-        criticalFailures.push('objectStorage')
-
-      if(config.isProd&&!checks.payments)
-        criticalFailures.push('payments')
-
-      if(config.isProd&&!checks.mail)
-        criticalFailures.push('mail')
-
-      if(config.isProd&&!checks.admin2fa)
-        criticalFailures.push('admin2fa')
-
-      if(criticalFailures.length){
-        return res.status(503).json({
-          ok:false,
-          service:'MELEO',
-          version:APP_VERSION,
-          state:'degraded',
-          checks,
-          criticalFailures
-        })
       }
+      else if(
+        config.redis.url &&
+        !checks.redis
+      ){
+        degradedCapabilities.push(
+          'redis'
+        )
+      }
+
+
+      if(
+        workerRequired &&
+        !checks.worker
+      ){
+        criticalFailures.push('worker')
+      }
+
+
+      if(
+        !checks.objectStorage
+      ){
+        degradedCapabilities.push(
+          'objectStorage'
+        )
+      }
+
+
+      if(
+        !checks.payments
+      ){
+        degradedCapabilities.push(
+          'payments'
+        )
+      }
+
+
+      if(
+        !checks.mail
+      ){
+        degradedCapabilities.push(
+          'mail'
+        )
+      }
+
+
+      if(
+        config.isProd &&
+        !checks.admin2fa
+      ){
+        criticalFailures.push(
+          'admin2fa'
+        )
+      }
+
+
+      if(
+        criticalFailures.length
+      ){
+        return res
+          .status(503)
+          .json({
+            ok:false,
+            service:'MELEO',
+            version:APP_VERSION,
+            state:'degraded',
+            checks,
+            criticalFailures,
+            degradedCapabilities
+          })
+      }
+
+
+      const degraded =
+        degradedCapabilities.length > 0
+
 
       res.json({
         ok:true,
@@ -132,9 +189,13 @@ export function registerLifecycleRoutes(
           process.env.INSTANCE_ID||
           process.env.HOSTNAME||
           'local',
-        state:'ready',
+        state:
+          degraded
+            ? 'degraded'
+            : 'ready',
         checks,
-        criticalFailures:[]
+        criticalFailures:[],
+        degradedCapabilities
       })
     }catch(err){
       log.error(
