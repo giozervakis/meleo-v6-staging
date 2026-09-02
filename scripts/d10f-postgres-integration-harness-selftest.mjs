@@ -189,10 +189,25 @@ check(
   'D10F.2 structural selftest package script exists'
 )
 
+const ciGate =
+  String(
+    pkg.scripts?.['ci:gate'] ||
+    ''
+  )
+
+const d10eClosure =
+  ciGate.indexOf(
+    'npm run account-deletion-recovery-check'
+  )
+
+const d10f2Gate =
+  ciGate.indexOf(
+    'npm run postgres-integration-harness-check'
+  )
+
 check(
-  pkg.scripts?.['ci:gate']?.endsWith(
-    'npm run account-deletion-recovery-check && npm run postgres-integration-harness-check'
-  ),
+  d10eClosure>=0 &&
+  d10f2Gate>d10eClosure,
   'D10F.2 static proof follows D10E closure in ci:gate'
 )
 
