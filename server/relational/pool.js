@@ -215,6 +215,23 @@ export async function verifyPassword(password, stored){
 
 const MIGRATION_LOCK_KEY = 1886349651
 
+/*
+ * Hosted startup migrations must never wait indefinitely
+ * for PostgreSQL locks.
+ */
+const MIGRATION_LOCK_TIMEOUT_MS =
+  Math.max(
+    1000,
+    Math.min(
+      60000,
+      Number(
+        process.env.MIGRATION_LOCK_TIMEOUT_MS ||
+        10000
+      ) ||
+      10000
+    )
+  )
+
 function migrationChecksum(contents){
   return crypto.createHash('sha256').update(contents,'utf8').digest('hex')
 }
@@ -271,12 +288,47 @@ async function bootstrapMigrationLedger(client, files, dir){
 export async function migrate(){
   const dir=path.join(root,'migrations')
   const files=fs.readdirSync(dir).filter(x=>/^\d+.*\.sql$/.test(x)).sort()
+  console.log(
+    '[MELEO migration] connecting to PostgreSQL'
+  )
+
   const client=await getPool().connect()
   let locked=false
 
+  console.log(
+    '[MELEO migration] PostgreSQL connection acquired'
+  )
+
   try{
-    await client.query('SELECT pg_advisory_lock($1)',[MIGRATION_LOCK_KEY])
+    await client.query(
+      "SELECT set_config('lock_timeout',$1,false)",
+      [
+        String(
+          MIGRATION_LOCK_TIMEOUT_MS
+        ) + 'ms'
+      ]
+    )
+
+    console.log(
+      '[MELEO migration] lock timeout = ' +
+      MIGRATION_LOCK_TIMEOUT_MS +
+      'ms'
+    )
+
+    console.log(
+      '[MELEO migration] waiting for advisory lock'
+    )
+
+    await client.query(
+      'SELECT pg_advisory_lock($1)',
+      [MIGRATION_LOCK_KEY]
+    )
+
     locked=true
+
+    console.log(
+      '[MELEO migration] advisory lock acquired'
+    )
 
     await ensureMigrationLedger(client)
     const applied=await bootstrapMigrationLedger(client,files,dir)
@@ -290,10 +342,22 @@ export async function migrate(){
         if(recorded!==checksum){
           throw new Error(`Migration checksum mismatch for ${name}`)
         }
+
+        console.log(
+          '[MELEO migration] already applied: ' +
+          name
+        )
+
         continue
       }
 
+      console.log(
+        '[MELEO migration] applying: ' +
+        name
+      )
+
       await client.query('BEGIN')
+
       try{
         await client.query(ddl)
         await client.query(
@@ -305,11 +369,33 @@ export async function migrate(){
         )
         await client.query('COMMIT')
         applied.set(name,checksum)
+
+        console.log(
+          '[MELEO migration] applied: ' +
+          name
+        )
       }catch(err){
-        try{await client.query('ROLLBACK')}catch{}
+        try{
+          await client.query('ROLLBACK')
+        }catch{}
+
+        console.error(
+          '[MELEO migration] FAILED: ' +
+          name +
+          ' -> ' +
+          String(
+            err?.message ||
+            err
+          )
+        )
+
         throw err
       }
     }
+
+    console.log(
+      '[MELEO migration] all migrations complete'
+    )
   }finally{
     if(locked){
       try{
@@ -317,8 +403,19 @@ export async function migrate(){
           'SELECT pg_advisory_unlock($1)',
           [MIGRATION_LOCK_KEY]
         )
+
+        console.log(
+          '[MELEO migration] advisory lock released'
+        )
       }catch{}
     }
+
+    try{
+      await client.query(
+        'RESET lock_timeout'
+      )
+    }catch{}
+
     client.release()
   }
 }
