@@ -64,6 +64,12 @@ jobs:
           NODE_ENV: test
         run: npm run test:integration:worker-retry
 
+      - name: PostgreSQL Redis failure injection runtime
+        env:
+          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
+          NODE_ENV: test
+        run: npm run test:integration:failure-injection
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 

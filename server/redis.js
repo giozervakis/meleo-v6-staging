@@ -6,10 +6,35 @@ import { config } from './config.js'
 
 const encoder = new TextEncoder()
 let socket = null
-let buffer = Buffer.alloc(0)
 let connecting = null
 let authenticated = false
-const pending = []
+
+/*
+ * RESP state must belong to the TCP socket that owns it.
+ *
+ * A timed-out connection may emit close/error after a replacement
+ * connection has already been created. Global buffers/queues would
+ * therefore allow the old socket to reject or consume commands that
+ * belong to the new socket.
+ */
+const socketStates = new WeakMap()
+
+function stateFor(targetSocket) {
+  if (!targetSocket) return null
+
+  let state = socketStates.get(targetSocket)
+
+  if (!state) {
+    state = {
+      buffer: Buffer.alloc(0),
+      pending: []
+    }
+
+    socketStates.set(targetSocket, state)
+  }
+
+  return state
+}
 
 function encodeCommand(args) {
   const parts = [`*${args.length}\r\n`]
@@ -55,22 +80,61 @@ function parseResp(buf, offset = 0) {
   throw new Error(`Unsupported Redis RESP type: ${type}`)
 }
 
-function consume() {
-  while (pending.length) {
+function consume(targetSocket) {
+  const state = stateFor(targetSocket)
+  if (!state) return
+
+  while (state.pending.length) {
     let parsed
-    try { parsed = parseResp(buffer) } catch (err) {
-      const item = pending.shift(); item.reject(err); buffer = Buffer.alloc(0); continue
+
+    try {
+      parsed = parseResp(state.buffer)
+    } catch (err) {
+      const item = state.pending.shift()
+      item.reject(err)
+      state.buffer = Buffer.alloc(0)
+      continue
     }
+
     if (!parsed) break
-    buffer = buffer.subarray(parsed.next)
-    const item = pending.shift()
-    if (parsed.isError) item.reject(new Error(`Redis: ${parsed.value}`))
-    else item.resolve(parsed.value)
+
+    state.buffer =
+      state.buffer.subarray(
+        parsed.next
+      )
+
+    const item =
+      state.pending.shift()
+
+    if (parsed.isError) {
+      item.reject(
+        new Error(
+          `Redis: ${parsed.value}`
+        )
+      )
+    } else {
+      item.resolve(
+        parsed.value
+      )
+    }
   }
 }
 
-function rejectPending(err) {
-  while (pending.length) pending.shift().reject(err)
+function rejectPending(
+  targetSocket,
+  err
+) {
+  const state = stateFor(targetSocket)
+  if (!state) return
+
+  while (state.pending.length) {
+    state.pending
+      .shift()
+      .reject(err)
+  }
+
+  state.buffer =
+    Buffer.alloc(0)
 }
 
 async function connect() {
@@ -85,16 +149,48 @@ async function connect() {
     const s = secure ? tls.connect(opts) : net.createConnection(opts)
     const timer = setTimeout(() => s.destroy(new Error('Redis connect timeout')), config.redis.connectTimeoutMs)
     s.setNoDelay(true)
-    s.on('data', chunk => { buffer = Buffer.concat([buffer, chunk]); consume() })
+    stateFor(s)
+
+    s.on('data', chunk => {
+      const state = stateFor(s)
+
+      state.buffer =
+        Buffer.concat([
+          state.buffer,
+          chunk
+        ])
+
+      consume(s)
+    })
+
     s.on('error', err => {
       clearTimeout(timer)
-      if (socket === s) { socket = null; authenticated = false }
-      rejectPending(err)
+
+      if (socket === s) {
+        socket = null
+        authenticated = false
+      }
+
+      rejectPending(
+        s,
+        err
+      )
     })
+
     s.on('close', () => {
       clearTimeout(timer)
-      if (socket === s) { socket = null; authenticated = false }
-      rejectPending(new Error('Redis connection closed'))
+
+      if (socket === s) {
+        socket = null
+        authenticated = false
+      }
+
+      rejectPending(
+        s,
+        new Error(
+          'Redis connection closed'
+        )
+      )
     })
     const ready = async () => {
       clearTimeout(timer); socket = s; authenticated = false
@@ -137,14 +233,39 @@ function rawCommand(args, targetSocket = socket) {
     }
 
     timer = setTimeout(() => {
-      item.reject(new Error('Redis command timeout'))
+      const state =
+        stateFor(
+          targetSocket
+        )
 
-      // Redis RESP replies are ordered. Once one command times out,
-      // reset the connection so a late reply cannot be associated
-      // with the next pending command.
+      const index =
+        state
+          ? state.pending.indexOf(item)
+          : -1
+
+      if (index !== -1) {
+        state.pending.splice(
+          index,
+          1
+        )
+      }
+
+      item.reject(
+        new Error(
+          'Redis command timeout'
+        )
+      )
+
+      /*
+       * RESP replies are ordered per TCP connection.
+       * Destroy only this timed-out socket. Its eventual close/error
+       * handlers can reject only commands owned by this same socket.
+       */
       try {
         targetSocket.destroy(
-          new Error('Redis command timeout')
+          new Error(
+            'Redis command timeout'
+          )
         )
       } catch {}
     }, Math.max(
@@ -152,17 +273,30 @@ function rawCommand(args, targetSocket = socket) {
       config.redis.commandTimeoutMs || 3000
     ))
 
-    pending.push(item)
+    const state =
+      stateFor(
+        targetSocket
+      )
+
+    state.pending.push(
+      item
+    )
 
     try {
       targetSocket.write(
         encodeCommand(args)
       )
     } catch (err) {
-      const index = pending.indexOf(item)
+      const index =
+        state.pending.indexOf(
+          item
+        )
 
       if (index !== -1) {
-        pending.splice(index, 1)
+        state.pending.splice(
+          index,
+          1
+        )
       }
 
       item.reject(err)
