@@ -75,6 +75,11 @@ jobs:
           NODE_ENV: test
         run: npm run test:integration:object-storage-failure
 
+      - name: Transactional mail failure injection runtime
+        env:
+          NODE_ENV: test
+        run: npm run test:integration:mail-failure
+
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
 

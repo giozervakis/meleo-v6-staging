@@ -28,11 +28,40 @@ export async function deliverEmail({ to, subject, html }) {
     return { delivered: false, reason: 'mail_not_configured' }
   }
   try {
-    const r = await fetch('https://api.resend.com/emails', {
-      method: 'POST',
-      headers: { Authorization: `Bearer ${config.mail.resendKey}`, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ from: config.mail.from, to: [String(to)], subject: String(subject).replace(/[\r\n]/g,''), html })
-    })
+    let r
+
+    try {
+      r = await fetch(
+        config.mail.apiUrl,
+        {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${config.mail.resendKey}`,
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            from: config.mail.from,
+            to: [String(to)],
+            subject: String(subject).replace(/[\r\n]/g,''),
+            html
+          }),
+          signal: AbortSignal.timeout(
+            config.mail.requestTimeoutMs
+          )
+        }
+      )
+    } catch (error) {
+      if (
+        error?.name === 'TimeoutError' ||
+        error?.name === 'AbortError'
+      ) {
+        throw new Error(
+          'Resend request timeout'
+        )
+      }
+
+      throw error
+    }
     if (!r.ok) throw new Error(`Resend ${r.status}: ${await r.text().catch(() => '')}`)
     return { delivered: true }
   } catch (err) {

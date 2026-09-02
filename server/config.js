@@ -119,6 +119,17 @@ export const config = {
   // ----- Email -----
   mail: {
     resendKey: process.env.RESEND_API_KEY || '',
+    apiUrl: process.env.RESEND_API_URL || 'https://api.resend.com/emails',
+    requestTimeoutMs: Math.max(
+      500,
+      Math.min(
+        30000,
+        Number(
+          process.env.RESEND_REQUEST_TIMEOUT_MS ||
+          5000
+        )
+      )
+    ),
     from: process.env.MAIL_FROM || 'MELEO <no-reply@meleo.gr>',
     supportEmail: process.env.SUPPORT_EMAIL || 'support@meleo.gr'
   },
