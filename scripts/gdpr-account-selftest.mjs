@@ -19,6 +19,22 @@ const app =
     'utf8'
   )
 
+const deletionService =
+  fs.readFileSync(
+    new URL(
+      '../server/services/account-deletion.service.js',
+      import.meta.url
+    ),
+    'utf8'
+  )
+
+/*
+ * Export remains owned by the HTTP route.
+ *
+ * Account deletion was moved in D10E.10D into the canonical deletion
+ * service so HTTP requests and durable worker retries share the same
+ * implementation.
+ */
 const requiredRouteTokens = [
   "'/api/me/export'",
   'const limit=100',
@@ -28,6 +44,22 @@ const requiredRouteTokens = [
   'bookingCount:',
   'bookingTotal:',
   'complete:',
+  'await accountDeletion.request(',
+  'result.pending',
+  '.status(202)',
+  '.accountDeleted(',
+  'clearSessionCookie(res)'
+]
+
+for(const token of requiredRouteTokens){
+  assert.ok(
+    route.includes(token),
+    `RC2-A8 route missing token: ${token}`
+  )
+}
+
+
+const requiredDeletionServiceTokens = [
   'deleted.invalid',
   'email=$2',
   "password_hash='!account-deleted!'",
@@ -53,15 +85,42 @@ const requiredRouteTokens = [
   "services='[]'::jsonb",
   "subscription_status='cancelled'",
   'deleted_at=now()',
-  "'privacy.account_deleted'"
+  "'privacy.account_deleted'",
+  "'account_deletion_retry'",
+  'deletion_pending=true'
 ]
 
-for(const token of requiredRouteTokens){
+for(
+  const token
+  of requiredDeletionServiceTokens
+){
   assert.ok(
-    route.includes(token),
-    `RC2-A8 route missing token: ${token}`
+    deletionService.includes(token),
+    `RC2-A8 deletion service missing token: ${token}`
   )
 }
+
+
+assert.ok(
+  route.includes(
+    "import { createAccountDeletionService } from '../services/account-deletion.service.js'"
+  ),
+  'RC2-A8 canonical deletion service import missing'
+)
+
+assert.ok(
+  route.includes(
+    'createAccountDeletionService({'
+  ),
+  'RC2-A8 canonical deletion service construction missing'
+)
+
+assert.ok(
+  route.includes(
+    'await accountDeletion.request('
+  ),
+  'RC2-A8 HTTP deletion route does not delegate to canonical service'
+)
 
 assert.equal(
   route.includes(
@@ -80,7 +139,7 @@ assert.equal(
 )
 
 assert.equal(
-  route.includes(
+  deletionService.includes(
     "SET original_name='deleted-document'"
   ),
   false,

@@ -10,6 +10,11 @@ const route=
     'server/routes/account-privacy.routes.js'
   )
 
+const deletionService=
+  read(
+    'server/services/account-deletion.service.js'
+  )
+
 const pkg=
   JSON.parse(
     read('package.json')
@@ -145,215 +150,139 @@ const deletion=
 
 check(
   deletion.includes(
-    "stripe"
-  ) &&
-  deletion.includes(
-    '.subscriptions'
-  ) &&
-  deletion.includes(
-    '.cancel('
+    'await accountDeletion.request('
   ),
-  'Stripe cancellation preserved'
+  'account deletion delegates to canonical deletion service'
 )
 
 check(
   deletion.includes(
-    'deleteVerificationObject('
+    'result.pending'
+  ) &&
+  deletion.includes(
+    '.status(202)'
   ),
-  'verification storage deletion preserved'
+  'pending account deletion response preserved'
 )
 
 check(
-  deletion.includes(
-    'mail'
-  ) &&
   deletion.includes(
     '.accountDeleted('
   ),
   'account-deleted email preserved'
 )
 
-
-// ----------------------------------------------------------
-// Stripe failure pending state + audit
-// ----------------------------------------------------------
-
-const stripeAudit=
+check(
   deletion.indexOf(
-    "'privacy.deletion_pending'"
-  )
-
-check(
-  stripeAudit>=0,
-  'Stripe failure audit preserved'
+    '.accountDeleted('
+  ) >
+  deletion.indexOf(
+    'await accountDeletion.request('
+  ),
+  'account-deleted email remains after deletion service completion'
 )
 
-const stripeTxStart=
-  deletion.lastIndexOf(
-    'await tx(async client=>{',
-    stripeAudit
-  )
-
 check(
-  stripeTxStart>=0 &&
-  stripeTxStart<stripeAudit,
-  'Stripe failure pending flow uses transaction'
+  deletion.includes(
+    'clearSessionCookie(res)'
+  ),
+  'session cookie is cleared after successful deletion'
 )
 
-const stripeArea=
-  deletion.slice(
-    stripeTxStart,
-    stripeAudit+500
-  )
-
 check(
-  stripeArea.includes(
-    'UPDATE users'
+  deletionService.includes(
+    '.subscriptions'
   ) &&
-  stripeArea.includes(
+  deletionService.includes(
+    '.retrieve('
+  ) &&
+  deletionService.includes(
+    '.cancel('
+  ),
+  'Stripe cancellation preserved in canonical deletion service'
+)
+
+check(
+  deletionService.includes(
+    'deleteVerificationObject('
+  ),
+  'verification storage deletion preserved in canonical deletion service'
+)
+
+check(
+  deletionService.includes(
+    "'privacy.deletion_pending'"
+  ),
+  'Stripe failure pending audit preserved'
+)
+
+check(
+  deletionService.includes(
+    "'privacy.verification_storage_delete_failed'"
+  ),
+  'storage failure pending audit preserved'
+)
+
+check(
+  deletionService.includes(
     'deletion_pending=true'
   ),
-  'Stripe failure pending state is transactional'
+  'pending deletion state preserved'
 )
 
 check(
-  stripeArea.includes(
-    "'privacy.deletion_pending'"
-  ) &&
-  stripeArea.includes(
-    'client'
+  deletionService.includes(
+    "job_type='account_deletion_retry'"
   ),
-  'Stripe failure audit receives transaction client'
+  'durable deletion recovery job is protected against duplicates'
 )
 
-
-// ----------------------------------------------------------
-// storage failure pending state + audit
-// ----------------------------------------------------------
-
-const storageAudit=
-  deletion.indexOf(
-    "'privacy.verification_storage_delete_failed'"
-  )
-
 check(
-  storageAudit>=0,
-  'storage failure audit preserved'
-)
-
-const storageTxStart=
-  deletion.lastIndexOf(
-    'await tx(async client=>{',
-    storageAudit
-  )
-
-check(
-  storageTxStart>=0 &&
-  storageTxStart<storageAudit,
-  'storage failure pending flow uses transaction'
-)
-
-const storageArea=
-  deletion.slice(
-    storageTxStart,
-    storageAudit+650
-  )
-
-check(
-  storageArea.includes(
-    'UPDATE users'
-  ) &&
-  storageArea.includes(
-    'deletion_pending=true'
+  deletionService.includes(
+    "'account_deletion_retry'"
   ),
-  'storage failure pending state is transactional'
+  'durable account deletion recovery job exists'
 )
 
 check(
-  storageArea.includes(
-    "'privacy.verification_storage_delete_failed'"
-  ) &&
-  storageArea.includes(
-    'client'
-  ),
-  'storage failure audit receives transaction client'
-)
-
-
-// ----------------------------------------------------------
-// final deletion transaction
-// ----------------------------------------------------------
-
-const finalAudit=
-  deletion.indexOf(
+  deletionService.includes(
     "'privacy.account_deleted'"
-  )
-
-check(
-  finalAudit>=0,
+  ),
   'final account deletion audit preserved'
 )
 
-const finalTxStart=
-  deletion.lastIndexOf(
+const finalAudit=
+  deletionService.indexOf(
+    "'privacy.account_deleted'"
+  )
+
+const finalTx=
+  deletionService.lastIndexOf(
     'await tx(async client=>{',
     finalAudit
   )
 
-const mailPos=
-  deletion.indexOf(
-    '.accountDeleted('
-  )
-
 check(
-  finalTxStart>=0 &&
-  finalTxStart<finalAudit,
-  'final account deletion audit is inside transaction'
-)
-
-const finalArea=
-  deletion.slice(
-    finalTxStart,
-    finalAudit+700
-  )
-
-check(
-  finalArea.includes(
-    "'privacy.account_deleted'"
-  ) &&
-  finalArea.includes(
-    'client'
-  ),
-  'final account deletion audit receives transaction client'
+  finalTx>=0 &&
+  finalTx<finalAudit,
+  'final account deletion audit remains transactional'
 )
 
 check(
-  mailPos>finalAudit,
-  'account-deleted email remains post-transaction'
-)
-
-const stripeCancelPos=
-  deletion.indexOf(
+  deletionService.indexOf(
     '.subscriptions'
-  )
-
-const storageDeletePos=
-  deletion.indexOf(
-    'deleteVerificationObject('
-  )
-
-check(
-  stripeCancelPos>=0 &&
-  stripeCancelPos<finalTxStart,
+  ) <
+  finalTx,
   'Stripe remains outside final DB transaction'
 )
 
 check(
-  storageDeletePos>=0 &&
-  storageDeletePos<finalTxStart,
+  deletionService.indexOf(
+    'deleteVerificationObject('
+  ) <
+  finalTx,
   'verification object deletion remains outside final DB transaction'
 )
-
 
 // ----------------------------------------------------------
 // package / CI

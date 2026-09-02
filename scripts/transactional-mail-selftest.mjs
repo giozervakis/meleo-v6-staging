@@ -31,6 +31,12 @@ const privacy =
     'utf8'
   )
 
+const accountDeletion =
+  fs.readFileSync(
+    'server/services/account-deletion.service.js',
+    'utf8'
+  )
+
 const app =
   fs.readFileSync(
     'server/relational/app.js',
@@ -116,23 +122,73 @@ for (const token of [
   )
 }
 
+/*
+ * D10E.10D moved account deletion persistence into the canonical
+ * account-deletion service.
+ *
+ * The HTTP route sends confirmation mail only after the service has
+ * completed deletion successfully and returned the original address/name.
+ */
 for (const token of [
   'mail,',
   '.accountDeleted(',
-  'u.email',
-  'u.name',
-  "'privacy.account_deleted'"
+  'result.email',
+  'result.name',
+  'await accountDeletion.request('
 ]) {
   assert.ok(
     privacy.includes(token),
-    `Account deletion mail invariant missing: ${token}`
+    `Account deletion route mail invariant missing: ${token}`
   )
 }
 
+for (const token of [
+  "'privacy.account_deleted'",
+  'email:user.email',
+  'name:user.name',
+  'await finalizeDeletion('
+]) {
+  assert.ok(
+    accountDeletion.includes(token),
+    `Account deletion service mail invariant missing: ${token}`
+  )
+}
+
+const finalDeletionCall =
+  accountDeletion.indexOf(
+    'await finalizeDeletion('
+  )
+
+const resultEmail =
+  accountDeletion.indexOf(
+    'email:user.email',
+    finalDeletionCall
+  )
+
 assert.ok(
-  privacy.indexOf("'privacy.account_deleted'") <
-    privacy.indexOf('.accountDeleted('),
-  'Account deletion confirmation must follow deletion audit'
+  finalDeletionCall >= 0 &&
+  resultEmail > finalDeletionCall,
+  'Account deletion service exposes mail identity only after final deletion'
+)
+
+assert.ok(
+  privacy.indexOf(
+    'await accountDeletion.request('
+  ) <
+  privacy.indexOf(
+    '.accountDeleted('
+  ),
+  'Account deletion confirmation mail must follow canonical deletion completion'
+)
+
+assert.ok(
+  privacy.indexOf(
+    'result.email'
+  ) <
+  privacy.indexOf(
+    '.accountDeleted('
+  ),
+  'Account deletion confirmation uses identity returned after deletion completion'
 )
 
 function registrationBetween(startToken, endToken) {

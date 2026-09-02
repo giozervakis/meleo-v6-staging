@@ -1,12 +1,35 @@
 import { config, assertProductionReady } from './config.js'
-import { migrate, tx, sql, closePool } from './relational/pool.js'
-import { deliverEmail } from './mail.js'
+import {
+  migrate,
+  tx,
+  sql,
+  many,
+  id,
+  now,
+  closePool
+} from './relational/pool.js'
+import {
+  Users,
+  Professionals,
+  audit
+} from './relational/repositories.js'
+import {
+  deleteVerificationObject
+} from './object-storage.js'
+import {
+  deliverEmail,
+  mail
+} from './mail.js'
+import {
+  createAccountDeletionService
+} from './services/account-deletion.service.js'
 import { log } from './logger.js'
 import { observeJob, observeError } from './metrics.js'
 import { redisSetJson, closeRedis } from './redis.js'
 import {
   reconcileStripeSubscriptions,
-  scheduleStripeReconciliation
+  scheduleStripeReconciliation,
+  getReconciliationStripe
 } from './stripe-reconciliation.js'
 
 assertProductionReady()
@@ -22,6 +45,21 @@ const stripeReconcileIntervalSeconds=Math.max(
   )
 )
 let stopping=false, active=0
+
+const accountDeletion=
+  createAccountDeletionService({
+    Users,
+    Professionals,
+    many,
+    tx,
+    audit,
+    deleteVerificationObject,
+    getStripe:
+      getReconciliationStripe,
+    now,
+    id
+  })
+
 const heartbeatKey='meleo:observability:worker:heartbeat'
 const heartbeatTtlSeconds=30
 let lastHeartbeatAt=0
@@ -63,6 +101,45 @@ async function execute(job){
       throw new Error(
         out.reason||
         'email delivery failed'
+      )
+    }
+
+    return
+  }
+
+  if(
+    job.job_type===
+    'account_deletion_retry'
+  ){
+    const userId=
+      String(
+        job.payload?.userId ||
+        ''
+      )
+
+    if(!userId){
+      throw new Error(
+        'account_deletion_retry missing userId'
+      )
+    }
+
+    const result=
+      await accountDeletion.retry(
+        userId
+      )
+
+    /*
+     * Email remains post-commit and outside the account-deletion DB
+     * transaction. D10H owns broader transactional-mail reliability.
+     */
+    if(
+      result.deleted &&
+      !result.alreadyDeleted &&
+      result.email
+    ){
+      await mail.accountDeleted(
+        result.email,
+        result.name
       )
     }
 
