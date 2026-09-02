@@ -9,6 +9,65 @@ let socket = null
 let connecting = null
 let authenticated = false
 
+const TRANSIENT_REDIS_SYSTEM_CODES =
+  new Set([
+    'ECONNRESET',
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'EPIPE',
+    'ENETUNREACH',
+    'EHOSTUNREACH'
+  ])
+
+
+export function isTransientRedisError(
+  error
+){
+  if(!error){
+    return false
+  }
+
+
+  const code =
+    String(
+      error.code ||
+      ''
+    ).toUpperCase()
+
+
+  if(
+    TRANSIENT_REDIS_SYSTEM_CODES.has(
+      code
+    )
+  ){
+    return true
+  }
+
+
+  const message =
+    String(
+      error.message ||
+      error
+    ).toLowerCase()
+
+
+  return [
+    'redis connect timeout',
+    'redis command timeout',
+    'redis connection closed',
+    'redis not connected',
+    'socket hang up',
+    'connection reset by peer',
+    'read econnreset',
+    'write epipe'
+  ].some(
+    marker =>
+      message.includes(
+        marker
+      )
+  )
+}
+
 /*
  * RESP state must belong to the TCP socket that owns it.
  *
