@@ -34,6 +34,12 @@ jobs:
         run: |
           for i in {1..60}; do curl -fsS http://127.0.0.1:8787/api/ready >/dev/null && exit 0; sleep 2; done
           docker compose -f docker-compose.dev.yml logs; exit 1
+
+      - name: Real PostgreSQL integration harness
+        env:
+          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
+          NODE_ENV: test
+        run: npm run test:integration
       - name: Critical E2E
         env: {BASE_URL: 'http://127.0.0.1:8787', ORIGIN_URL: 'http://localhost:5173'}
         run: npm run e2e
