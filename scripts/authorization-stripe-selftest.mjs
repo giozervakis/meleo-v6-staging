@@ -42,7 +42,18 @@ for(const token of [
 
 assert.ok(!billing.includes('\uFFFD'),'billing.service.js contains U+FFFD')
 assert.ok(!billing.includes('\u039E'),'billing.service.js contains historical mojibake marker U+039E')
+/*
+ * Encoding safety must be semantic, not representation-specific.
+ *
+ * billing.service.js may contain either:
+ * - normal UTF-8 Greek source text, or
+ * - explicit JavaScript Unicode escapes.
+ *
+ * Both are valid as long as mojibake / replacement characters
+ * are absent.
+ */
 assert.ok(
+  billing.includes('Η συνδρομή') ||
   billing.includes('\\u0397 \\u03c3\\u03c5\\u03bd\\u03b4\\u03c1\\u03bf\\u03bc\\u03ae'),
   'Billing notification must remain encoding-safe'
 )

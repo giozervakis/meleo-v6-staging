@@ -3,161 +3,158 @@ import {
   createBillingService
 } from '../server/services/billing.service.js'
 
-const BASIC_PRICE =
+const BASIC_PRICE=
   'price_test_basic'
 
-const PREMIUM_PRICE =
+const PREMIUM_PRICE=
   'price_test_premium'
 
-const professional = {
-  id: 'p_test',
-  userId: 'u_test',
-  subscriptionPlan: 'basic',
-  subscriptionStatus: 'pending',
-  subscriptionSince: null,
-  onboardingStage: 'plan',
-  pastDueSince: null
+const professional={
+  id:'p_test',
+  userId:'u_test',
+  subscriptionPlan:'basic',
+  subscriptionStatus:'pending',
+  subscriptionSince:null,
+  onboardingStage:'plan',
+  pastDueSince:null
 }
 
-let updateCalls = 0
-let sqlCalls = 0
+const depsBase={
+  getStripe(){
+    return null
+  },
 
-const service =
-  createBillingService({
-    getStripe() {
-      return null
-    },
-
-    Users: {
-      async byId() {
-        return {
-          id: 'u_test',
-          email: 'test@example.invalid',
-          name: 'Test'
-        }
-      },
-
-      async update() {
-        throw new Error(
-          'Users.update must not be called'
-        )
+  Users:{
+    async byId(){
+      return {
+        id:'u_test',
+        email:'test@example.invalid',
+        name:'Test'
       }
     },
 
-    Professionals: {
-      async byUser(id) {
-        assert.equal(id, 'u_test')
+    async update(){
+      throw new Error(
+        'Users.update must not be called'
+      )
+    }
+  },
+
+  Notifications:{
+    async create(){
+      throw new Error(
+        'Notification must not be emitted'
+      )
+    }
+  },
+
+  mail:{
+    subscriptionActive(){
+      throw new Error(
+        'Mail must not be emitted'
+      )
+    },
+
+    paymentFailed(){
+      return Promise.resolve()
+    }
+  },
+
+  async sql(){
+    throw new Error(
+      'Global sql mutation must not be used'
+    )
+  },
+
+  async one(){
+    return null
+  },
+
+  id(prefix){
+    return `${prefix}_test`
+  },
+
+  now(){
+    return '2026-09-01T00:00:00.000Z'
+  },
+
+  PLANS:{
+    basic:{price:9.99},
+    premium:{price:14.99}
+  },
+
+  isPlan(plan){
+    return (
+      plan==='basic' ||
+      plan==='premium'
+    )
+  },
+
+  mapStripeStatus(status){
+    return status==='active'
+      ? 'active'
+      : 'pending'
+  },
+
+  priceIdFor(plan){
+    return plan==='premium'
+      ? PREMIUM_PRICE
+      : BASIC_PRICE
+  }
+}
+
+
+let txCalls=0
+
+const unknownService=
+  createBillingService({
+    ...depsBase,
+
+    Professionals:{
+      async byUser(){
         return {
           ...professional
         }
       },
 
-      async update() {
-        updateCalls++
-        throw new Error(
-          'Professional state must not mutate for unknown Stripe Price'
-        )
-      }
-    },
-
-    Notifications: {
-      async create() {
-        throw new Error(
-          'Notification must not be emitted'
-        )
-      }
-    },
-
-    mail: {
-      subscriptionActive() {
-        throw new Error(
-          'Mail must not be emitted'
-        )
-      }
-    },
-
-    async sql() {
-      sqlCalls++
-      throw new Error(
-        'DB write must not happen'
-      )
-    },
-
-    async one(query) {
-      if (
-        String(query).includes(
-          'last_stripe_event_created'
-        )
-      ) {
-        return null
-      }
-
-      return null
-    },
-
-    id(prefix) {
-      return `${prefix}_test`
-    },
-
-    now() {
-      return '2026-09-01T00:00:00.000Z'
-    },
-
-    PLANS: {
-      basic: {
-        price: 9.99
+      async byId(){
+        return {
+          ...professional
+        }
       },
 
-      premium: {
-        price: 14.99
+      async update(){
+        throw new Error(
+          'Professionals.update must not be called'
+        )
       }
     },
 
-    isPlan(plan) {
-      return (
-        plan === 'basic' ||
-        plan === 'premium'
+    async tx(){
+      txCalls++
+
+      throw new Error(
+        'Transaction must not start for unknown Stripe Price'
       )
-    },
-
-    mapStripeStatus(status) {
-      return status === 'active'
-        ? 'active'
-        : 'pending'
-    },
-
-    priceIdFor(plan) {
-      return plan === 'premium'
-        ? PREMIUM_PRICE
-        : BASIC_PRICE
     }
   })
 
-const unknownPriceSubscription = {
-  id: 'sub_unknown',
-  status: 'active',
 
-  metadata: {
-    meleoUserId: 'u_test',
+const unknownPriceSubscription={
+  id:'sub_unknown',
+  status:'active',
 
-    /*
-     * Deliberately malicious/conflicting metadata.
-     * This must NOT grant PREMIUM.
-     */
-    plan: 'premium'
+  metadata:{
+    meleoUserId:'u_test',
+    plan:'premium'
   },
 
-  items: {
-    data: [
+  items:{
+    data:[
       {
-        price: {
-          id: 'price_attacker_controlled',
-
-          /*
-           * Deliberately equal to PREMIUM monetary price.
-           * This must NOT grant PREMIUM.
-           */
-          unit_amount: 1499
+        price:{
+          id:'price_attacker_controlled',
+          unit_amount:1499
         },
 
         current_period_end:
@@ -167,14 +164,15 @@ const unknownPriceSubscription = {
   }
 }
 
+
 await assert.rejects(
-  () =>
-    service.applyStripeSubscription(
+  ()=>
+    unknownService.applyStripeSubscription(
       unknownPriceSubscription,
       true
     ),
 
-  error => {
+  error=>{
     assert.equal(
       error?.code,
       'STRIPE_UNKNOWN_PRICE'
@@ -195,15 +193,9 @@ await assert.rejects(
 )
 
 assert.equal(
-  updateCalls,
+  txCalls,
   0,
-  'Professional must not mutate'
-)
-
-assert.equal(
-  sqlCalls,
-  0,
-  'Subscription ledger must not mutate'
+  'Unknown price must fail before DB transaction'
 )
 
 console.log(
@@ -211,26 +203,107 @@ console.log(
 )
 
 
-const premiumSubscription = {
-  id: 'sub_premium',
-  status: 'active',
+// ----------------------------------------------------------
+// Positive PREMIUM path
+// ----------------------------------------------------------
 
-  metadata: {
-    meleoUserId: 'u_test',
+const queries=[]
 
-    /*
-     * Deliberately conflicting metadata.
-     * Price ID must win.
-     */
-    plan: 'basic'
+let finalProfessional={
+  ...professional,
+  subscriptionPlan:'premium',
+  subscriptionPrice:14.99,
+  subscriptionStatus:'active',
+  featured:true,
+  stripeSubscriptionId:'sub_premium',
+  currentPeriodEnd:
+    new Date(
+      1780000000*1000
+    ).toISOString(),
+  onboardingStage:'profile'
+}
+
+const positiveService=
+  createBillingService({
+    ...depsBase,
+
+    Professionals:{
+      async byUser(){
+        return {
+          ...professional
+        }
+      },
+
+      async byId(){
+        return {
+          ...finalProfessional
+        }
+      },
+
+      async update(){
+        throw new Error(
+          'Professionals.update split write must not be used'
+        )
+      }
+    },
+
+    async tx(fn){
+      txCalls++
+
+      const client={
+        async query(query,params=[]){
+          queries.push({
+            query:String(query),
+            params
+          })
+
+          if(
+            String(query).includes(
+              'FROM professionals'
+            ) &&
+            String(query).includes(
+              'FOR UPDATE'
+            )
+          ){
+            return {
+              rows:[
+                {
+                  id:'p_test',
+                  user_id:'u_test',
+                  subscription_since:null,
+                  onboarding_stage:'plan',
+                  past_due_since:null
+                }
+              ]
+            }
+          }
+
+          return {
+            rows:[]
+          }
+        }
+      }
+
+      return fn(client)
+    }
+  })
+
+
+const premiumSubscription={
+  id:'sub_premium',
+  status:'active',
+
+  metadata:{
+    meleoUserId:'u_test',
+    plan:'basic'
   },
 
-  items: {
-    data: [
+  items:{
+    data:[
       {
-        price: {
-          id: PREMIUM_PRICE,
-          unit_amount: 1
+        price:{
+          id:PREMIUM_PRICE,
+          unit_amount:1
         },
 
         current_period_end:
@@ -240,145 +313,75 @@ const premiumSubscription = {
   }
 }
 
-/*
- * Fresh service with writable mocks
- * for the valid-price positive case.
- */
-let premiumPatch = null
-let premiumLedger = null
 
-const positiveService =
-  createBillingService({
-    getStripe() {
-      return null
-    },
-
-    Users: {
-      async byId() {
-        return {
-          id: 'u_test',
-          email: 'test@example.invalid',
-          name: 'Test'
-        }
-      },
-
-      async update() {}
-    },
-
-    Professionals: {
-      async byUser() {
-        return {
-          ...professional
-        }
-      },
-
-      async update(id, patch) {
-        premiumPatch = {
-          id,
-          ...patch
-        }
-
-        return {
-          ...professional,
-          ...patch
-        }
-      }
-    },
-
-    Notifications: {
-      async create() {}
-    },
-
-    mail: {
-      subscriptionActive() {
-        return Promise.resolve()
-      }
-    },
-
-    async sql(query, params) {
-      premiumLedger = {
-        query,
-        params
-      }
-    },
-
-    async one(query) {
-      if (
-        String(query).includes(
-          'last_stripe_event_created'
-        )
-      ) {
-        return null
-      }
-
-      return null
-    },
-
-    id(prefix) {
-      return `${prefix}_test`
-    },
-
-    now() {
-      return '2026-09-01T00:00:00.000Z'
-    },
-
-    PLANS: {
-      basic: {
-        price: 9.99
-      },
-
-      premium: {
-        price: 14.99
-      }
-    },
-
-    isPlan(plan) {
-      return (
-        plan === 'basic' ||
-        plan === 'premium'
-      )
-    },
-
-    mapStripeStatus(status) {
-      return status === 'active'
-        ? 'active'
-        : 'pending'
-    },
-
-    priceIdFor(plan) {
-      return plan === 'premium'
-        ? PREMIUM_PRICE
-        : BASIC_PRICE
-    }
-  })
-
-await positiveService.applyStripeSubscription(
-  premiumSubscription,
-  false
-)
+const result=
+  await positiveService.applyStripeSubscription(
+    premiumSubscription,
+    false
+  )
 
 assert.equal(
-  premiumPatch?.subscriptionPlan,
+  result.subscriptionPlan,
   'premium'
 )
 
 assert.equal(
-  premiumPatch?.subscriptionPrice,
+  result.subscriptionPrice,
   14.99
 )
 
 assert.equal(
-  premiumPatch?.featured,
+  result.featured,
   true
 )
 
+const professionalWrite=
+  queries.find(
+    q=>
+      /UPDATE\s+professionals/.test(
+        q.query
+      )
+  )
+
 assert.ok(
-  premiumLedger,
-  'Valid Stripe subscription must update ledger'
+  professionalWrite,
+  'Valid subscription must update professional in transaction'
+)
+
+assert.equal(
+  professionalWrite.params[1],
+  'premium'
+)
+
+assert.equal(
+  professionalWrite.params[2],
+  14.99
+)
+
+assert.equal(
+  professionalWrite.params[7],
+  true
+)
+
+const ledgerWrite=
+  queries.find(
+    q=>
+      /INSERT\s+INTO\s+subscriptions/.test(
+        q.query
+      )
+  )
+
+assert.ok(
+  ledgerWrite,
+  'Valid subscription must update ledger in same transaction'
 )
 
 console.log(
   '[PASS] configured PREMIUM Price ID grants PREMIUM regardless of metadata/amount'
+)
+
+console.log(
+  '[PASS] professional state + subscription ledger use transaction client'
 )
 
 console.log(

@@ -33,20 +33,60 @@ export function createBillingService(
 
   async function ensureStripeCustomer(u){if(u.stripe_customer_id)return u.stripe_customer_id;const s=getStripe();const c=await s.customers.create({email:u.email,name:u.name,phone:u.phone||undefined,metadata:{meleoUserId:u.id}});await Users.update(u.id,{stripe_customer_id:c.id});return c.id}
 
-  async function applyStripeSubscription(sub,notifyUser=false,eventContext=null){
-    const uid=sub.metadata?.meleoUserId
-    let p=uid?await Professionals.byUser(uid):null
-    if(!p&&sub.id){
-      const r=await one('SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',[sub.id])
-      if(r)p=await Professionals.byUser(r.user_id)
-    }
-    if(!p)return null
+  async function applyStripeSubscription(
+    sub,
+    notifyUser=false,
+    eventContext=null
+  ){
+    const uid=
+      sub.metadata?.meleoUserId
 
-    const incomingEventCreated=Number(eventContext?.eventCreated||0)||null
-    const incomingEventId=eventContext?.eventId?String(eventContext.eventId):null
-    const priceId=String(
-      sub.items?.data?.[0]?.price?.id||''
-    )
+    let p=
+      uid
+        ? await Professionals.byUser(uid)
+        : null
+
+    if(
+      !p &&
+      sub.id
+    ){
+      const r=
+        await one(
+          'SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',
+          [sub.id]
+        )
+
+      if(r){
+        p=
+          await Professionals.byUser(
+            r.user_id
+          )
+      }
+    }
+
+    if(!p){
+      return null
+    }
+
+    const incomingEventCreated=
+      Number(
+        eventContext?.eventCreated ||
+        0
+      ) ||
+      null
+
+    const incomingEventId=
+      eventContext?.eventId
+        ? String(
+            eventContext.eventId
+          )
+        : null
+
+    const priceId=
+      String(
+        sub.items?.data?.[0]?.price?.id ||
+        ''
+      )
 
     let plan=null
 
@@ -55,7 +95,8 @@ export function createBillingService(
       priceId===priceIdFor('premium')
     ){
       plan='premium'
-    }else if(
+    }
+    else if(
       priceId &&
       priceId===priceIdFor('basic')
     ){
@@ -63,109 +104,128 @@ export function createBillingService(
     }
 
     if(!plan){
-      const error=new Error(
-        'Unknown Stripe subscription Price ID'
-      )
-      error.code='STRIPE_UNKNOWN_PRICE'
-      error.stripeSubscriptionId=sub.id||null
-      error.stripePriceId=priceId||null
+      const error=
+        new Error(
+          'Unknown Stripe subscription Price ID'
+        )
+
+      error.code=
+        'STRIPE_UNKNOWN_PRICE'
+
+      error.stripeSubscriptionId=
+        sub.id ||
+        null
+
+      error.stripePriceId=
+        priceId ||
+        null
+
       throw error
     }
 
-    const status=mapStripeStatus(sub.status)
-    const period=sub.items?.data?.[0]?.current_period_end??sub.current_period_end
+    const status=
+      mapStripeStatus(
+        sub.status
+      )
 
-    /*
-     * Webhook mutations are serialized on the professional row.
-     *
-     * The professional row exists before the first subscription
-     * ledger row, so it is a safe lock boundary for first-event
-     * and concurrent-event processing.
-     */
-    if(eventContext){
-      let applied=false
+    const period=
+      sub.items?.data?.[0]?.current_period_end ??
+      sub.current_period_end
 
-      await tx(async client=>{
+    const currentPeriodEnd=
+      period
+        ? new Date(
+            period*1000
+          ).toISOString()
+        : null
+
+    let applied=false
+
+    await tx(
+      async client=>{
 
         /*
-         * Acquire serialization lock BEFORE reading the event ledger.
+         * One professional row serializes every local subscription
+         * mutation, regardless of whether the caller is a webhook,
+         * checkout return, admin sync, or reconciliation path.
+         *
+         * No Stripe/network call occurs inside this transaction.
          */
-        const lockedResult=await client.query(
-          `SELECT
-             id,
-             user_id,
-             subscription_since,
-             onboarding_stage,
-             past_due_since
-           FROM professionals
-           WHERE id=$1
-           FOR UPDATE`,
-          [p.id]
-        )
+        const lockedResult=
+          await client.query(
+            `SELECT
+               id,
+               user_id,
+               subscription_since,
+               onboarding_stage,
+               past_due_since
+             FROM professionals
+             WHERE id=$1
+             FOR UPDATE`,
+            [p.id]
+          )
 
-        const locked=lockedResult.rows[0]
+        const locked=
+          lockedResult.rows[0]
 
         if(!locked){
           return
         }
 
         /*
-         * Ordering state is read only after the professional lock.
+         * Webhook ordering protection is needed only when Stripe
+         * event metadata is supplied.
          */
-        const ledgerResult=await client.query(
-          `SELECT
-             last_stripe_event_created,
-             last_stripe_event_id
-           FROM subscriptions
-           WHERE stripe_subscription_id=$1`,
-          [sub.id]
-        )
+        if(eventContext){
+          const ledgerResult=
+            await client.query(
+              `SELECT
+                 last_stripe_event_created,
+                 last_stripe_event_id
+               FROM subscriptions
+               WHERE stripe_subscription_id=$1`,
+              [sub.id]
+            )
 
-        const ledger=ledgerResult.rows[0]||null
+          const ledger=
+            ledgerResult.rows[0] ||
+            null
 
-        const lastEventCreated=
-          Number(
-            ledger?.last_stripe_event_created||0
-          )||null
+          const lastEventCreated=
+            Number(
+              ledger?.last_stripe_event_created ||
+              0
+            ) ||
+            null
 
-        const lastEventId=
-          ledger?.last_stripe_event_id
-            ? String(ledger.last_stripe_event_id)
-            : null
+          const lastEventId=
+            ledger?.last_stripe_event_id
+              ? String(
+                  ledger.last_stripe_event_id
+                )
+              : null
 
-        /*
-         * Older Stripe event cannot overwrite newer state.
-         */
-        if(
-          incomingEventCreated &&
-          lastEventCreated &&
-          incomingEventCreated < lastEventCreated
-        ){
-          return
+          if(
+            incomingEventCreated &&
+            lastEventCreated &&
+            incomingEventCreated <
+              lastEventCreated
+          ){
+            return
+          }
+
+          if(
+            incomingEventCreated &&
+            lastEventCreated &&
+            incomingEventCreated ===
+              lastEventCreated &&
+            incomingEventId &&
+            incomingEventId ===
+              lastEventId
+          ){
+            return
+          }
         }
-
-        /*
-         * Exact event replay is a no-op.
-         *
-         * Different event IDs with the same created timestamp are
-         * allowed because Stripe created timestamps have second
-         * precision and the webhook handler re-fetches canonical
-         * subscription state.
-         */
-        if(
-          incomingEventCreated &&
-          lastEventCreated &&
-          incomingEventCreated === lastEventCreated &&
-          incomingEventId &&
-          incomingEventId === lastEventId
-        ){
-          return
-        }
-
-        const currentPeriodEnd=
-          period
-            ? new Date(period*1000).toISOString()
-            : null
 
         const nextPastDueSince=
           status==='past_due'
@@ -192,10 +252,6 @@ export function createBillingService(
             ? 'profile'
             : locked.onboarding_stage
 
-        /*
-         * Professional subscription state is updated using the SAME
-         * PostgreSQL transaction client.
-         */
         await client.query(
           `UPDATE professionals
            SET
@@ -220,7 +276,8 @@ export function createBillingService(
             sub.id,
             currentPeriodEnd,
             !!sub.cancel_at_period_end,
-            plan==='premium'&&status==='active',
+            plan==='premium' &&
+              status==='active',
             nextPastDueSince,
             nextSubscriptionSince,
             nextOnboardingStage
@@ -228,7 +285,10 @@ export function createBillingService(
         )
 
         /*
-         * Event ordering ledger is updated in that same transaction.
+         * Professional state and subscription ledger commit together.
+         *
+         * For non-webhook callers the incoming ordering fields are NULL,
+         * therefore previous webhook ordering metadata is preserved.
          */
         await client.query(
           `INSERT INTO subscriptions(
@@ -260,8 +320,17 @@ export function createBillingService(
              stripe_status=$7,
              current_period_end=$8,
              cancel_at_period_end=$9,
-             last_stripe_event_created=$10,
-             last_stripe_event_id=$11,
+             last_stripe_event_created=
+               COALESCE(
+                 $10,
+                 subscriptions.last_stripe_event_created
+               ),
+             last_stripe_event_id=
+               CASE
+                 WHEN $10 IS NULL
+                 THEN subscriptions.last_stripe_event_id
+                 ELSE $11
+               END,
              updated_at=now()`,
           [
             id('sub'),
@@ -278,98 +347,65 @@ export function createBillingService(
           ]
         )
 
+        /*
+         * Durable notification belongs to the same local transaction.
+         * Mail remains post-commit because it is an external side effect.
+         */
+        if(
+          notifyUser &&
+          status==='active'
+        ){
+          await Notifications.create(
+            locked.user_id,
+            'subscription',
+            `Η συνδρομή ${plan.toUpperCase()} είναι ενεργή`,
+            `${PLANS[plan].price.toFixed(2)}€/μήνα`,
+            {},
+            client
+          )
+        }
+
         applied=true
-      })
-
-      /*
-       * Reload only after COMMIT.
-       */
-      p=await Professionals.byId(p.id)
-
-      /*
-       * External side effects must never happen before commit.
-       */
-      if(
-        applied &&
-        notifyUser &&
-        status==='active'
-      ){
-        await Notifications.create(
-          p.userId,
-          'subscription',
-          `\u0397 \u03c3\u03c5\u03bd\u03b4\u03c1\u03bf\u03bc\u03ae ${plan.toUpperCase()} \u03b5\u03af\u03bd\u03b1\u03b9 \u03b5\u03bd\u03b5\u03c1\u03b3\u03ae`,
-          `${PLANS[plan].price.toFixed(2)}\u20ac/\u03bc\u03ae\u03bd\u03b1`
-        )
-
-        const u=await Users.byId(p.userId)
-
-        mail.subscriptionActive(
-          u.email,
-          u.name,
-          plan.toUpperCase(),
-          PLANS[plan].price.toFixed(2)
-        ).catch(()=>{})
       }
-
-      return p
-    }
-
-    /*
-     * Non-webhook path remains canonical synchronous Stripe sync.
-     * eventContext is absent, therefore the existing UPSERT below
-     * preserves ordering metadata through its COALESCE behaviour.
-     */
-    const patch={
-      subscriptionPlan:plan,
-      subscriptionPrice:PLANS[plan].price,
-      subscriptionStatus:status,
-      billingMode:'stripe',
-      stripeSubscriptionId:sub.id,
-      currentPeriodEnd:period?new Date(period*1000).toISOString():null,
-      cancelAtPeriodEnd:!!sub.cancel_at_period_end,
-      featured:plan==='premium'&&status==='active'
-    }
-    if(status==='past_due'&&!p.pastDueSince)patch.pastDueSince=now()
-    if(status==='active'){
-      patch.pastDueSince=null
-      if(!p.subscriptionSince)patch.subscriptionSince=now()
-      if(!p.onboardingStage||p.onboardingStage==='plan')patch.onboardingStage='profile'
-    }
-    p=await Professionals.update(p.id,patch)
-
-    await sql(
-      `INSERT INTO subscriptions(
-         id,professional_id,stripe_subscription_id,plan,price,status,
-         stripe_status,billing_mode,started_at,current_period_end,
-         cancel_at_period_end,last_stripe_event_created,last_stripe_event_id
-       )
-       VALUES($1,$2,$3,$4,$5,$6,$7,'stripe',now(),$8,$9,$10,$11)
-       ON CONFLICT(stripe_subscription_id) DO UPDATE SET
-         plan=$4,price=$5,status=$6,stripe_status=$7,current_period_end=$8,
-         cancel_at_period_end=$9,
-         last_stripe_event_created=COALESCE($10,subscriptions.last_stripe_event_created),
-         last_stripe_event_id=CASE WHEN $10 IS NULL
-           THEN subscriptions.last_stripe_event_id ELSE $11 END,
-         updated_at=now()`,
-      [id('sub'),p.id,sub.id,plan,PLANS[plan].price,status,sub.status,
-       p.currentPeriodEnd,p.cancelAtPeriodEnd,incomingEventCreated,incomingEventId]
     )
 
-    if(notifyUser&&status==='active'){
-      await Notifications.create(
-        p.userId,'subscription',
-        `\u0397 \u03c3\u03c5\u03bd\u03b4\u03c1\u03bf\u03bc\u03ae ${plan.toUpperCase()} \u03b5\u03af\u03bd\u03b1\u03b9 \u03b5\u03bd\u03b5\u03c1\u03b3\u03ae`,
-        `${PLANS[plan].price.toFixed(2)}\u20ac/\u03bc\u03ae\u03bd\u03b1`
+    p=
+      await Professionals.byId(
+        p.id
       )
-      const u=await Users.byId(p.userId)
-      mail.subscriptionActive(
-        u.email,u.name,plan.toUpperCase(),PLANS[plan].price.toFixed(2)
-      ).catch(()=>{})
+
+    if(
+      applied &&
+      notifyUser &&
+      status==='active' &&
+      p
+    ){
+      const u=
+        await Users.byId(
+          p.userId
+        )
+
+      if(u){
+        mail
+          .subscriptionActive(
+            u.email,
+            u.name,
+            plan.toUpperCase(),
+            PLANS[plan].price.toFixed(2)
+          )
+          .catch(
+            ()=>{}
+          )
+      }
     }
+
     return p
   }
 
-  async function recordInvoice(inv,status){
+  async function recordInvoice(
+    inv,
+    status
+  ){
     let p=null
 
     const subscriptionRef=
@@ -384,123 +420,219 @@ export function createBillingService(
         : subscriptionRef?.id
 
     if(subscriptionId){
-      const row=await one(
-        'SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',
-        [String(subscriptionId)]
-      )
-      if(row)p=await Professionals.byUser(row.user_id)
+      const row=
+        await one(
+          'SELECT user_id FROM professionals WHERE stripe_subscription_id=$1',
+          [String(subscriptionId)]
+        )
+
+      if(row){
+        p=
+          await Professionals.byUser(
+            row.user_id
+          )
+      }
     }
 
-    if(!p&&inv.metadata?.meleoProfessionalId){
-      p=await Professionals.byId(
-        String(inv.metadata.meleoProfessionalId)
-      )
+    if(
+      !p &&
+      inv.metadata?.meleoProfessionalId
+    ){
+      p=
+        await Professionals.byId(
+          String(
+            inv.metadata.meleoProfessionalId
+          )
+        )
     }
 
-    if(!p&&inv.customer){
+    if(
+      !p &&
+      inv.customer
+    ){
       const customerId=
         typeof inv.customer==='string'
           ? inv.customer
           : inv.customer?.id
 
       if(customerId){
-        const row=await one(
-          `SELECT p.user_id
-           FROM professionals p
-           JOIN users u ON u.id=p.user_id
-           WHERE u.stripe_customer_id=$1
-           LIMIT 1`,
-          [customerId]
-        )
-        if(row)p=await Professionals.byUser(row.user_id)
+        const row=
+          await one(
+            `SELECT p.user_id
+             FROM professionals p
+             JOIN users u
+               ON u.id=p.user_id
+             WHERE u.stripe_customer_id=$1
+             LIMIT 1`,
+            [customerId]
+          )
+
+        if(row){
+          p=
+            await Professionals.byUser(
+              row.user_id
+            )
+        }
       }
     }
 
     const purpose=
       String(
-        inv.metadata?.meleoPurpose||
+        inv.metadata?.meleoPurpose ||
         ''
       )
 
     const isPlanUpgrade=
       purpose==='plan_upgrade'
 
-    /*
-     * Stripe webhook delivery is not guaranteed to arrive in business-order.
-     *
-     * A one-off BASIC -> PREMIUM invoice can emit a payment_failed event
-     * before the explicit invoices.pay() call succeeds. In that case:
-     * - the endpoint owns the upgrade-specific failure UX
-     * - the generic recurring-subscription failure UX must not fire
-     *
-     * Also keep invoice history monotonic:
-     * - once an invoice is locally paid, a later failed event is ignored
-     * - when paid arrives after failed, remove the stale failed history row
-     */
-    if(status==='failed'){
-      const alreadyPaid=
-        await one(
-          `SELECT 1 ok
-           FROM payments
-           WHERE invoice_id=$1
-             AND status='paid'
-           LIMIT 1`,
-          [inv.id]
+    let ignored=null
+    let sendPaymentFailureMail=false
+
+    await tx(
+      async client=>{
+
+        /*
+         * Failed must never overwrite an invoice already observed as paid.
+         * Check and mutation occur inside the same transaction.
+         */
+        if(status==='failed'){
+          const alreadyPaidResult=
+            await client.query(
+              `SELECT 1 ok
+               FROM payments
+               WHERE invoice_id=$1
+                 AND status='paid'
+               LIMIT 1
+               FOR UPDATE`,
+              [inv.id]
+            )
+
+          if(
+            alreadyPaidResult.rows[0]
+          ){
+            ignored={
+              ignored:true,
+              reason:'already_paid'
+            }
+
+            return
+          }
+        }
+
+        /*
+         * Once paid is authoritative, stale failed history for the same
+         * invoice is removed atomically with the paid UPSERT.
+         */
+        if(status==='paid'){
+          await client.query(
+            `DELETE FROM payments
+             WHERE invoice_id=$1
+               AND status='failed'`,
+            [inv.id]
+          )
+        }
+
+        await client.query(
+          `INSERT INTO payments(
+             id,
+             professional_id,
+             invoice_id,
+             amount,
+             currency,
+             status,
+             provider,
+             hosted_invoice_url
+           )
+           VALUES(
+             $1,$2,$3,$4,$5,$6,
+             'stripe',
+             $7
+           )
+           ON CONFLICT(invoice_id,status)
+           DO UPDATE SET
+             professional_id=
+               COALESCE(
+                 payments.professional_id,
+                 EXCLUDED.professional_id
+               ),
+             amount=EXCLUDED.amount,
+             currency=EXCLUDED.currency,
+             provider='stripe',
+             hosted_invoice_url=
+               COALESCE(
+                 EXCLUDED.hosted_invoice_url,
+                 payments.hosted_invoice_url
+               )`,
+          [
+            id('pay'),
+            p?.id ||
+              null,
+            inv.id,
+            (
+              inv.amount_paid ??
+              inv.amount_due ??
+              0
+            ) / 100,
+            (
+              inv.currency ||
+              'eur'
+            ).toUpperCase(),
+            status,
+            inv.hosted_invoice_url ||
+              null
+          ]
         )
 
-      if(alreadyPaid){
-        return {
-          ignored:true,
-          reason:'already_paid'
+        /*
+         * Durable failure notification is local DB state and therefore
+         * commits atomically with the failed payment observation.
+         */
+        if(
+          status==='failed' &&
+          p &&
+          !isPlanUpgrade
+        ){
+          await Notifications.create(
+            p.userId,
+            'billing',
+            'Αποτυχία πληρωμής συνδρομής',
+            'Ενημέρωσε τον τρόπο πληρωμής για να παραμείνει ενεργό το προφίλ σου.',
+            {},
+            client
+          )
+
+          sendPaymentFailureMail=true
         }
       }
-    }
-
-    if(status==='paid'){
-      await sql(
-        `DELETE FROM payments
-         WHERE invoice_id=$1
-           AND status='failed'`,
-        [inv.id]
-      )
-    }
-    await sql(
-      `INSERT INTO payments(
-         id,professional_id,invoice_id,amount,currency,status,
-         provider,hosted_invoice_url
-       )
-       VALUES($1,$2,$3,$4,$5,$6,'stripe',$7)
-       ON CONFLICT(invoice_id,status) DO UPDATE SET
-         professional_id=COALESCE(payments.professional_id,EXCLUDED.professional_id),
-         amount=EXCLUDED.amount,
-         currency=EXCLUDED.currency,
-         provider='stripe',
-         hosted_invoice_url=COALESCE(EXCLUDED.hosted_invoice_url,payments.hosted_invoice_url)`,
-      [
-        id('pay'),
-        p?.id||null,
-        inv.id,
-        (inv.amount_paid??inv.amount_due??0)/100,
-        (inv.currency||'eur').toUpperCase(),
-        status,
-        inv.hosted_invoice_url||null
-      ]
     )
 
-    if(status==='failed'&&p&&!isPlanUpgrade){
-      await Notifications.create(
-        p.userId,
-        'billing',
-        'Αποτυχία πληρωμής συνδρομής',
-        'Ενημέρωσε τον τρόπο πληρωμής για να παραμείνει ενεργό το προφίλ σου.'
-      )
+    if(ignored){
+      return ignored
+    }
 
-      const u=await Users.byId(p.userId)
+    /*
+     * Mail is external: always post-commit.
+     */
+    if(sendPaymentFailureMail){
+      const u=
+        await Users.byId(
+          p.userId
+        )
+
       if(u){
-        mail.paymentFailed(
-          u.email,u.name
-        ).catch(()=>{})
+        mail
+          .paymentFailed(
+            u.email,
+            u.name
+          )
+          .catch(
+            ()=>{}
+          )
       }
+    }
+
+    return {
+      ignored:false
     }
   }
 
