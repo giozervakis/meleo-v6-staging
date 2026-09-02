@@ -31,7 +31,61 @@ export function createBillingService(
     priceIdFor
   } = deps
 
-  async function ensureStripeCustomer(u){if(u.stripe_customer_id)return u.stripe_customer_id;const s=getStripe();const c=await s.customers.create({email:u.email,name:u.name,phone:u.phone||undefined,metadata:{meleoUserId:u.id}});await Users.update(u.id,{stripe_customer_id:c.id});return c.id}
+  async function ensureStripeCustomer(u){
+
+    if(u.stripe_customer_id){
+      return u.stripe_customer_id
+    }
+
+    const s=
+      getStripe()
+
+    /*
+     * Stripe customer creation is an external side effect.
+     *
+     * A deterministic idempotency key prevents retries or concurrent
+     * requests for the same MELEO user from creating multiple Stripe
+     * customers when Stripe succeeds but local persistence fails.
+     *
+     * The network call intentionally remains outside a database
+     * transaction.
+     */
+    const idempotencyKey=
+      `meleo.customer.${u.id}`
+
+    const c=
+      await s.customers.create(
+        {
+          email:u.email,
+          name:u.name,
+          phone:
+            u.phone||
+            undefined,
+          metadata:{
+            meleoUserId:
+              u.id
+          }
+        },
+        {
+          idempotencyKey
+        }
+      )
+
+    /*
+     * Persist the canonical external identifier only after Stripe has
+     * confirmed customer creation. A retry reuses the same Stripe
+     * idempotency key.
+     */
+    await Users.update(
+      u.id,
+      {
+        stripe_customer_id:
+          c.id
+      }
+    )
+
+    return c.id
+  }
 
   async function applyStripeSubscription(
     sub,
