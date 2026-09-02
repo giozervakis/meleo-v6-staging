@@ -9,6 +9,82 @@ import { config, root } from '../config.js'
 const scryptAsync = promisify(crypto.scrypt)
 let pool
 
+const TRANSIENT_POSTGRES_CODES =
+  new Set([
+    '08000',
+    '08001',
+    '08003',
+    '08004',
+    '08006',
+    '08007',
+    '08P01',
+    '57P01',
+    '57P02',
+    '57P03',
+    '53300'
+  ])
+
+
+const TRANSIENT_SYSTEM_CODES =
+  new Set([
+    'ECONNRESET',
+    'ECONNREFUSED',
+    'ETIMEDOUT',
+    'EPIPE',
+    'ENETUNREACH',
+    'EHOSTUNREACH'
+  ])
+
+
+export function isTransientPostgresError(
+  error
+){
+  if(!error){
+    return false
+  }
+
+
+  const code =
+    String(
+      error.code ||
+      ''
+    ).toUpperCase()
+
+
+  if(
+    TRANSIENT_POSTGRES_CODES.has(
+      code
+    ) ||
+    TRANSIENT_SYSTEM_CODES.has(
+      code
+    )
+  ){
+    return true
+  }
+
+
+  const message =
+    String(
+      error.message ||
+      error
+    ).toLowerCase()
+
+
+  return [
+    'connection terminated unexpectedly',
+    'connection terminated',
+    'connection reset',
+    'socket hang up',
+    'server closed the connection unexpectedly',
+    'terminating connection due to administrator command'
+  ].some(
+    marker =>
+      message.includes(
+        marker
+      )
+  )
+}
+
 function databaseSslMode(databaseUrl){
   try{
     const url=new URL(databaseUrl)
