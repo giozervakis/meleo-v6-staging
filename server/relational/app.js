@@ -2659,6 +2659,7 @@ registerAdminMembersRoutes({
   audit,
   Users,
   Professionals,
+  tx,
     limits,
     Sessions
   })
