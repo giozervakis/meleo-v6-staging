@@ -234,38 +234,47 @@ check(
 check(
   workflow.includes(
     'name: Real API integration suite'
+  ) ||
+  workflow.includes(
+    'suite: api'
   ),
-  'GitHub integration job contains D10F.3 runtime step'
+  'GitHub CI contains D10F.3 API runtime coverage'
 )
 
 check(
   workflow.includes(
     'run: npm run test:integration:api'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration:api'
   ),
-  'GitHub integration job executes API runtime suite'
+  'GitHub CI executes API runtime suite'
 )
 
-
 const postgresIndex =
-  workflow.indexOf(
-    'name: Real PostgreSQL integration harness'
+  Math.max(
+    workflow.indexOf(
+      'name: Real PostgreSQL integration harness'
+    ),
+    workflow.indexOf(
+      'suite: postgres-harness'
+    )
   )
 
 const apiIndex =
-  workflow.indexOf(
-    'name: Real API integration suite'
-  )
-
-const e2eIndex =
-  workflow.indexOf(
-    'name: Critical E2E'
+  Math.max(
+    workflow.indexOf(
+      'name: Real API integration suite'
+    ),
+    workflow.indexOf(
+      'suite: api'
+    )
   )
 
 check(
-  postgresIndex>=0 &&
-  apiIndex>postgresIndex &&
-  e2eIndex>apiIndex,
-  'API runtime executes after PostgreSQL harness and before Critical E2E'
+  postgresIndex >= 0 &&
+  apiIndex > postgresIndex,
+  'CI definition preserves PostgreSQL harness -> API suite ordering'
 )
 
 

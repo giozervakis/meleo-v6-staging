@@ -204,45 +204,53 @@ check(
 check(
   workflow.includes(
     'name: Object storage S3 failure injection runtime'
+  ) ||
+  workflow.includes(
+    'suite: object-storage-failure'
   ),
-  'CI contains D10F.8B runtime step'
+  'CI contains D10F.8B runtime coverage'
 )
-
 
 check(
   workflow.includes(
     'run: npm run test:integration:object-storage-failure'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration:object-storage-failure'
   ),
   'CI executes D10F.8B runtime'
 )
 
-
 const d10f8a =
-  workflow.indexOf(
-    'name: PostgreSQL Redis failure injection runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: PostgreSQL Redis failure injection runtime'
+    ),
+    workflow.indexOf(
+      'suite: failure-injection'
+    )
   )
-
 
 const d10f8b =
-  workflow.indexOf(
-    'name: Object storage S3 failure injection runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: Object storage S3 failure injection runtime'
+    ),
+    workflow.indexOf(
+      'suite: object-storage-failure'
+    )
   )
-
 
 const playwright =
   workflow.indexOf(
     'name: Install Playwright Chromium'
   )
 
-
 check(
-  d10f8a >=
-    0 &&
-  d10f8b >
-    d10f8a &&
-  playwright >
-    d10f8b,
-  'CI order is D10F.8A -> D10F.8B -> Playwright'
+  d10f8a >= 0 &&
+  d10f8b > d10f8a &&
+  playwright > d10f8b,
+  'CI definition preserves D10F.8A -> D10F.8B -> browser phase'
 )
 
 

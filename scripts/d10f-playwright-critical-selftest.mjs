@@ -409,36 +409,45 @@ check(
 )
 
 
-const workerIndex =
+const legacyWorkerIndex =
   workflow.indexOf(
     'name: Worker retry background-job runtime'
   )
 
+const matrixWorkerIndex =
+  workflow.indexOf(
+    'suite: worker-retry'
+  )
 
 const installIndex =
   workflow.indexOf(
     'name: Install Playwright Chromium'
   )
 
-
 const browserIndex =
   workflow.indexOf(
     'name: Relational Playwright critical journeys'
   )
-
 
 const criticalIndex =
   workflow.indexOf(
     'name: Critical E2E'
   )
 
-
 check(
-  workerIndex >= 0 &&
-  installIndex > workerIndex &&
-  browserIndex > installIndex &&
-  criticalIndex > browserIndex,
-  'CI order is worker -> browser install -> relational Playwright -> Critical E2E'
+  (
+    legacyWorkerIndex >= 0 &&
+    installIndex > legacyWorkerIndex &&
+    browserIndex > installIndex &&
+    criticalIndex > browserIndex
+  ) ||
+  (
+    matrixWorkerIndex >= 0 &&
+    installIndex > matrixWorkerIndex &&
+    browserIndex > installIndex &&
+    criticalIndex > browserIndex
+  ),
+  'CI architecture preserves worker coverage -> browser -> Critical E2E'
 )
 
 

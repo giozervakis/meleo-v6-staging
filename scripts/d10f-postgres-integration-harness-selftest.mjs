@@ -214,8 +214,11 @@ check(
 check(
   workflow.includes(
     'name: Real PostgreSQL integration harness'
+  ) ||
+  workflow.includes(
+    'suite: postgres-harness'
   ),
-  'GitHub integration job contains PostgreSQL runtime step'
+  'GitHub CI contains PostgreSQL runtime coverage'
 )
 
 check(
@@ -228,30 +231,37 @@ check(
 check(
   workflow.includes(
     'run: npm run test:integration'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration'
   ),
-  'GitHub integration job executes runtime suite'
+  'GitHub CI executes PostgreSQL runtime suite'
 )
 
-const ready=
-  workflow.indexOf(
-    'name: Wait for readiness'
-  )
-
-const runtime=
+const legacyRuntime =
   workflow.indexOf(
     'name: Real PostgreSQL integration harness'
   )
 
-const e2e=
+const matrixRuntime =
   workflow.indexOf(
-    'name: Critical E2E'
+    'suite: postgres-harness'
+  )
+
+const browserJob =
+  workflow.indexOf(
+    'browser:'
   )
 
 check(
-  ready>=0 &&
-  runtime>ready &&
-  e2e>runtime,
-  'runtime DB test executes after readiness and before E2E'
+  (
+    legacyRuntime >= 0
+  ) ||
+  (
+    matrixRuntime >= 0 &&
+    browserJob > matrixRuntime
+  ),
+  'PostgreSQL runtime is preserved before browser CI phase'
 )
 
 

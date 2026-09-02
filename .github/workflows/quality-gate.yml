@@ -1,84 +1,166 @@
 name: MELEO Quality Gate
+
 on:
   push:
     branches: [main, master, develop]
   pull_request:
   workflow_dispatch:
+
 permissions:
   contents: read
+
 jobs:
   quality:
+    name: Static quality gate
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
-        with: {node-version: '22', cache: npm}
+        with:
+          node-version: '22'
+          cache: npm
+
       - run: npm ci
-      - run: npm run ci:gate
-      - run: npm audit --audit-level=high
-      - run: docker build -t meleo:${{ github.sha }} .
-  integration:
+
+      - name: Full static quality gate
+        run: npm run ci:gate
+
+      - name: Dependency audit
+        run: npm audit --audit-level=high
+
+      - name: Production image build
+        run: docker build -t meleo:${{ github.sha }} .
+
+
+  runtime-matrix:
+    name: Runtime / ${{ matrix.suite }}
     runs-on: ubuntu-latest
     timeout-minutes: 20
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - suite: postgres-harness
+            command: npm run test:integration
+            needs_stack: true
+
+          - suite: api
+            command: npm run test:integration:api
+            needs_stack: true
+
+          - suite: booking-concurrency
+            command: npm run test:integration:booking-concurrency
+            needs_stack: true
+
+          - suite: billing-stripe
+            command: npm run test:integration:billing-stripe
+            needs_stack: true
+
+          - suite: worker-retry
+            command: npm run test:integration:worker-retry
+            needs_stack: true
+
+          - suite: failure-injection
+            command: npm run test:integration:failure-injection
+            needs_stack: true
+
+          - suite: object-storage-failure
+            command: npm run test:integration:object-storage-failure
+            needs_stack: false
+
+          - suite: mail-failure
+            command: npm run test:integration:mail-failure
+            needs_stack: false
+
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
-        with: {node-version: '22', cache: npm}
+        with:
+          node-version: '22'
+          cache: npm
+
       - run: npm ci
+
+      - name: Start deterministic integration stack
+        if: ${{ matrix.needs_stack == true }}
+        env:
+          GEOCODING_PROVIDER: fixture
+        run: docker compose -f docker-compose.dev.yml up -d --build
+
+      - name: Wait for readiness
+        if: ${{ matrix.needs_stack == true }}
+        run: |
+          for i in {1..60}; do
+            curl -fsS http://127.0.0.1:8787/api/ready >/dev/null && exit 0
+            sleep 2
+          done
+
+          docker compose -f docker-compose.dev.yml logs --no-color
+          exit 1
+
+      - name: Run ${{ matrix.suite }}
+        env:
+          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
+          NODE_ENV: test
+        run: |
+          mkdir -p reports/ci-matrix
+          set -o pipefail
+          ${{ matrix.command }} 2>&1 | tee "reports/ci-matrix/${{ matrix.suite }}.log"
+
+      - name: Capture Docker diagnostics
+        if: ${{ failure() && matrix.needs_stack == true }}
+        run: |
+          mkdir -p reports/ci-matrix
+          docker compose -f docker-compose.dev.yml logs --no-color             > "reports/ci-matrix/${{ matrix.suite }}-docker.log" 2>&1 || true
+
+      - name: Stop deterministic integration stack
+        if: ${{ always() && matrix.needs_stack == true }}
+        run: docker compose -f docker-compose.dev.yml down -v
+
+      - name: Upload runtime evidence
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: runtime-${{ matrix.suite }}-${{ github.sha }}
+          path: reports/ci-matrix/
+          if-no-files-found: warn
+          retention-days: 14
+
+
+  browser:
+    name: Relational browser journeys
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
       - name: Start deterministic integration stack
         env:
           GEOCODING_PROVIDER: fixture
         run: docker compose -f docker-compose.dev.yml up -d --build
+
       - name: Wait for readiness
         run: |
-          for i in {1..60}; do curl -fsS http://127.0.0.1:8787/api/ready >/dev/null && exit 0; sleep 2; done
-          docker compose -f docker-compose.dev.yml logs; exit 1
+          for i in {1..60}; do
+            curl -fsS http://127.0.0.1:8787/api/ready >/dev/null && exit 0
+            sleep 2
+          done
 
-      - name: Real PostgreSQL integration harness
-        env:
-          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
-          NODE_ENV: test
-        run: npm run test:integration
-      - name: Real API integration suite
-        env:
-          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
-          NODE_ENV: test
-        run: npm run test:integration:api
-
-      - name: Booking concurrency transaction runtime
-        env:
-          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
-          NODE_ENV: test
-        run: npm run test:integration:booking-concurrency
-
-      - name: Billing Stripe contract runtime
-        env:
-          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
-          NODE_ENV: test
-        run: npm run test:integration:billing-stripe
-
-      - name: Worker retry background-job runtime
-        env:
-          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
-          NODE_ENV: test
-        run: npm run test:integration:worker-retry
-
-      - name: PostgreSQL Redis failure injection runtime
-        env:
-          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
-          NODE_ENV: test
-        run: npm run test:integration:failure-injection
-
-      - name: Object storage S3 failure injection runtime
-        env:
-          NODE_ENV: test
-        run: npm run test:integration:object-storage-failure
-
-      - name: Transactional mail failure injection runtime
-        env:
-          NODE_ENV: test
-        run: npm run test:integration:mail-failure
+          docker compose -f docker-compose.dev.yml logs --no-color
+          exit 1
 
       - name: Install Playwright Chromium
         run: npx playwright install --with-deps chromium
@@ -89,27 +171,97 @@ jobs:
           NODE_ENV: test
         run: npm run test:e2e:relational
 
+      - name: Capture browser Docker diagnostics
+        if: failure()
+        run: |
+          mkdir -p reports/ci-browser
+          docker compose -f docker-compose.dev.yml logs --no-color             > reports/ci-browser/docker.log 2>&1 || true
+
+      - name: Stop browser integration stack
+        if: always()
+        run: docker compose -f docker-compose.dev.yml down -v
+
       - name: Upload relational Playwright artifacts
         if: always()
         uses: actions/upload-artifact@v4
         with:
-          name: playwright-relational
+          name: playwright-relational-${{ github.sha }}
           path: |
             reports/playwright-relational-html
             reports/playwright-relational-results
+            reports/ci-browser
           if-no-files-found: ignore
-          retention-days: 7
+          retention-days: 14
+
+
+  system:
+    name: Critical E2E + baseline load
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+
+      - run: npm ci
+
+      - name: Start deterministic system stack
+        env:
+          GEOCODING_PROVIDER: fixture
+        run: docker compose -f docker-compose.dev.yml up -d --build
+
+      - name: Wait for readiness
+        run: |
+          for i in {1..60}; do
+            curl -fsS http://127.0.0.1:8787/api/ready >/dev/null && exit 0
+            sleep 2
+          done
+
+          docker compose -f docker-compose.dev.yml logs --no-color
+          exit 1
 
       - name: Critical E2E
-        env: {BASE_URL: 'http://127.0.0.1:8787', ORIGIN_URL: 'http://localhost:5173'}
-        run: npm run e2e
+        env:
+          BASE_URL: http://127.0.0.1:8787
+          ORIGIN_URL: http://localhost:5173
+        run: |
+          mkdir -p reports/ci-system
+          set -o pipefail
+          npm run e2e 2>&1 | tee reports/ci-system/critical-e2e.log
+
       - name: Baseline load gate
-        env: {BASE_URL: 'http://127.0.0.1:8787', CONCURRENCY: '10', DURATION_SECONDS: '8', WARMUP_SECONDS: '1', P95_MAX_MS: '750', ERROR_RATE_MAX: '0.01', MIN_RPS: '5'}
-        run: npm run loadtest
-      - if: failure()
-        run: docker compose -f docker-compose.dev.yml logs --no-color
-      - if: always()
+        env:
+          BASE_URL: http://127.0.0.1:8787
+          CONCURRENCY: '10'
+          DURATION_SECONDS: '8'
+          WARMUP_SECONDS: '1'
+          P95_MAX_MS: '750'
+          ERROR_RATE_MAX: '0.01'
+          MIN_RPS: '5'
+        run: |
+          mkdir -p reports/ci-system
+          set -o pipefail
+          npm run loadtest 2>&1 | tee reports/ci-system/loadtest.log
+
+      - name: Capture system Docker diagnostics
+        if: failure()
+        run: |
+          mkdir -p reports/ci-system
+          docker compose -f docker-compose.dev.yml logs --no-color             > reports/ci-system/docker.log 2>&1 || true
+
+      - name: Stop deterministic system stack
+        if: always()
         run: docker compose -f docker-compose.dev.yml down -v
-      - if: always()
+
+      - name: Upload system evidence
+        if: always()
         uses: actions/upload-artifact@v4
-        with: {name: meleo-test-reports, path: reports/, if-no-files-found: ignore, retention-days: 14}
+        with:
+          name: system-evidence-${{ github.sha }}
+          path: reports/ci-system/
+          if-no-files-found: warn
+          retention-days: 14

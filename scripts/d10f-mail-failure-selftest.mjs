@@ -238,31 +238,55 @@ check(
 )
 
 
-check(
+const legacyMailRuntime =
   workflow.includes(
     'name: Transactional mail failure injection runtime'
-  ),
-  'CI contains D10F.8C runtime step'
+  )
+
+const matrixMailRuntime =
+  workflow.includes(
+    'suite: mail-failure'
+  )
+
+check(
+  legacyMailRuntime ||
+  matrixMailRuntime,
+  'CI contains D10F.8C runtime coverage'
 )
 
 
 check(
   workflow.includes(
     'run: npm run test:integration:mail-failure'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration:mail-failure'
   ),
   'CI executes D10F.8C runtime'
 )
 
 
-const storageIndex =
+const legacyStorageIndex =
   workflow.indexOf(
     'name: Object storage S3 failure injection runtime'
   )
 
 
-const mailIndex =
+const legacyMailIndex =
   workflow.indexOf(
     'name: Transactional mail failure injection runtime'
+  )
+
+
+const matrixStorageIndex =
+  workflow.indexOf(
+    'suite: object-storage-failure'
+  )
+
+
+const matrixMailIndex =
+  workflow.indexOf(
+    'suite: mail-failure'
   )
 
 
@@ -273,13 +297,23 @@ const playwrightIndex =
 
 
 check(
-  storageIndex >=
-    0 &&
-  mailIndex >
-    storageIndex &&
-  playwrightIndex >
-    mailIndex,
-  'CI order is D10F.8B -> D10F.8C -> Playwright'
+  (
+    legacyStorageIndex >=
+      0 &&
+    legacyMailIndex >
+      legacyStorageIndex &&
+    playwrightIndex >
+      legacyMailIndex
+  ) ||
+  (
+    matrixStorageIndex >=
+      0 &&
+    matrixMailIndex >
+      matrixStorageIndex &&
+    playwrightIndex >
+      matrixMailIndex
+  ),
+  'CI order preserves D10F.8B -> D10F.8C before Playwright'
 )
 
 

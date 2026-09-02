@@ -276,42 +276,53 @@ check(
 check(
   workflow.includes(
     'name: PostgreSQL Redis failure injection runtime'
+  ) ||
+  workflow.includes(
+    'suite: failure-injection'
   ),
-  'CI contains D10F.8A runtime step'
+  'CI contains D10F.8A runtime coverage'
 )
-
 
 check(
   workflow.includes(
     'run: npm run test:integration:failure-injection'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration:failure-injection'
   ),
   'CI executes D10F.8A runtime'
 )
 
-
 const workerIndex =
-  workflow.indexOf(
-    'name: Worker retry background-job runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: Worker retry background-job runtime'
+    ),
+    workflow.indexOf(
+      'suite: worker-retry'
+    )
   )
-
 
 const failureIndex =
-  workflow.indexOf(
-    'name: PostgreSQL Redis failure injection runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: PostgreSQL Redis failure injection runtime'
+    ),
+    workflow.indexOf(
+      'suite: failure-injection'
+    )
   )
-
 
 const playwrightInstallIndex =
   workflow.indexOf(
     'name: Install Playwright Chromium'
   )
 
-
 check(
   workerIndex >= 0 &&
   failureIndex > workerIndex &&
   playwrightInstallIndex > failureIndex,
-  'CI order is worker runtime -> failure injection -> Playwright'
+  'CI definition preserves worker -> failure injection -> browser phase'
 )
 
 

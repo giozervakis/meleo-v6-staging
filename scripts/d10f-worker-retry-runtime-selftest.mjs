@@ -298,37 +298,47 @@ check(
 check(
   workflow.includes(
     'name: Worker retry background-job runtime'
+  ) ||
+  workflow.includes(
+    'suite: worker-retry'
   ),
-  'CI contains D10F.6 runtime step'
+  'CI contains D10F.6 runtime coverage'
 )
 
 check(
   workflow.includes(
     'run: npm run test:integration:worker-retry'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration:worker-retry'
   ),
   'CI executes D10F.6 runtime'
 )
 
 const billingIndex =
-  workflow.indexOf(
-    'name: Billing Stripe contract runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: Billing Stripe contract runtime'
+    ),
+    workflow.indexOf(
+      'suite: billing-stripe'
+    )
   )
 
 const workerIndex =
-  workflow.indexOf(
-    'name: Worker retry background-job runtime'
-  )
-
-const e2eIndex =
-  workflow.indexOf(
-    'name: Critical E2E'
+  Math.max(
+    workflow.indexOf(
+      'name: Worker retry background-job runtime'
+    ),
+    workflow.indexOf(
+      'suite: worker-retry'
+    )
   )
 
 check(
-  billingIndex>=0 &&
-  workerIndex>billingIndex &&
-  e2eIndex>workerIndex,
-  'CI order is billing -> worker runtime -> Critical E2E'
+  billingIndex >= 0 &&
+  workerIndex > billingIndex,
+  'CI definition preserves billing -> worker runtime ordering'
 )
 
 

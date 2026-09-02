@@ -256,39 +256,47 @@ check(
 check(
   workflow.includes(
     'name: Booking concurrency transaction runtime'
+  ) ||
+  workflow.includes(
+    'suite: booking-concurrency'
   ),
-  'CI contains D10F.4 runtime step'
+  'CI contains D10F.4 runtime coverage'
 )
 
 check(
   workflow.includes(
     'run: npm run test:integration:booking-concurrency'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration:booking-concurrency'
   ),
   'CI executes D10F.4 runtime'
 )
 
-
 const apiIndex =
-  workflow.indexOf(
-    'name: Real API integration suite'
+  Math.max(
+    workflow.indexOf(
+      'name: Real API integration suite'
+    ),
+    workflow.indexOf(
+      'suite: api'
+    )
   )
 
 const concurrencyIndex =
-  workflow.indexOf(
-    'name: Booking concurrency transaction runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: Booking concurrency transaction runtime'
+    ),
+    workflow.indexOf(
+      'suite: booking-concurrency'
+    )
   )
-
-const e2eIndex =
-  workflow.indexOf(
-    'name: Critical E2E'
-  )
-
 
 check(
-  apiIndex>=0 &&
-  concurrencyIndex>apiIndex &&
-  e2eIndex>concurrencyIndex,
-  'CI order is API -> booking concurrency -> Critical E2E'
+  apiIndex >= 0 &&
+  concurrencyIndex > apiIndex,
+  'CI definition preserves API -> booking concurrency ordering'
 )
 
 

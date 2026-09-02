@@ -345,39 +345,47 @@ check(
 check(
   workflow.includes(
     'name: Billing Stripe contract runtime'
+  ) ||
+  workflow.includes(
+    'suite: billing-stripe'
   ),
-  'CI contains D10F.5 runtime step'
+  'CI contains D10F.5 runtime coverage'
 )
 
 check(
   workflow.includes(
     'run: npm run test:integration:billing-stripe'
+  ) ||
+  workflow.includes(
+    'command: npm run test:integration:billing-stripe'
   ),
   'CI executes D10F.5 runtime'
 )
 
-
 const concurrencyIndex =
-  workflow.indexOf(
-    'name: Booking concurrency transaction runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: Booking concurrency transaction runtime'
+    ),
+    workflow.indexOf(
+      'suite: booking-concurrency'
+    )
   )
 
 const billingIndex =
-  workflow.indexOf(
-    'name: Billing Stripe contract runtime'
+  Math.max(
+    workflow.indexOf(
+      'name: Billing Stripe contract runtime'
+    ),
+    workflow.indexOf(
+      'suite: billing-stripe'
+    )
   )
-
-const e2eIndex =
-  workflow.indexOf(
-    'name: Critical E2E'
-  )
-
 
 check(
-  concurrencyIndex>=0 &&
-  billingIndex>concurrencyIndex &&
-  e2eIndex>billingIndex,
-  'CI order is concurrency -> billing contracts -> Critical E2E'
+  concurrencyIndex >= 0 &&
+  billingIndex > concurrencyIndex,
+  'CI definition preserves concurrency -> billing contract ordering'
 )
 
 
