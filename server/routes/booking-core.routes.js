@@ -492,7 +492,11 @@ export function registerBookingCoreRoutes(
             professionalUser.name,
             service,
             date,
-            time
+            time,
+            {
+              dedupKey:
+                `booking:${bid}:created:${professionalUser.id}`
+            }
           )
           .catch(
             ()=>{}

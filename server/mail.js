@@ -70,10 +70,17 @@ export async function deliverEmail({ to, subject, html }) {
   }
 }
 
-async function deliver(message){
+async function deliver(message,{dedupKey=null}={}){
   if (!config.databaseUrl) return deliverEmail(message)
   try {
-    const jobId=await enqueue('email',message,{maxAttempts:5})
+    const jobId=await enqueue(
+      'email',
+      message,
+      {
+        maxAttempts:5,
+        dedupKey
+      }
+    )
     log.info('mail.queued',{jobId,to:message.to,subject:message.subject})
     return {delivered:false,queued:true,jobId}
   } catch(err) {
@@ -139,25 +146,25 @@ export const mail = {
       ? layout('Ο επαγγελματικός σας λογαριασμός ενεργοποιήθηκε', `<p>Καλησπέρα ${escapeHtml(name)},</p><p>ο επαγγελματικός σας λογαριασμός στο MELEO έχει επιβεβαιωθεί και ενεργοποιηθεί.</p><p>Συνδεθείτε στην πλατφόρμα και από το μενού προφίλ επιλέξτε <b>Professional Dashboard</b> για να διαχειριστείτε το επαγγελματικό σας προφίλ, τα αιτήματα, τη διαθεσιμότητα, τη συνδρομή και τα στατιστικά σας.</p>`)
       : layout('Χρειάζεται ενέργεια', `<p>Καλησπέρα ${escapeHtml(name)},</p><p>ο έλεγχος του επαγγελματικού σας λογαριασμού δεν ολοκληρώθηκε.</p><p><b>Λόγος απόρριψης:</b> ${escapeHtml(reason||'Δεν δόθηκε αιτιολογία.')}</p><p>Συνδεθείτε στο MELEO, διορθώστε ή συμπληρώστε τα απαιτούμενα στοιχεία και υποβάλετε ξανά το αίτημα για έλεγχο.</p>`)
   }),
-  newBooking: (to, name, service, date, time) => deliver({
+  newBooking: (to, name, service, date, time, options = {}) => deliver({
     to,
     subject: 'Νέο αίτημα επίσκεψης — MELEO',
     html: layout('Νέο αίτημα', `<p>Γεια σου ${escapeHtml(name)}, έχεις νέο αίτημα: <b>${escapeHtml(service)}</b> · ${escapeHtml(date)} ${escapeHtml(time)}.</p>
       <p>Μπες στο dashboard για να απαντήσεις, να ζητήσεις διευκρινίσεις ή να προτείνεις τελικό κόστος.</p>`)
-  }),
-  bookingCancelled: (to, name, service, date, time) => deliver({
+  }, options),
+  bookingCancelled: (to, name, service, date, time, options = {}) => deliver({
     to,
     subject: 'Ακύρωση κράτησης — MELEO',
     html: layout('Η κράτηση ακυρώθηκε', `<p>Γεια σου ${escapeHtml(name)}, η κράτηση για <b>${escapeHtml(service)}</b> στις ${escapeHtml(date)} ${escapeHtml(time)} ακυρώθηκε.</p>
       <p>Μπορείς να δεις την ενημερωμένη κατάσταση από το dashboard σου.</p>`)
-  }),
-  bookingCompleted: (to, name, service) => deliver({
+  }, options),
+  bookingCompleted: (to, name, service, options = {}) => deliver({
     to,
     subject: 'Η επίσκεψη ολοκληρώθηκε — αξιολόγησε την εμπειρία σου',
     html: layout('Η επίσκεψη ολοκληρώθηκε', `<p>Γεια σου ${escapeHtml(name)}, η επίσκεψη για <b>${escapeHtml(service)}</b> σημειώθηκε ως ολοκληρωμένη.</p>
       <p>Η αξιολόγησή σου βοηθά άλλους χρήστες να επιλέξουν με μεγαλύτερη εμπιστοσύνη και βοηθά τη MELEO να διατηρεί ποιοτικά επαγγελματικά προφίλ.</p>
       <p>Μπες στο dashboard σου για να αφήσεις την αξιολόγησή σου.</p>`)
-  }),
+  }, options),
   accountDeleted: (to, name) => deliver({
     to,
     subject: 'Ο λογαριασμός σας στη MELEO διαγράφηκε',

@@ -240,7 +240,11 @@ export function registerBookingStateRoutes(
                 recipient.name,
                 b.service,
                 b.date,
-                b.time
+                b.time,
+                {
+                  dedupKey:
+                    `booking:${b.id}:cancelled:${recipientUserId}`
+                }
               )
               .catch(
                 ()=>{}
@@ -252,7 +256,11 @@ export function registerBookingStateRoutes(
               .bookingCompleted(
                 recipient.email,
                 recipient.name,
-                b.service
+                b.service,
+                {
+                  dedupKey:
+                    `booking:${b.id}:completed:${recipientUserId}`
+                }
               )
               .catch(
                 ()=>{}

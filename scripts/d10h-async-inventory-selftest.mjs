@@ -164,7 +164,13 @@ check(
 
 check(
   mail.includes(
-    "await enqueue('email',message,{maxAttempts:5})"
+    "await enqueue("
+  ) &&
+  mail.includes(
+    "'email'"
+  ) &&
+  mail.includes(
+    "maxAttempts:5"
   ),
   'database-backed mail is queued with five maximum attempts'
 )
@@ -250,7 +256,10 @@ check(
 
 check(
   jobs.includes(
-    "const jid=id('job')"
+    "const jid="
+  ) &&
+  jobs.includes(
+    "id('job')"
   ),
   'generic enqueue assigns independent job identity'
 )
@@ -287,13 +296,13 @@ check(
  * an idempotency / deduplication key.
  */
 check(
-  !jobs.includes(
-    'idempotency_key'
+  jobs.includes(
+    'dedupKey'
   ) &&
-  !jobs.includes(
+  jobs.includes(
     'dedup_key'
   ),
-  'generic enqueue currently has no generic idempotency/deduplication key'
+  'generic enqueue supports explicit idempotency/deduplication identity'
 )
 
 
@@ -577,7 +586,7 @@ console.log(
 )
 
 console.log(
-  'Generic enqueue dedup key: NONE'
+  'Generic enqueue dedup key: EXPLICIT / OPTIONAL'
 )
 
 console.log(
