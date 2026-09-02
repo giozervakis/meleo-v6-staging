@@ -699,110 +699,151 @@ export const Notifications={
     options={},
     client=null
   ){
-    const nid=id('ntf')
 
-    const runner=
-      client||{
-        query:(q,p)=>sql(q,p)
-      }
+    /*
+     * Durable notification state and its live-event publication must
+     * commit atomically.
+     *
+     * If the caller already owns a transaction, reuse that exact
+     * PostgreSQL client.
+     *
+     * Standalone notifications create their own short local database
+     * transaction. External Stripe/mail work remains outside it.
+     */
+    const write=
+      async runner=>{
 
-    const priority=
-      ['low','normal','high','critical']
-        .includes(options.priority)
-          ? options.priority
-          : 'normal'
+        const nid=
+          id('ntf')
 
-    const actionType=
-      options.actionType||null
+        const priority=
+          [
+            'low',
+            'normal',
+            'high',
+            'critical'
+          ].includes(
+            options.priority
+          )
+            ? options.priority
+            : 'normal'
 
-    const actionId=
-      options.actionId||null
+        const actionType=
+          options.actionType||
+          null
 
-    const actionUrl=
-      options.actionUrl||null
+        const actionId=
+          options.actionId||
+          null
 
-    await runner.query(
-      `
-        INSERT INTO notifications(
-          id,
-          user_id,
+        const actionUrl=
+          options.actionUrl||
+          null
+
+        await runner.query(
+          `
+            INSERT INTO notifications(
+              id,
+              user_id,
+              type,
+              title,
+              body,
+              priority,
+              action_type,
+              action_id,
+              action_url
+            )
+            VALUES(
+              $1,$2,$3,$4,$5,$6,$7,$8,$9
+            )
+          `,
+          [
+            nid,
+            userId,
+            type,
+            title,
+            body||'',
+            priority,
+            actionType,
+            actionId,
+            actionUrl
+          ]
+        )
+
+        const notification={
+          id:nid,
+          userId,
           type,
           title,
-          body,
+          text:body||'',
           priority,
-          action_type,
-          action_id,
-          action_url
-        )
-        VALUES(
-          $1,$2,$3,$4,$5,$6,$7,$8,$9
-        )
-      `,
-      [
-        nid,
-        userId,
-        type,
-        title,
-        body||'',
-        priority,
-        actionType,
-        actionId,
-        actionUrl
-      ]
-    )
+          actionType,
+          actionId,
+          actionUrl,
+          read:false,
+          readAt:null,
+          createdAt:now()
+        }
 
-    const notification={
-      id:nid,
-      userId,
-      type,
-      title,
-      text:body||'',
-      priority,
-      actionType,
-      actionId,
-      actionUrl,
-      read:false,
-      readAt:null,
-      createdAt:now()
+        const ev=
+          await runner.query(
+            `
+              INSERT INTO live_events(
+                user_id,
+                payload
+              )
+              VALUES($1,$2)
+              RETURNING id
+            `,
+            [
+              userId,
+              {
+                kind:
+                  'notification.created',
+                notification
+              }
+            ]
+          )
+
+        const eventId=
+          ev.rows?.[0]?.id
+
+        /*
+         * PostgreSQL NOTIFY participates in the transaction and is
+         * delivered only after a successful commit.
+         */
+        await runner.query(
+          `
+            SELECT pg_notify(
+              'meleo_live',
+              $1
+            )
+          `,
+          [
+            JSON.stringify({
+              userId,
+              eventId
+            })
+          ]
+        )
+
+        return notification
+      }
+
+    if(
+      client?.query
+    ){
+      return write(
+        client
+      )
     }
 
-    const ev=await runner.query(
-      `
-        INSERT INTO live_events(
-          user_id,
-          payload
+    return tx(
+      async runner=>
+        write(
+          runner
         )
-        VALUES($1,$2)
-        RETURNING id
-      `,
-      [
-        userId,
-        {
-          kind:'notification.created',
-          notification
-        }
-      ]
     )
-
-    const eventId=
-      ev.rows?.[0]?.id
-
-    await runner.query(
-      `
-        SELECT pg_notify(
-          'meleo_live',
-          $1
-        )
-      `,
-      [
-        JSON.stringify({
-          userId,
-          eventId
-        })
-      ]
-    )
-
-    return notification
   },
 
 
