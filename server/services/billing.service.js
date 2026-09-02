@@ -36,7 +36,8 @@ export function createBillingService(
   async function applyStripeSubscription(
     sub,
     notifyUser=false,
-    eventContext=null
+    eventContext=null,
+    localMutation=null
   ){
     const uid=
       sub.metadata?.meleoUserId
@@ -362,6 +363,29 @@ export function createBillingService(
             `${PLANS[plan].price.toFixed(2)}€/μήνα`,
             {},
             client
+          )
+        }
+
+        /*
+         * Optional caller-owned local mutation.
+         *
+         * This is intentionally restricted to the existing PostgreSQL
+         * transaction client so callers can atomically append local
+         * state such as an audit event without moving external Stripe
+         * or network operations inside the database transaction.
+         */
+        if(
+          typeof localMutation==='function'
+        ){
+          await localMutation(
+            client,
+            {
+              professionalId:p.id,
+              userId:locked.user_id,
+              plan,
+              status,
+              stripeStatus:sub.status
+            }
           )
         }
 

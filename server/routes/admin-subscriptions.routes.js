@@ -1,4 +1,4 @@
-﻿export function registerAdminSubscriptionsRoutes({
+export function registerAdminSubscriptionsRoutes({
   app,
   Professionals,
   many,
@@ -107,17 +107,21 @@
 
       const updated =
         await applyStripeSubscription(
-          subscription
+          subscription,
+          false,
+          null,
+          async client=>{
+            await audit(
+              req.user.id,
+              'admin.subscription.sync',
+              {
+                professionalId:
+                  professional.id
+              },
+              client
+            )
+          }
         )
-
-      await audit(
-        req.user.id,
-        'admin.subscription.sync',
-        {
-          professionalId:
-            professional.id
-        }
-      )
 
       res.json({
         professional: updated
