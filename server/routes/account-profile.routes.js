@@ -164,14 +164,38 @@ export function registerAccountProfileRoutes(
     const oldKey=
       current.profile_photo_key||null
 
-    const updated=await Users.update(
-      req.user.id,
-      {
-        profile_photo_key:newKey,
-        profile_photo_mime:mime,
-        profile_photo_version:nextVersion
-      }
-    )
+    let updated
+
+    try{
+
+      updated=
+        await Users.update(
+          req.user.id,
+          {
+            profile_photo_key:newKey,
+            profile_photo_mime:mime,
+            profile_photo_version:nextVersion
+          }
+        )
+
+    }catch(error){
+
+      /*
+       * Storage write succeeded but local persistence failed.
+       *
+       * Compensate by removing the newly-written object so a failed
+       * profile update cannot leave orphaned storage behind.
+       *
+       * Storage remains outside any database transaction.
+       */
+      await deleteVerificationObject(
+        newKey
+      ).catch(
+        ()=>{}
+      )
+
+      throw error
+    }
 
     if(oldKey && oldKey!==newKey){
       deleteVerificationObject(oldKey)
