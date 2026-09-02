@@ -947,134 +947,160 @@ export const Notifications={
 
   async read(notificationId,userId){
 
-    const r=await one(
-      `
-        UPDATE notifications
+    return tx(
+      async client=>{
 
-        SET
-          is_read=true,
-          read_at=coalesce(
-            read_at,
-            now()
+        const result=
+          await client.query(
+            `
+              UPDATE notifications
+
+              SET
+                is_read=true,
+                read_at=coalesce(
+                  read_at,
+                  now()
+                )
+
+              WHERE
+                id=$1
+                AND user_id=$2
+
+              RETURNING
+                id,
+                action_type "actionType",
+                action_id "actionId",
+                action_url "actionUrl"
+            `,
+            [
+              notificationId,
+              userId
+            ]
           )
 
-        WHERE
-          id=$1
-          AND user_id=$2
+        const r=
+          result.rows?.[0]||
+          null
 
-        RETURNING
-          id,
-          action_type "actionType",
-          action_id "actionId",
-          action_url "actionUrl"
-      `,
-      [
-        notificationId,
-        userId
-      ]
-    )
-
-    if(!r){
-      return null
-    }
-
-    const ev=await one(
-      `
-        INSERT INTO live_events(
-          user_id,
-          payload
-        )
-        VALUES($1,$2)
-        RETURNING id
-      `,
-      [
-        userId,
-        {
-          kind:'notification.read',
-          notificationId
+        if(!r){
+          return null
         }
-      ]
-    )
 
-    if(ev?.id){
-      await sql(
-        `
-          SELECT pg_notify(
-            'meleo_live',
-            $1
+        const ev=
+          await client.query(
+            `
+              INSERT INTO live_events(
+                user_id,
+                payload
+              )
+              VALUES($1,$2)
+              RETURNING id
+            `,
+            [
+              userId,
+              {
+                kind:'notification.read',
+                notificationId
+              }
+            ]
           )
-        `,
-        [
-          JSON.stringify({
-            userId,
-            eventId:ev.id
-          })
-        ]
-      )
-    }
 
-    return r
+        const eventId=
+          ev.rows?.[0]?.id
+
+        if(eventId){
+
+          await client.query(
+            `
+              SELECT pg_notify(
+                'meleo_live',
+                $1
+              )
+            `,
+            [
+              JSON.stringify({
+                userId,
+                eventId
+              })
+            ]
+          )
+        }
+
+        return r
+      }
+    )
   },
 
 
   async readAll(userId){
 
-    await sql(
-      `
-        UPDATE notifications
+    return tx(
+      async client=>{
 
-        SET
-          is_read=true,
-          read_at=coalesce(
-            read_at,
-            now()
-          )
+        await client.query(
+          `
+            UPDATE notifications
 
-        WHERE
-          user_id=$1
-          AND is_read=false
-      `,
-      [userId]
-    )
+            SET
+              is_read=true,
+              read_at=coalesce(
+                read_at,
+                now()
+              )
 
-    const ev=await one(
-      `
-        INSERT INTO live_events(
-          user_id,
-          payload
+            WHERE
+              user_id=$1
+              AND is_read=false
+          `,
+          [userId]
         )
-        VALUES($1,$2)
-        RETURNING id
-      `,
-      [
-        userId,
-        {
-          kind:'notification.read_all'
-        }
-      ]
-    )
 
-    if(ev?.id){
-      await sql(
-        `
-          SELECT pg_notify(
-            'meleo_live',
-            $1
+        const ev=
+          await client.query(
+            `
+              INSERT INTO live_events(
+                user_id,
+                payload
+              )
+              VALUES($1,$2)
+              RETURNING id
+            `,
+            [
+              userId,
+              {
+                kind:'notification.read_all'
+              }
+            ]
           )
-        `,
-        [
-          JSON.stringify({
-            userId,
-            eventId:ev.id
-          })
-        ]
-      )
-    }
 
-    return {
-      ok:true
-    }
+        const eventId=
+          ev.rows?.[0]?.id
+
+        if(eventId){
+
+          await client.query(
+            `
+              SELECT pg_notify(
+                'meleo_live',
+                $1
+              )
+            `,
+            [
+              JSON.stringify({
+                userId,
+                eventId
+              })
+            ]
+          )
+        }
+
+        return {
+          ok:true
+        }
+      }
+    )
   }
+
 
 }
 
@@ -1714,72 +1740,87 @@ async markMessagesRead(
   userId
 ){
 
-  const changed=await many(
-    `
-      UPDATE booking_messages
+  return tx(
+    async client=>{
 
-      SET
-        read_at=now()
+      const changedResult=
+        await client.query(
+          `
+            UPDATE booking_messages
 
-      WHERE
-        booking_id=$1
-        AND recipient_user_id=$2
-        AND read_at IS NULL
+            SET
+              read_at=now()
 
-      RETURNING id
-    `,
-    [
-      bookingId,
-      userId
-    ]
-  )
+            WHERE
+              booking_id=$1
+              AND recipient_user_id=$2
+              AND read_at IS NULL
 
-  if(changed.length){
-
-    const ev=await one(
-      `
-        INSERT INTO live_events(
-          user_id,
-          payload
+            RETURNING id
+          `,
+          [
+            bookingId,
+            userId
+          ]
         )
-        VALUES($1,$2)
-        RETURNING id
-      `,
-      [
-        userId,
-        {
-          kind:'message.read',
-          bookingId,
-          messageIds:
-            changed.map(
-              x=>x.id
-            )
-        }
-      ]
-    )
 
-    if(ev?.id){
-      await sql(
-        `
-          SELECT pg_notify(
-            'meleo_live',
-            $1
+      const changed=
+        changedResult.rows||
+        []
+
+      if(changed.length){
+
+        const ev=
+          await client.query(
+            `
+              INSERT INTO live_events(
+                user_id,
+                payload
+              )
+              VALUES($1,$2)
+              RETURNING id
+            `,
+            [
+              userId,
+              {
+                kind:'message.read',
+                bookingId,
+                messageIds:
+                  changed.map(
+                    x=>x.id
+                  )
+              }
+            ]
           )
-        `,
-        [
-          JSON.stringify({
-            userId,
-            eventId:ev.id
-          })
-        ]
-      )
-    }
-  }
 
-  return {
-    ok:true,
-    count:changed.length
-  }
+        const eventId=
+          ev.rows?.[0]?.id
+
+        if(eventId){
+
+          await client.query(
+            `
+              SELECT pg_notify(
+                'meleo_live',
+                $1
+              )
+            `,
+            [
+              JSON.stringify({
+                userId,
+                eventId
+              })
+            ]
+          )
+        }
+      }
+
+      return {
+        ok:true,
+        count:changed.length
+      }
+    }
+  )
 },
   async update(id,patch){
     const map={
