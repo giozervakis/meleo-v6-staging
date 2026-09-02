@@ -9,6 +9,8 @@ data
 
 reports/*.json
 reports/playwright-html/
+reports/playwright-relational-html/
+reports/playwright-relational-results/
 test-results/
 playwright-report/
 

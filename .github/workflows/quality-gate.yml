@@ -64,6 +64,26 @@ jobs:
           NODE_ENV: test
         run: npm run test:integration:worker-retry
 
+      - name: Install Playwright Chromium
+        run: npx playwright install --with-deps chromium
+
+      - name: Relational Playwright critical journeys
+        env:
+          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
+          NODE_ENV: test
+        run: npm run test:e2e:relational
+
+      - name: Upload relational Playwright artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: playwright-relational
+          path: |
+            reports/playwright-relational-html
+            reports/playwright-relational-results
+          if-no-files-found: ignore
+          retention-days: 7
+
       - name: Critical E2E
         env: {BASE_URL: 'http://127.0.0.1:8787', ORIGIN_URL: 'http://localhost:5173'}
         run: npm run e2e

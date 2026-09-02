@@ -110,34 +110,50 @@ test.describe('MELEO booking flow', () => {
     }
 
     /*
-     * Ημερομηνία: αύριο.
+     * Η τρέχουσα BookingFlow UI φορτώνει authoritative
+     * availability από το backend και εμφανίζει κάθε ώρα
+     * ως πραγματικό button — όχι ως <select>.
+     *
+     * Περιμένουμε λοιπόν το production UI να εμφανίσει
+     * τουλάχιστον ένα HH:MM slot και επιλέγουμε το πρώτο.
      */
-    const tomorrow = new Date()
-    tomorrow.setDate(tomorrow.getDate() + 1)
+    const firstAvailableSlot =
+      page
+        .getByRole(
+          'button',
+          {
+            name: /^\d{2}:\d{2}$/
+          }
+        )
+        .first()
 
-    const yyyy = tomorrow.getFullYear()
-    const mm = String(tomorrow.getMonth() + 1).padStart(2, '0')
-    const dd = String(tomorrow.getDate()).padStart(2, '0')
+    await expect(
+      firstAvailableSlot,
+      'Booking UI must expose at least one authoritative availability slot'
+    ).toBeVisible({
+      timeout: 10_000
+    })
 
-    const bookingDate = `${yyyy}-${mm}-${dd}`
+    const selectedTime =
+      (
+        await firstAvailableSlot
+          .innerText()
+      ).trim()
 
-    await page
-      .getByLabel('Ημερομηνία')
-      .fill(bookingDate)
+    expect(
+      selectedTime
+    ).toMatch(
+      /^\d{2}:\d{2}$/
+    )
 
-    /*
-     * Επιλέγουμε διαθέσιμη ώρα.
-     */
-    const timeSelect = page.getByLabel('Ώρα')
+    await firstAvailableSlot.click()
 
-    const timeOptions =
-      await timeSelect.locator('option').count()
-
-    expect(timeOptions).toBeGreaterThan(0)
-
-    if (timeOptions > 1) {
-      await timeSelect.selectOption({ index: 1 })
-    }
+    await expect(
+      firstAvailableSlot
+    ).toHaveAttribute(
+      'aria-pressed',
+      'true'
+    )
 
     await page
       .getByRole('button', {
