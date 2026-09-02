@@ -58,6 +58,12 @@ jobs:
           NODE_ENV: test
         run: npm run test:integration:billing-stripe
 
+      - name: Worker retry background-job runtime
+        env:
+          DATABASE_URL: postgres://meleo:meleo_dev@127.0.0.1:54329/meleo
+          NODE_ENV: test
+        run: npm run test:integration:worker-retry
+
       - name: Critical E2E
         env: {BASE_URL: 'http://127.0.0.1:8787', ORIGIN_URL: 'http://localhost:5173'}
         run: npm run e2e
