@@ -329,10 +329,13 @@ check(
 
 
 check(
-  worker.includes(
+  !worker.includes(
     "out.reason!=='mail_not_configured'"
+  ) &&
+  worker.includes(
+    "!out.delivered"
   ),
-  'mail-not-configured has distinct worker semantics'
+  'queued mail-not-configured is a retryable worker failure'
 )
 
 

@@ -88,8 +88,7 @@ async function execute(job){
       )
 
     if(
-      !out.delivered&&
-      out.reason!=='mail_not_configured'
+      !out.delivered
     ){
       throw new Error(
         out.reason||
