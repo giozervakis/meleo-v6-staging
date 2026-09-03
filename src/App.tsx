@@ -1113,9 +1113,9 @@ const messageLabel=
   {unreadTotal>0&&
     <span className="account-live-dot"/>
   }
-</button><button onClick={()=>go('help')}>? <span>{t('shell.nav.help')}</span></button><button onClick={()=>go('account')}>⚙ <span>{t('shell.header.accountSettings')}</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>{t('shell.header.logout')}</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>{t('shell.header.login')}</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label="{t('shell.header.openMenu')}" aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
-    {open&&<div className="mobile-menu-overlay" role="presentation" onClick={()=>setOpen(false)}><nav className="mobile-menu-panel" aria-label="{t('shell.header.mainMenu')}" onClick={e=>e.stopPropagation()}>
-      <div className="mobile-menu-head"><button className="mobile-menu-brand" onClick={()=>go('home')}><Mark/></button><button className="mobile-menu-close" aria-label="{t('shell.header.closeMenu')}" onClick={()=>setOpen(false)}>×</button></div>
+</button><button onClick={()=>go('help')}>? <span>{t('shell.nav.help')}</span></button><button onClick={()=>go('account')}>⚙ <span>{t('shell.header.accountSettings')}</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>{t('shell.header.logout')}</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>{t('shell.header.login')}</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label={t('shell.header.openMenu')} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
+    {open&&<div className="mobile-menu-overlay" role="presentation" onClick={()=>setOpen(false)}><nav className="mobile-menu-panel" aria-label={t('shell.header.mainMenu')} onClick={e=>e.stopPropagation()}>
+      <div className="mobile-menu-head"><button className="mobile-menu-brand" onClick={()=>go('home')}><Mark/></button><button className="mobile-menu-close" aria-label={t('shell.header.closeMenu')} onClick={()=>setOpen(false)}>×</button></div>
       {user&&
   <div className="mobile-menu-user">
     <IdentityAvatar
