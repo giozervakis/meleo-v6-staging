@@ -424,6 +424,12 @@ export function registerBookingCoreRoutes(
         id('bkg')
 
 
+      const professionalUser =
+        await Users.byId(
+          p.userId
+        )
+
+
       let b
 
       try{
@@ -457,6 +463,27 @@ export function registerBookingCoreRoutes(
             type:'booking',
             title:'Νέο αίτημα επίσκεψης',
             body:`${req.user.name} · ${service}`
+          },
+          async client=>{
+
+            if(
+              !professionalUser?.email
+            ){
+              return
+            }
+
+            await mail.newBooking(
+              professionalUser.email,
+              professionalUser.name,
+              service,
+              date,
+              time,
+              {
+                dedupKey:
+                  `booking:${bid}:created:${professionalUser.id}`,
+                client
+              }
+            )
           })
 
       }catch(error){
@@ -477,31 +504,6 @@ export function registerBookingCoreRoutes(
       }
 
 
-
-
-      const professionalUser =
-        await Users.byId(
-          p.userId
-        )
-
-
-      if(professionalUser?.email){
-        mail
-          .newBooking(
-            professionalUser.email,
-            professionalUser.name,
-            service,
-            date,
-            time,
-            {
-              dedupKey:
-                `booking:${bid}:created:${professionalUser.id}`
-            }
-          )
-          .catch(
-            ()=>{}
-          )
-      }
 
 
       await audit(

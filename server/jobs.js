@@ -25,7 +25,8 @@ export async function enqueue(
     priority=100,
     maxAttempts=5,
     runAt=null,
-    dedupKey=null
+    dedupKey=null,
+    client=null
   }={}
 ){
   const jid=
@@ -36,8 +37,13 @@ export async function enqueue(
       dedupKey
     )
 
+  const query =
+    client
+      ? client.query.bind(client)
+      : sql
+
   if(!normalizedDedupKey){
-    await sql(
+    await query(
       `INSERT INTO background_jobs(
          id,
          job_type,
@@ -63,9 +69,8 @@ export async function enqueue(
     return jid
   }
 
-  const existingOrInserted=
-    await one(
-      `
+  const idempotentQuery =
+    `
         WITH inserted AS (
           INSERT INTO background_jobs(
             id,
@@ -105,17 +110,31 @@ export async function enqueue(
           AND dedup_key=$7
 
         LIMIT 1
-      `,
-      [
-        jid,
-        jobType,
-        payload,
-        priority,
-        maxAttempts,
-        runAt,
-        normalizedDedupKey
-      ]
-    )
+      `
+
+  const idempotentParams =
+    [
+      jid,
+      jobType,
+      payload,
+      priority,
+      maxAttempts,
+      runAt,
+      normalizedDedupKey
+    ]
+
+  const existingOrInserted =
+    client
+      ? (
+          await client.query(
+            idempotentQuery,
+            idempotentParams
+          )
+        ).rows[0] || null
+      : await one(
+          idempotentQuery,
+          idempotentParams
+        )
 
   if(!existingOrInserted?.id){
     throw new Error(

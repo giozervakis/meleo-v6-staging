@@ -161,6 +161,18 @@ export function registerBookingStateRoutes(
           ? b.patientId
           : p.userId
 
+
+      const emailRecipient =
+        (
+          status==='cancelled' ||
+          status==='completed'
+        )
+          ? await Users.byId(
+              recipientUserId
+            )
+          : null
+
+
       const write=
         await Bookings.transition(
           b.id,
@@ -188,6 +200,42 @@ export function registerBookingStateRoutes(
                 isProvider
                   ? '/dashboard'
                   : '/professional'
+            }
+          },
+          async client=>{
+
+            if(
+              !emailRecipient?.email
+            ){
+              return
+            }
+
+            if(status==='cancelled'){
+              await mail.bookingCancelled(
+                emailRecipient.email,
+                emailRecipient.name,
+                b.service,
+                b.date,
+                b.time,
+                {
+                  dedupKey:
+                    `booking:${b.id}:cancelled:${recipientUserId}`,
+                  client
+                }
+              )
+            }
+
+            if(status==='completed'){
+              await mail.bookingCompleted(
+                emailRecipient.email,
+                emailRecipient.name,
+                b.service,
+                {
+                  dedupKey:
+                    `booking:${b.id}:completed:${recipientUserId}`,
+                  client
+                }
+              )
             }
           }
         )
@@ -223,51 +271,6 @@ export function registerBookingStateRoutes(
       const updated=
         write.booking
 
-      if(
-        status==='cancelled' ||
-        status==='completed'
-      ){
-        const recipient=
-          await Users.byId(
-            recipientUserId
-          )
-
-        if(recipient?.email){
-          if(status==='cancelled'){
-            mail
-              .bookingCancelled(
-                recipient.email,
-                recipient.name,
-                b.service,
-                b.date,
-                b.time,
-                {
-                  dedupKey:
-                    `booking:${b.id}:cancelled:${recipientUserId}`
-                }
-              )
-              .catch(
-                ()=>{}
-              )
-          }
-
-          if(status==='completed'){
-            mail
-              .bookingCompleted(
-                recipient.email,
-                recipient.name,
-                b.service,
-                {
-                  dedupKey:
-                    `booking:${b.id}:completed:${recipientUserId}`
-                }
-              )
-              .catch(
-                ()=>{}
-              )
-          }
-        }
-      }
 
       res.json({
         booking:updated

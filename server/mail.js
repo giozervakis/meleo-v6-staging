@@ -70,22 +70,66 @@ export async function deliverEmail({ to, subject, html }) {
   }
 }
 
-async function deliver(message,{dedupKey=null}={}){
-  if (!config.databaseUrl) return deliverEmail(message)
+async function deliver(
+  message,
+  {
+    dedupKey=null,
+    client=null
+  }={}
+){
+  if (!config.databaseUrl) {
+    return deliverEmail(message)
+  }
+
   try {
     const jobId=await enqueue(
       'email',
       message,
       {
         maxAttempts:5,
-        dedupKey
+        dedupKey,
+        client
       }
     )
-    log.info('mail.queued',{jobId,to:message.to,subject:message.subject})
-    return {delivered:false,queued:true,jobId}
+
+    log.info(
+      'mail.queued',
+      {
+        jobId,
+        to:message.to,
+        subject:message.subject,
+        transactional:Boolean(client)
+      }
+    )
+
+    return {
+      delivered:false,
+      queued:true,
+      jobId
+    }
   } catch(err) {
-    log.error('mail.queue_failed',{error:err.message,to:message.to})
-    // Queue failure must not silently lose transactional mail.
+    log.error(
+      'mail.queue_failed',
+      {
+        error:err.message,
+        to:message.to,
+        transactional:Boolean(client)
+      }
+    )
+
+    /*
+     * Inside an existing database transaction, queue failure
+     * must abort the business transaction. Falling back to an
+     * external provider here would break atomic handoff.
+     */
+    if(client){
+      throw err
+    }
+
+    /*
+     * Outside a database transaction preserve the existing
+     * best-effort direct-delivery fallback.
+     */
     return deliverEmail(message)
   }
 }

@@ -87,8 +87,10 @@ for (const token of [
   "status==='completed'",
   '.bookingCancelled(',
   '.bookingCompleted(',
-  'recipient.email',
-  'recipient.name'
+  'emailRecipient.email',
+  'emailRecipient.name',
+  'async client=>',
+  'client'
 ]) {
   assert.ok(
     bookingState.includes(token),
@@ -97,15 +99,15 @@ for (const token of [
 }
 
 assert.ok(
-  bookingState.indexOf('await Bookings.update(') <
+  bookingState.indexOf('await Bookings.transition(') <
     bookingState.indexOf('.bookingCancelled('),
-  'Cancellation email must follow booking state persistence'
+  'Cancellation email handoff must be owned by booking transition'
 )
 
 assert.ok(
-  bookingState.indexOf('await Bookings.update(') <
+  bookingState.indexOf('await Bookings.transition(') <
     bookingState.indexOf('.bookingCompleted('),
-  'Completion email must follow booking state persistence'
+  'Completion email handoff must be owned by booking transition'
 )
 
 for (const token of [

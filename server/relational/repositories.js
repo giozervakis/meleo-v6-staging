@@ -1494,7 +1494,8 @@ export const Bookings={
    */
   async create(
     data,
-    notification=null
+    notification=null,
+    transactionalEffect=null
   ){
     await tx(async client=>{
 
@@ -1542,6 +1543,12 @@ export const Bookings={
           notification.title || 'Booking created',
           notification.body || '',
           notification.options || {},
+          client
+        )
+      }
+
+      if(transactionalEffect){
+        await transactionalEffect(
           client
         )
       }
@@ -2531,7 +2538,8 @@ async markMessagesRead(
     id,
     expectedStatus,
     patch,
-    notification=null
+    notification=null,
+    transactionalEffect=null
   ){
     const map={
       status:'status',
@@ -2604,6 +2612,12 @@ async markMessagesRead(
               notification.title || 'Booking update',
               notification.body || '',
               notification.options || {},
+              client
+            )
+          }
+
+          if(transactionalEffect){
+            await transactionalEffect(
               client
             )
           }

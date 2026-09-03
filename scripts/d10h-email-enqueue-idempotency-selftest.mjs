@@ -66,7 +66,10 @@ check(
 )
 
 check(
-  mail.includes('async function deliver(message,{dedupKey=null}={})'),
+  mail.includes('dedupKey=null') &&
+  mail.includes('client=null') &&
+  mail.includes('dedupKey,') &&
+  mail.includes('client'),
   'mail delivery accepts optional business-event identity'
 )
 
