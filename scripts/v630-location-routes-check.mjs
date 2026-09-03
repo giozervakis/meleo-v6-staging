@@ -1,4 +1,4 @@
-﻿import fs from 'node:fs'
+import fs from 'node:fs'
 
 function assert(
   condition,
@@ -42,11 +42,73 @@ assert(
   'geocode dependency injection missing'
 )
 
+const geocoding =
+  fs.readFileSync(
+    'server/services/geocoding.service.js',
+    'utf8'
+  )
+  .replace(
+    /^\\uFEFF/,
+    ''
+  )
+
 assert(
   app.includes(
+    "import { createGeocodeService } from '../services/geocoding.service.js'"
+  ),
+  'Geocoding service import missing'
+)
+
+assert(
+  app.includes(
+    'const geocode ='
+  ) &&
+  app.includes(
+    'createGeocodeService({'
+  ),
+  'Geocoding service composition missing'
+)
+
+assert(
+  !app.includes(
     'async function geocode'
   ),
-  'shared geocode infrastructure moved prematurely'
+  'Geocoding implementation still application-owned'
+)
+
+assert(
+  geocoding.includes(
+    'export function createGeocodeService'
+  ),
+  'Geocoding service factory missing'
+)
+
+assert(
+  geocoding.includes(
+    'geocode_cache'
+  ),
+  'Persistent geocoding cache ownership missing'
+)
+
+assert(
+  geocoding.includes(
+    'GEOCODING_PROVIDER'
+  ),
+  'Geocoding provider selection missing'
+)
+
+assert(
+  geocoding.includes(
+    'MAPBOX_TOKEN'
+  ),
+  'Mapbox provider contract missing'
+)
+
+assert(
+  geocoding.includes(
+    'nominatim.openstreetmap.org'
+  ),
+  'Nominatim provider contract missing'
 )
 
 assert(
@@ -209,7 +271,7 @@ console.log(
 )
 
 console.log(
-  '[PASS] shared geocode infrastructure remains application-owned'
+  '[PASS] shared geocode infrastructure is service-owned'
 )
 
 console.log(

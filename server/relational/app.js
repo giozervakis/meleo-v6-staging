@@ -12,6 +12,7 @@ import { mail } from '../mail.js'
 import { encryptSensitive, decryptSensitive, matchTotpStep } from '../security.js'
 import { getPool, sql, one, many, tx, migrate, closePool, id, now, sha256, hashPassword, verifyPassword, publicUser, pagination } from './pool.js'
 import { createLiveEventRuntime } from '../services/live-event-runtime.service.js'
+import { createGeocodeService } from '../services/geocoding.service.js'
 import { Users, Sessions, Professionals, Notifications, Bookings, Analytics, Admin, audit } from './repositories.js'
 import Stripe from 'stripe'
 import { canViewBooking, canEditBooking, canViewPatientContact, canReviewBooking } from './authorization.js'
@@ -2006,120 +2007,17 @@ registerAccountPrivacyRoutes(
   }
 )
 
-// Geocoding with persistent cache. Nominatim only in dev unless explicitly selected.
-async function geocode(pathname){const key=sha256(pathname);if(config.redis.url){try{const hit=await redisGetJson(config.redis.keyPrefix+'geo:'+key);if(hit)return hit}catch(err){console.warn('[MELEO v5.1] Redis geocode cache fallback:',err.message)}}const cached=await one('SELECT payload FROM geocode_cache WHERE cache_key=$1 AND expires_at>now()',[key]);if(cached){if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,cached.payload,86400).catch(()=>{});return cached.payload;}const provider=(process.env.GEOCODING_PROVIDER||'nominatim').toLowerCase();
+// Geocoding infrastructure is owned by the dedicated service.
+const geocode =
+  createGeocodeService({
+    config,
+    sha256,
+    redisGetJson,
+    redisSetJson,
+    one,
+    sql
+  })
 
-if(provider==='fixture'){
-  if(config.isProd){
-    throw new Error('Fixture geocoding is forbidden in production')
-  }
-
-  const params=
-    new URLSearchParams(
-      pathname.split('?')[1]||''
-    )
-
-  if(pathname.startsWith('/search')){
-    const query=
-      String(params.get('q')||'')
-        .trim()
-        .toLocaleLowerCase('el-GR')
-
-    const known=
-      query.includes('ηράκλειο')||
-      query.includes('heraklion')||
-      query.includes('iraklio')
-
-    const data=
-      known
-        ? [{
-            lat:'35.3387',
-            lon:'25.1442',
-            display_name:'Ηράκλειο, Κρήτη, Ελλάδα',
-            address:{
-              city:'Ηράκλειο',
-              state:'Κρήτη',
-              country:'Ελλάδα',
-              country_code:'gr'
-            }
-          }]
-        : []
-
-    await sql(
-      `INSERT INTO geocode_cache(cache_key,payload,expires_at)
-       VALUES($1,$2,now()+interval '30 days')
-       ON CONFLICT(cache_key)
-       DO UPDATE SET
-         payload=$2,
-         expires_at=now()+interval '30 days',
-         updated_at=now()`,
-      [key,JSON.stringify(data)]
-    )
-
-    if(config.redis.url){
-      redisSetJson(
-        config.redis.keyPrefix+'geo:'+key,
-        data,
-        30*86400
-      ).catch(()=>{})
-    }
-
-    return data
-  }
-
-  if(pathname.startsWith('/reverse')){
-    const lat=Number(params.get('lat'))
-    const lon=Number(params.get('lon'))
-
-    if(
-      !Number.isFinite(lat)||
-      !Number.isFinite(lon)
-    ){
-      throw new Error(
-        'Invalid fixture coordinates'
-      )
-    }
-
-    const data={
-      lat:String(lat),
-      lon:String(lon),
-      display_name:'Ηράκλειο, Κρήτη, Ελλάδα',
-      address:{
-        city:'Ηράκλειο',
-        state:'Κρήτη',
-        country:'Ελλάδα',
-        country_code:'gr'
-      }
-    }
-
-    await sql(
-      `INSERT INTO geocode_cache(cache_key,payload,expires_at)
-       VALUES($1,$2,now()+interval '30 days')
-       ON CONFLICT(cache_key)
-       DO UPDATE SET
-         payload=$2,
-         expires_at=now()+interval '30 days',
-         updated_at=now()`,
-      [key,JSON.stringify(data)]
-    )
-
-    if(config.redis.url){
-      redisSetJson(
-        config.redis.keyPrefix+'geo:'+key,
-        data,
-        30*86400
-      ).catch(()=>{})
-    }
-
-    return data
-  }
-
-  throw new Error(
-    'Unsupported fixture geocoding request'
-  )
-}
-
-let url,headers={};if(provider==='mapbox'&&process.env.MAPBOX_TOKEN){const q=new URLSearchParams(pathname.split('?')[1]||'');const query=q.get('q')||'';url=`https://api.mapbox.com/geocoding/v5/mapbox.places/${encodeURIComponent(query)}.json?access_token=${encodeURIComponent(process.env.MAPBOX_TOKEN)}&language=el&limit=5`}else{url=`https://nominatim.openstreetmap.org${pathname}`;headers={'User-Agent':`MELEO-Marketplace/5.0 (${config.mail.supportEmail})`,'Accept-Language':'el,en'}}const r=await fetch(url,{headers});if(!r.ok)throw new Error('Geocoding unavailable');let data=await r.json();if(provider==='mapbox'&&data.features)data=data.features.map(f=>({lat:String(f.center[1]),lon:String(f.center[0]),display_name:f.place_name,address:{city:f.context?.find(x=>x.id.startsWith('place.'))?.text||f.text,country:f.context?.find(x=>x.id.startsWith('country.'))?.text||''}}));await sql(`INSERT INTO geocode_cache(cache_key,payload,expires_at) VALUES($1,$2,now()+interval '30 days') ON CONFLICT(cache_key) DO UPDATE SET payload=$2,expires_at=now()+interval '30 days',updated_at=now()`,[key,JSON.stringify(data)]);if(config.redis.url)redisSetJson(config.redis.keyPrefix+'geo:'+key,data,30*86400).catch(()=>{});return data}
 registerLocationRoutes({
   app,
   limits,

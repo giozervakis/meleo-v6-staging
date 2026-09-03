@@ -220,7 +220,7 @@ assert.ok(
 const privacyRegistration =
   registrationBetween(
     'registerAccountPrivacyRoutes(',
-    '// Geocoding with persistent cache'
+    'registerLocationRoutes({'
   )
 
 assert.ok(
