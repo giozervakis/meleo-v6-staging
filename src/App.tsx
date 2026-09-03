@@ -1013,14 +1013,119 @@ function Header({
   const {t}=useTranslation()
   const [open,setOpen]=useState(false)
   const [accountOpen,setAccountOpen]=useState(false)
+  const mobileMenuTriggerRef=useRef<HTMLButtonElement|null>(null)
+  const mobileMenuPanelRef=useRef<HTMLElement|null>(null)
   useEffect(()=>{setOpen(false);setAccountOpen(false)},[view])
   useEffect(()=>{
     if(!open)return
-    const previous=document.body.style.overflow
+
+    const previousOverflow=document.body.style.overflow
+    const previousFocus=
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null
+
     document.body.style.overflow='hidden'
-    const onKey=(e:KeyboardEvent)=>{if(e.key==='Escape')setOpen(false)}
-    window.addEventListener('keydown',onKey)
-    return()=>{document.body.style.overflow=previous;window.removeEventListener('keydown',onKey)}
+
+    const focusableSelector=[
+      'button:not([disabled])',
+      'a[href]',
+      'input:not([disabled])',
+      'select:not([disabled])',
+      'textarea:not([disabled])',
+      '[tabindex]:not([tabindex="-1"])'
+    ].join(',')
+
+    const focusFirst=()=>{
+      const panel=mobileMenuPanelRef.current
+      if(!panel)return
+      const focusable=
+        Array.from(
+          panel.querySelectorAll<HTMLElement>(focusableSelector)
+        )
+      focusable[0]?.focus()
+    }
+
+    const frame=
+      window.requestAnimationFrame(
+        focusFirst
+      )
+
+    const onKey=(e:KeyboardEvent)=>{
+      if(e.key==='Escape'){
+        e.preventDefault()
+        setOpen(false)
+        return
+      }
+
+      if(e.key!=='Tab')return
+
+      const panel=
+        mobileMenuPanelRef.current
+
+      if(!panel)return
+
+      const focusable=
+        Array.from(
+          panel.querySelectorAll<HTMLElement>(focusableSelector)
+        ).filter(
+          element=>
+            !element.hasAttribute('disabled') &&
+            element.getAttribute('aria-hidden')!=='true'
+        )
+
+      if(focusable.length===0){
+        e.preventDefault()
+        panel.focus()
+        return
+      }
+
+      const first=
+        focusable[0]
+
+      const last=
+        focusable[focusable.length-1]
+
+      const active=
+        document.activeElement
+
+      if(e.shiftKey){
+        if(active===first || !panel.contains(active)){
+          e.preventDefault()
+          last.focus()
+        }
+        return
+      }
+
+      if(active===last || !panel.contains(active)){
+        e.preventDefault()
+        first.focus()
+      }
+    }
+
+    window.addEventListener(
+      'keydown',
+      onKey
+    )
+
+    return()=>{
+      window.cancelAnimationFrame(frame)
+      document.body.style.overflow=previousOverflow
+      window.removeEventListener(
+        'keydown',
+        onKey
+      )
+
+      if(
+        previousFocus &&
+        document.contains(previousFocus)
+      ){
+        previousFocus.focus()
+      }
+      else{
+        mobileMenuTriggerRef.current?.focus()
+      }
+    }
   },[open])
   useEffect(()=>{
     if(!accountOpen)return
@@ -1113,8 +1218,8 @@ const messageLabel=
   {unreadTotal>0&&
     <span className="account-live-dot"/>
   }
-</button><button onClick={()=>go('help')}>? <span>{t('shell.nav.help')}</span></button><button onClick={()=>go('account')}>⚙ <span>{t('shell.header.accountSettings')}</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>{t('shell.header.logout')}</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>{t('shell.header.login')}</button>}<button className={'mobile-menu-btn '+(open?'open':'')} aria-label={t('shell.header.openMenu')} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
-    {open&&<div className="mobile-menu-overlay" role="presentation" onClick={()=>setOpen(false)}><nav className="mobile-menu-panel" aria-label={t('shell.header.mainMenu')} onClick={e=>e.stopPropagation()}>
+</button><button onClick={()=>go('help')}>? <span>{t('shell.nav.help')}</span></button><button onClick={()=>go('account')}>⚙ <span>{t('shell.header.accountSettings')}</span></button><div className="account-dropdown-sep"/><button className="danger" onClick={async()=>{setAccountOpen(false);await logout()}}>↪ <span>{t('shell.header.logout')}</span></button></div>}</div>:<button className="btn btn-dark desktop-login" onClick={()=>go('auth')}>{t('shell.header.login')}</button>}<button ref={mobileMenuTriggerRef} className={'mobile-menu-btn '+(open?'open':'')} aria-label={t('shell.header.openMenu')} aria-expanded={open} onClick={()=>setOpen(v=>!v)}><span/><span/><span/></button></div></div></header>
+    {open&&<div className="mobile-menu-overlay" role="dialog" aria-modal="true" aria-label={t('shell.header.mainMenu')} onClick={()=>setOpen(false)}><nav ref={mobileMenuPanelRef} className="mobile-menu-panel" aria-label={t('shell.header.mainMenu')} tabIndex={-1} onClick={e=>e.stopPropagation()}>
       <div className="mobile-menu-head"><button className="mobile-menu-brand" onClick={()=>go('home')}><Mark/></button><button className="mobile-menu-close" aria-label={t('shell.header.closeMenu')} onClick={()=>setOpen(false)}>×</button></div>
       {user&&
   <div className="mobile-menu-user">
