@@ -1,4 +1,5 @@
 import { createAccountDeletionService } from '../services/account-deletion.service.js'
+import { decryptSensitive } from '../security.js'
 
 /*
  * MELEO v7.0 RC2-A8
@@ -278,14 +279,13 @@ export function registerAccountPrivacyRoutes(
           .map(item=>item.id)
           .filter(Boolean)
 
-      const bookingMessages=
+      const bookingMessageRows=
         bookingIds.length
           ? await many(
               `
                 SELECT
                   id,
                   booking_id,
-                  sender_user_id,
                   sender_role,
                   sender_name,
                   body_encrypted,
@@ -299,6 +299,20 @@ export function registerAccountPrivacyRoutes(
             )
           : []
 
+      const bookingMessages=
+        bookingMessageRows.map(
+          ({
+            body_encrypted,
+            ...message
+          })=>({
+            ...message,
+            text:
+              decryptSensitive(
+                body_encrypted
+              )
+          })
+        )
+
       const reviews=
         p
           ? await many(
@@ -306,7 +320,6 @@ export function registerAccountPrivacyRoutes(
                 SELECT
                   id,
                   booking_id,
-                  patient_id,
                   professional_id,
                   rating,
                   comment,
@@ -326,7 +339,6 @@ export function registerAccountPrivacyRoutes(
                 SELECT
                   id,
                   booking_id,
-                  patient_id,
                   professional_id,
                   rating,
                   comment,
@@ -367,7 +379,6 @@ export function registerAccountPrivacyRoutes(
                 SELECT
                   id,
                   ticket_id,
-                  sender_user_id,
                   sender_role,
                   body,
                   created_at
@@ -529,7 +540,11 @@ export function registerAccountPrivacyRoutes(
             'password_hash',
             'session.token_hash',
             'one_time_tokens',
-            'verification_documents.storage_key'
+            'verification_documents.storage_key',
+            'booking_messages.body_encrypted',
+            'booking_messages.sender_user_id',
+            'support_messages.sender_user_id',
+            'reviews.patient_id'
           ]
         }
       })
