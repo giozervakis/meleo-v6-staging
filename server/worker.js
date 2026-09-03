@@ -26,6 +26,7 @@ import {
 import { log } from './logger.js'
 import { observeJob, observeError } from './metrics.js'
 import { createJobRuntime } from './services/job-runtime.service.js'
+import { createDataRetentionService } from './services/data-retention.service.js'
 import { redisSetJson, closeRedis } from './redis.js'
 import {
   reconcileStripeSubscriptions,
@@ -38,6 +39,14 @@ await migrate()
 const workerId=process.env.WORKER_ID||process.env.HOSTNAME||`worker-${process.pid}`
 const concurrency=Math.max(1,Math.min(20,Number(process.env.WORKER_CONCURRENCY||5)))
 const pollMs=Math.max(250,Number(process.env.WORKER_POLL_MS||1000))
+const retentionIntervalMs=
+  Math.max(
+    60*60*1000,
+    Number(
+      process.env.RETENTION_PURGE_INTERVAL_MS||
+      24*60*60*1000
+    )
+  )
 const stripeReconcileIntervalSeconds=Math.max(
   300,
   Number(
@@ -46,6 +55,7 @@ const stripeReconcileIntervalSeconds=Math.max(
   )
 )
 let stopping=false, active=0
+let lastRetentionRunAt=0
 
 const stripeScheduleGuardMs=
   Math.max(
@@ -74,6 +84,11 @@ const accountDeletion=
       getReconciliationStripe,
     now,
     id
+  })
+
+const retention=
+  createDataRetentionService({
+    sql
   })
 
 const heartbeatKey='meleo:observability:worker:heartbeat'
@@ -142,6 +157,58 @@ async function ensureStripeReconciliationSchedule({
       'stripe.reconcile.schedule_failed',
       {
         reason,
+        message:
+          err?.message||
+          String(err)
+      }
+    )
+
+    return null
+  }
+}
+
+
+async function runRetentionIfDue({
+  force=false
+}={}){
+  const current=
+    Date.now()
+
+  if(
+    !force &&
+    current-lastRetentionRunAt<
+      retentionIntervalMs
+  ){
+    return null
+  }
+
+  lastRetentionRunAt=
+    current
+
+  try{
+    const result=
+      await retention.purge()
+
+    log.info(
+      'retention.purge.completed',
+      {
+        ...result.summary,
+        policy:
+          result.policy
+      }
+    )
+
+    return result
+  }
+  catch(err){
+    observeError(
+      'retention',
+      'purge_failed'
+    )
+
+    log.error(
+      'retention.purge.failed',
+      {
         message:
           err?.message||
           String(err)
@@ -313,6 +380,10 @@ await scheduleStripeReconciliation({
 
 await publishHeartbeat(true)
 
+await runRetentionIfDue({
+  force:true
+})
+
 log.info(
   'worker.started',
   {
@@ -325,6 +396,7 @@ log.info(
 while(!stopping){
   await publishHeartbeat()
   await ensureStripeReconciliationSchedule()
+  await runRetentionIfDue()
   while(!stopping&&active<concurrency){const job=await jobRuntime.claim();if(!job)break;runJob(job)}
   await new Promise(r=>setTimeout(r,pollMs))
 }
