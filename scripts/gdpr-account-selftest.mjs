@@ -41,9 +41,12 @@ const requiredRouteTokens = [
   'do{',
   'page<=totalPages',
   "? {scope:'all'}",
-  'bookingCount:',
   'bookingTotal:',
-  'complete:',
+  'bookings.length===total',
+  'const counts={',
+  'counts,',
+  'bookings:bookings.length',
+  'secretFieldsExcluded:[',
   'await accountDeletion.request(',
   'result.pending',
   '.status(202)',
@@ -129,6 +132,48 @@ assert.equal(
   false,
   'RC2-A8 regression: export silently capped at 100 bookings'
 )
+
+for(
+  const token
+  of [
+    'FROM sessions',
+    'FROM user_identities',
+    'FROM favorites',
+    'FROM notifications',
+    'FROM booking_messages',
+    'FROM reviews',
+    'FROM support_tickets',
+    'FROM support_messages',
+    'FROM reports',
+    'FROM verification_requests',
+    'FROM verification_documents',
+    'FROM subscriptions',
+    'FROM payments',
+    'secretFieldsExcluded:['
+  ]
+){
+  assert.ok(
+    route.includes(token),
+    `D10I.2 subject export missing token: ${token}`
+  )
+}
+
+
+for(
+  const forbiddenToken
+  of [
+    'SELECT\n              token_hash',
+    'FROM one_time_tokens',
+    'storage_key,\n                  original_name'
+  ]
+){
+  assert.equal(
+    route.includes(forbiddenToken),
+    false,
+    `D10I.2 export leaks protected token: ${forbiddenToken}`
+  )
+}
+
 
 assert.equal(
   route.includes(

@@ -198,18 +198,339 @@ export function registerAccountPrivacyRoutes(
         page<=totalPages
       )
 
+      /*
+       * GDPR data-subject export.
+       *
+       * Export subject-linked personal data while deliberately
+       * excluding reusable authentication secrets, internal
+       * storage object keys and unrelated administrative data.
+       */
+
+      const sessions=
+        await many(
+          `
+            SELECT
+              expires_at,
+              created_at,
+              ip_hash,
+              user_agent_hash
+            FROM sessions
+            WHERE user_id=$1
+            ORDER BY created_at ASC
+          `,
+          [u.id]
+        )
+
+      const identities=
+        await many(
+          `
+            SELECT
+              id,
+              provider,
+              provider_subject,
+              provider_email,
+              provider_email_verified,
+              provider_display_name,
+              provider_avatar_url,
+              created_at,
+              updated_at,
+              last_login_at
+            FROM user_identities
+            WHERE user_id=$1
+            ORDER BY created_at ASC
+          `,
+          [u.id]
+        )
+
+      const favorites=
+        await many(
+          `
+            SELECT
+              id,
+              professional_id,
+              created_at
+            FROM favorites
+            WHERE user_id=$1
+            ORDER BY created_at ASC
+          `,
+          [u.id]
+        )
+
+      const notifications=
+        await many(
+          `
+            SELECT
+              id,
+              type,
+              title,
+              body,
+              is_read,
+              created_at
+            FROM notifications
+            WHERE user_id=$1
+            ORDER BY created_at ASC
+          `,
+          [u.id]
+        )
+
+      const bookingIds=
+        bookings
+          .map(item=>item.id)
+          .filter(Boolean)
+
+      const bookingMessages=
+        bookingIds.length
+          ? await many(
+              `
+                SELECT
+                  id,
+                  booking_id,
+                  sender_user_id,
+                  sender_role,
+                  sender_name,
+                  body_encrypted,
+                  kind,
+                  created_at
+                FROM booking_messages
+                WHERE booking_id = ANY($1::text[])
+                ORDER BY created_at ASC
+              `,
+              [bookingIds]
+            )
+          : []
+
+      const reviews=
+        p
+          ? await many(
+              `
+                SELECT
+                  id,
+                  booking_id,
+                  patient_id,
+                  professional_id,
+                  rating,
+                  comment,
+                  created_at
+                FROM reviews
+                WHERE patient_id=$1
+                   OR professional_id=$2
+                ORDER BY created_at ASC
+              `,
+              [
+                u.id,
+                p.id
+              ]
+            )
+          : await many(
+              `
+                SELECT
+                  id,
+                  booking_id,
+                  patient_id,
+                  professional_id,
+                  rating,
+                  comment,
+                  created_at
+                FROM reviews
+                WHERE patient_id=$1
+                ORDER BY created_at ASC
+              `,
+              [u.id]
+            )
+
+      const supportTickets=
+        await many(
+          `
+            SELECT
+              id,
+              subject,
+              category,
+              status,
+              created_at,
+              updated_at
+            FROM support_tickets
+            WHERE user_id=$1
+            ORDER BY created_at ASC
+          `,
+          [u.id]
+        )
+
+      const supportTicketIds=
+        supportTickets
+          .map(item=>item.id)
+          .filter(Boolean)
+
+      const supportMessages=
+        supportTicketIds.length
+          ? await many(
+              `
+                SELECT
+                  id,
+                  ticket_id,
+                  sender_user_id,
+                  sender_role,
+                  body,
+                  created_at
+                FROM support_messages
+                WHERE ticket_id = ANY($1::text[])
+                ORDER BY created_at ASC
+              `,
+              [supportTicketIds]
+            )
+          : []
+
+      const reports=
+        await many(
+          `
+            SELECT
+              id,
+              target_type,
+              target_id,
+              reason,
+              details,
+              status,
+              created_at,
+              updated_at
+            FROM reports
+            WHERE reporter_user_id=$1
+            ORDER BY created_at ASC
+          `,
+          [u.id]
+        )
+
+      const verificationRequests=
+        p
+          ? await many(
+              `
+                SELECT
+                  id,
+                  professional_id,
+                  license_number,
+                  notes,
+                  status,
+                  admin_note,
+                  submitted_at,
+                  reviewed_at
+                FROM verification_requests
+                WHERE professional_id=$1
+                ORDER BY submitted_at ASC
+              `,
+              [p.id]
+            )
+          : []
+
+      const verificationDocuments=
+        p
+          ? await many(
+              `
+                SELECT
+                  id,
+                  professional_id,
+                  request_id,
+                  original_name,
+                  mime_type,
+                  size_bytes,
+                  created_at
+                FROM verification_documents
+                WHERE professional_id=$1
+                ORDER BY created_at ASC
+              `,
+              [p.id]
+            )
+          : []
+
+      const subscriptions=
+        p
+          ? await many(
+              `
+                SELECT
+                  id,
+                  professional_id,
+                  plan,
+                  price,
+                  status,
+                  stripe_status,
+                  billing_mode,
+                  started_at,
+                  current_period_end,
+                  cancel_at_period_end,
+                  updated_at
+                FROM subscriptions
+                WHERE professional_id=$1
+                ORDER BY started_at ASC
+              `,
+              [p.id]
+            )
+          : []
+
+      const payments=
+        p
+          ? await many(
+              `
+                SELECT
+                  id,
+                  professional_id,
+                  invoice_id,
+                  amount,
+                  currency,
+                  status,
+                  provider,
+                  hosted_invoice_url,
+                  created_at
+                FROM payments
+                WHERE professional_id=$1
+                ORDER BY created_at ASC
+              `,
+              [p.id]
+            )
+          : []
+
+      const counts={
+        bookings:bookings.length,
+        sessions:sessions.length,
+        identities:identities.length,
+        favorites:favorites.length,
+        notifications:notifications.length,
+        bookingMessages:bookingMessages.length,
+        reviews:reviews.length,
+        supportTickets:supportTickets.length,
+        supportMessages:supportMessages.length,
+        reports:reports.length,
+        verificationRequests:verificationRequests.length,
+        verificationDocuments:verificationDocuments.length,
+        subscriptions:subscriptions.length,
+        payments:payments.length
+      }
+
       res.json({
         exportedAt:now(),
         user:publicUser(u),
         professional:p,
         bookings,
+        sessions,
+        identities,
+        favorites,
+        notifications,
+        bookingMessages,
+        reviews,
+        supportTickets,
+        supportMessages,
+        reports,
+        verificationRequests,
+        verificationDocuments,
+        subscriptions,
+        payments,
         exportMeta:{
-          bookingCount:
-            bookings.length,
-          bookingTotal:
-            total,
+          counts,
+          bookingTotal:total,
           complete:
-            bookings.length===total
+            bookings.length===total,
+          secretFieldsExcluded:[
+            'password_hash',
+            'session.token_hash',
+            'one_time_tokens',
+            'verification_documents.storage_key'
+          ]
         }
       })
     }

@@ -348,26 +348,36 @@ pass(
 for(
   const marker
   of [
-    'supportTickets:',
-    'supportMessages:',
-    'reviews:',
-    'verificationRequests:',
-    'verificationDocuments:',
-    'notifications:',
-    'subscriptions:',
-    'payments:'
+    'sessions,',
+    'identities,',
+    'favorites,',
+    'notifications,',
+    'bookingMessages,',
+    'reviews,',
+    'supportTickets,',
+    'supportMessages,',
+    'reports,',
+    'verificationRequests,',
+    'verificationDocuments,',
+    'subscriptions,',
+    'payments,'
   ]
 ){
-  assert.equal(
+  assert.ok(
     privacyRoutes.includes(marker),
-    false,
-    'D10I.1 baseline changed: export now includes ' +
+    'complete subject export missing: ' +
     marker
   )
 }
 
-gap(
-  'subject-data export completeness is not yet proven'
+assert.ok(
+  privacyRoutes.includes(
+    'secretFieldsExcluded'
+  )
+)
+
+pass(
+  'subject-data export completeness gap closed'
 )
 
 
@@ -567,7 +577,7 @@ console.log(
 )
 console.log('')
 console.log(
-  'KNOWN GAP 1: subject-data export completeness'
+  'CLOSED GAP 1: subject-data export completeness'
 )
 console.log(
   'KNOWN GAP 2: profile-photo deletion cleanup'
