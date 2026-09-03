@@ -1,4 +1,4 @@
-﻿/*
+/*
  * MELEO v6.3.0
  * Admin Observability routes
  *
@@ -12,7 +12,9 @@ export function registerAdminObservabilityRoutes(
     Admin,
     pagination,
     many,
-    one
+    one,
+    tx,
+    audit
   }
 ) {
 
@@ -40,6 +42,223 @@ export function registerAdminObservabilityRoutes(
    const x=await one(`SELECT (SELECT count(*) FROM users WHERE deleted_at IS NULL AND created_at>=now()-interval '7 days')::int "newUsers7",(SELECT count(*) FROM users WHERE deleted_at IS NULL AND created_at>=now()-interval '30 days')::int "newUsers30",(SELECT count(*) FROM bookings WHERE created_at>=now()-interval '7 days')::int "newBookings7",(SELECT count(*) FROM bookings WHERE created_at>=now()-interval '30 days')::int "newBookings30"`);
    res.json({topPros,signupByRole,bookingStatus,reviewDist,...x})
   })
+
+
+  /*
+   * ==========================================================
+   * D10H.6 — FAILED ASYNC JOB OBSERVABILITY / RECOVERY
+   * ==========================================================
+   */
+
+  app.get(
+    '/api/admin/async-jobs/failed',
+    async(req,res)=>{
+
+      const {
+        page,
+        limit,
+        offset
+      }=pagination(
+        req.query,
+        {
+          defaultLimit:50,
+          maxLimit:200
+        }
+      )
+
+      const items=
+        await many(
+          `SELECT
+             id,
+             job_type "jobType",
+             status,
+             attempts,
+             max_attempts "maxAttempts",
+             priority,
+             run_at "runAt",
+             locked_at "lockedAt",
+             locked_by "lockedBy",
+             last_error "lastError",
+             created_at "createdAt",
+             updated_at "updatedAt",
+             completed_at "completedAt"
+           FROM background_jobs
+           WHERE status='failed'
+           ORDER BY updated_at DESC,created_at DESC
+           LIMIT $1 OFFSET $2`,
+          [
+            limit,
+            offset
+          ]
+        )
+
+      const totalRow=
+        await one(
+          `SELECT count(*)::int count
+           FROM background_jobs
+           WHERE status='failed'`
+        )
+
+      res.json({
+        items,
+        page,
+        limit,
+        total:
+          Number(
+            totalRow?.count||
+            0
+          )
+      })
+    }
+  )
+
+
+  app.post(
+    '/api/admin/async-jobs/:id/retry',
+    async(req,res)=>{
+
+      const jobId=
+        String(
+          req.params.id||
+          ''
+        ).trim()
+
+      if(!jobId){
+        return res
+          .status(400)
+          .json({
+            error:'invalid_job_id'
+          })
+      }
+
+      const outcome=
+        await tx(
+          async client=>{
+
+            const currentResult=
+              await client.query(
+                `SELECT
+                   id,
+                   job_type,
+                   status,
+                   attempts,
+                   max_attempts,
+                   last_error
+                 FROM background_jobs
+                 WHERE id=$1
+                 FOR UPDATE`,
+                [
+                  jobId
+                ]
+              )
+
+            const current=
+              currentResult.rows[0]
+
+            if(!current){
+              return {
+                state:'not_found'
+              }
+            }
+
+            if(
+              current.status!==
+              'failed'
+            ){
+              return {
+                state:'not_failed',
+                status:
+                  current.status
+              }
+            }
+
+            const updatedResult=
+              await client.query(
+                `UPDATE background_jobs
+                 SET
+                   status='pending',
+                   run_at=now(),
+                   locked_at=null,
+                   locked_by=null,
+                   completed_at=null,
+                   updated_at=now()
+                 WHERE id=$1
+                 RETURNING
+                   id,
+                   job_type,
+                   status,
+                   attempts,
+                   max_attempts,
+                   run_at`,
+                [
+                  jobId
+                ]
+              )
+
+            await audit(
+              req.user?.id||null,
+              'async.job.retry_requested',
+              {
+                jobId:
+                  current.id,
+                jobType:
+                  current.job_type,
+                attempts:
+                  Number(
+                    current.attempts||
+                    0
+                  ),
+                maxAttempts:
+                  Number(
+                    current.max_attempts||
+                    0
+                  ),
+                previousError:
+                  current.last_error||
+                  null
+              },
+              client
+            )
+
+            return {
+              state:'retried',
+              job:
+                updatedResult.rows[0]
+            }
+          }
+        )
+
+      if(
+        outcome.state===
+        'not_found'
+      ){
+        return res
+          .status(404)
+          .json({
+            error:'job_not_found'
+          })
+      }
+
+      if(
+        outcome.state===
+        'not_failed'
+      ){
+        return res
+          .status(409)
+          .json({
+            error:'job_not_failed',
+            status:
+              outcome.status
+          })
+      }
+
+      res.json({
+        ok:true,
+        job:
+          outcome.job
+      })
+    }
+  )
 
 
 }

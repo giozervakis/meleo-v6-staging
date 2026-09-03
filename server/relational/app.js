@@ -2674,7 +2674,9 @@ registerAdminObservabilityRoutes(
     Admin,
     pagination,
     many,
-    one
+    one,
+    tx,
+    audit
   }
 )
 
