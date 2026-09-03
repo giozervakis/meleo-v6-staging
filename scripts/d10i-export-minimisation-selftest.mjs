@@ -274,3 +274,94 @@ console.log('')
 console.log(
   'MELEO D10I.4 export minimisation self-test: OK'
 )
+
+/*
+ * D10I FINAL consolidated privacy assertions
+ *
+ * These checks close the final export/deletion findings while
+ * remaining under the existing export-minimisation-check that is
+ * already part of ci:gate.
+ */
+const finalPrivacyRoute =
+  fs.readFileSync(
+    'server/routes/account-privacy.routes.js',
+    'utf8'
+  )
+
+const finalDeletionService =
+  fs.readFileSync(
+    'server/services/account-deletion.service.js',
+    'utf8'
+  )
+
+assert.match(
+  finalPrivacyRoute,
+  /const\s+exportProfessional\s*=/,
+  'Professional export must use an export-safe projection'
+)
+
+assert.match(
+  finalPrivacyRoute,
+  /stripeSubscriptionId/,
+  'Professional Stripe subscription identifier must be explicitly handled'
+)
+
+assert.doesNotMatch(
+  finalPrivacyRoute,
+  /professional\s*:\s*p\s*,/,
+  'Raw canonical professional DTO must not be exported directly'
+)
+
+assert.match(
+  finalPrivacyRoute,
+  /professional\.stripeSubscriptionId/,
+  'Export metadata must document excluded professional Stripe identifier'
+)
+
+assert.match(
+  finalPrivacyRoute,
+  /const\s+decryptExportSensitive\s*=/,
+  'Export must use a strict sensitive-data decryption boundary'
+)
+
+assert.match(
+  finalPrivacyRoute,
+  /raw\.startsWith\('enc:v1:'\)\s*&&\s*decrypted\s*===\s*''/s,
+  'Encrypted export data must detect silent decrypt failure'
+)
+
+assert.match(
+  finalPrivacyRoute,
+  /EXPORT_DECRYPTION_FAILED/,
+  'Export decrypt failure must be explicit'
+)
+
+assert.match(
+  finalPrivacyRoute,
+  /text\s*:\s*decryptExportSensitive\s*\(\s*body_encrypted\s*\)/s,
+  'Booking-message export must use strict export decryption'
+)
+
+assert.match(
+  finalDeletionService,
+  /DELETE\s+FROM\s+live_events\s+WHERE\s+user_id\s*=\s*\$1/s,
+  'Account deletion must erase user-scoped live events immediately'
+)
+
+assert.match(
+  finalDeletionService,
+  /DELETE\s+FROM\s+notifications[\s\S]*DELETE\s+FROM\s+live_events[\s\S]*UPDATE\s+bookings/,
+  'Live-event erasure must remain inside final anonymisation transaction'
+)
+
+console.log(
+  '[PASS] D10I FINAL professional export identifiers minimised'
+)
+
+console.log(
+  '[PASS] D10I FINAL encrypted export failures fail closed'
+)
+
+console.log(
+  '[PASS] D10I FINAL account deletion erases live events immediately'
+)

@@ -299,6 +299,43 @@ export function registerAccountPrivacyRoutes(
             )
           : []
 
+      /*
+       * A subject-access export must never silently look complete when
+       * encrypted personal data could not be decrypted. The canonical
+       * decryptor deliberately returns an empty string on key/decryption
+       * failure for defensive runtime behaviour, so the export boundary
+       * adds a stricter completeness guarantee.
+       */
+      const decryptExportSensitive=
+        value=>{
+          const raw=
+            String(
+              value||''
+            )
+
+          const decrypted=
+            decryptSensitive(
+              raw
+            )
+
+          if(
+            raw.startsWith('enc:v1:') &&
+            decrypted===''
+          ){
+            const error=
+              new Error(
+                'Sensitive export data could not be decrypted'
+              )
+
+            error.code=
+              'EXPORT_DECRYPTION_FAILED'
+
+            throw error
+          }
+
+          return decrypted
+        }
+
       const bookingMessages=
         bookingMessageRows.map(
           ({
@@ -307,7 +344,7 @@ export function registerAccountPrivacyRoutes(
           })=>({
             ...message,
             text:
-              decryptSensitive(
+              decryptExportSensitive(
                 body_encrypted
               )
           })
@@ -513,10 +550,29 @@ export function registerAccountPrivacyRoutes(
         payments:payments.length
       }
 
+      /*
+       * Professionals.byUser() returns the canonical application DTO.
+       * That DTO intentionally contains billing/runtime fields used by
+       * authenticated application flows. A data-subject export must not
+       * expose internal provider identifiers merely because they exist on
+       * the canonical DTO.
+       */
+      const exportProfessional=
+        p
+          ? (()=>{
+              const {
+                stripeSubscriptionId,
+                ...safeProfessional
+              }=p
+
+              return safeProfessional
+            })()
+          : null
+
       res.json({
         exportedAt:now(),
         user:publicUser(u),
-        professional:p,
+        professional:exportProfessional,
         bookings,
         sessions,
         identities,
@@ -544,7 +600,8 @@ export function registerAccountPrivacyRoutes(
             'booking_messages.body_encrypted',
             'booking_messages.sender_user_id',
             'support_messages.sender_user_id',
-            'reviews.patient_id'
+            'reviews.patient_id',
+            'professional.stripeSubscriptionId'
           ]
         }
       })

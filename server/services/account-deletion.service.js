@@ -308,6 +308,19 @@ export function createAccountDeletionService(
         [user.id]
       )
 
+      /*
+       * Live events are ephemeral user-scoped delivery records.
+       * Account erasure removes them immediately instead of waiting
+       * for the normal operational-retention window.
+       */
+      await client.query(
+        `
+          DELETE FROM live_events
+          WHERE user_id=$1
+        `,
+        [user.id]
+      )
+
       await client.query(
         `
           UPDATE bookings
