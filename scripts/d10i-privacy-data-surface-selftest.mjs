@@ -455,16 +455,54 @@ assert.ok(
   )
 )
 
-assert.equal(
+assert.ok(
   deletion.includes(
-    'profile_photo_key'
+    'profile_photo_key=NULL'
   ),
-  false,
-  'D10I.1 baseline changed: deletion now handles profile photo metadata'
+  'D10I.3 regression: deletion no longer clears profile photo key'
 )
 
-gap(
-  'account deletion does not yet prove profile-photo object cleanup'
+assert.ok(
+  deletion.includes(
+    'profile_photo_mime=NULL'
+  ),
+  'D10I.3 regression: deletion no longer clears profile photo MIME'
+)
+
+assert.ok(
+  deletion.includes(
+    'profile_photo_version='
+  ),
+  'D10I.3 regression: deletion no longer invalidates profile photo version'
+)
+
+assert.ok(
+  deletion.includes(
+    'removeProfilePhotoObject('
+  ),
+  'D10I.3 regression: deletion no longer removes profile photo object'
+)
+
+assert.ok(
+  deletion.includes(
+    'removeProfilePhotoObject('
+  )
+)
+
+assert.ok(
+  deletion.includes(
+    "'privacy.profile_photo_storage_delete_failed'"
+  )
+)
+
+assert.ok(
+  deletion.includes(
+    'profile_photo_key=NULL'
+  )
+)
+
+pass(
+  'account deletion proves profile-photo object cleanup'
 )
 
 
@@ -580,7 +618,7 @@ console.log(
   'CLOSED GAP 1: subject-data export completeness'
 )
 console.log(
-  'KNOWN GAP 2: profile-photo deletion cleanup'
+  'CLOSED GAP 2: profile-photo deletion cleanup'
 )
 console.log('')
 console.log(

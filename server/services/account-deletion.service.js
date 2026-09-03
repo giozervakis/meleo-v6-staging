@@ -239,10 +239,29 @@ export function createAccountDeletionService(
   }
 
 
+  async function removeProfilePhotoObject(
+    user
+  ){
+    const profilePhotoKey=
+      user?.profile_photo_key || null
+
+    if(!profilePhotoKey){
+      return null
+    }
+
+    await deleteVerificationObject(
+      profilePhotoKey
+    )
+
+    return profilePhotoKey
+  }
+
+
   async function finalizeDeletion(
     user,
     professional,
-    verificationDocuments
+    verificationDocuments,
+    profilePhotoRemoved
   ){
     const deletedEmail=
       `deleted+${user.id}@deleted.invalid`
@@ -439,6 +458,11 @@ export function createAccountDeletionService(
             password_hash='!account-deleted!',
             email_verified=false,
             stripe_customer_id=NULL,
+            avatar_key=NULL,
+            profile_photo_key=NULL,
+            profile_photo_mime=NULL,
+            profile_photo_version=
+              profile_photo_version+1,
             deletion_pending=false,
             deletion_requested_at=
               coalesce(
@@ -469,6 +493,10 @@ export function createAccountDeletionService(
           credentialsRemoved:true,
           verificationObjectsRemoved:
             verificationDocuments.length,
+          profilePhotoRemoved:
+            Boolean(
+              profilePhotoRemoved
+            ),
           recovered:
             Boolean(
               user.deletion_pending
@@ -594,10 +622,48 @@ export function createAccountDeletionService(
     }
 
 
+    let profilePhotoRemoved=null
+
+    try{
+
+      profilePhotoRemoved=
+        await removeProfilePhotoObject(
+          user
+        )
+
+    }catch(error){
+
+      await schedulePendingRecovery(
+        user.id,
+        'privacy.profile_photo_storage_delete_failed',
+        'profile_photo_storage_delete_failed',
+        {
+          profilePhotoKeyPresent:
+            Boolean(
+              user.profile_photo_key
+            )
+        },
+        scheduleRecovery
+      )
+
+      if(retryMode){
+        throw error
+      }
+
+      return {
+        ok:true,
+        pending:true,
+        reason:
+          'profile_photo_storage_delete_failed'
+      }
+    }
+
+
     await finalizeDeletion(
       user,
       professional,
-      verificationDocuments
+      verificationDocuments,
+      profilePhotoRemoved
     )
 
     return {
