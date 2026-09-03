@@ -362,43 +362,34 @@ const smartScoreExpr=`
 	u.profile_photo_version,
 	${distanceExpr},
 
-    coalesce(bs.total,0)::int AS trust_total,
-    coalesce(bs.completed,0)::int AS trust_completed,
-    coalesce(bs.cancelled,0)::int AS trust_cancelled,
-    coalesce(bs.progressed,0)::int AS trust_progressed,
-    coalesce(bs.recent_completed,0)::int AS trust_recent_completed
+    coalesce(bm.total,0)::int AS trust_total,
+    coalesce(bm.completed,0)::int AS trust_completed,
+    coalesce(bm.cancelled,0)::int AS trust_cancelled,
+    coalesce(bm.progressed,0)::int AS trust_progressed,
+    coalesce(br.recent_completed,0)::int AS trust_recent_completed
 
   FROM professionals p
 
   JOIN users u
     ON u.id=p.user_id
 
-  LEFT JOIN LATERAL (
+  LEFT JOIN professional_booking_metrics bm
+    ON bm.professional_id=p.id
+
+  LEFT JOIN (
     SELECT
-      count(*)::int AS total,
+      professional_id,
+      count(*)::int AS recent_completed
 
-      count(*) FILTER (
-        WHERE b.status='completed'
-      )::int AS completed,
+    FROM professional_recent_completed_bookings
 
-      count(*) FILTER (
-        WHERE b.status='cancelled'
-      )::int AS cancelled,
+    WHERE
+      expires_at>=now()
 
-      count(*) FILTER (
-        WHERE b.status<>'pending'
-      )::int AS progressed,
+    GROUP BY professional_id
 
-      count(*) FILTER (
-        WHERE b.status='completed'
-          AND b.created_at>=now()-interval '90 days'
-      )::int AS recent_completed
-
-    FROM bookings b
-
-    WHERE b.professional_id=p.id
-
-  ) bs ON true
+  ) br
+    ON br.professional_id=p.id
 
   WHERE ${where.join(' AND ')}
 `
