@@ -39,6 +39,11 @@ const app =
     'server/relational/app.js'
   )
 
+const liveEventRuntime =
+  read(
+    'server/services/live-event-runtime.service.js'
+  )
+
 const worker =
   read(
     'server/worker.js'
@@ -167,20 +172,56 @@ const idxServerClose =
     'server.close('
   )
 
-const idxSse =
-  shutdownBlock.indexOf(
+/*
+ * The SSE implementation may live directly in app.js
+ * or in the extracted live-event runtime service.
+ *
+ * Ordering is still asserted from the composition root:
+ * closeClients() must occur after server.close() begins,
+ * and closeListener() must occur before Redis/PG shutdown.
+ */
+const hasSseShutdownEvent =
+  shutdownBlock.includes(
+    'event: shutdown'
+  ) ||
+  liveEventRuntime.includes(
     'event: shutdown'
   )
+
+const idxSse =
+  shutdownBlock.includes(
+    'event: shutdown'
+  )
+    ? shutdownBlock.indexOf(
+        'event: shutdown'
+      )
+    : shutdownBlock.indexOf(
+        'liveEventRuntime.closeClients()'
+      )
 
 const idxIdle =
   shutdownBlock.indexOf(
     'closeIdleConnections'
   )
 
-const idxUnlisten =
-  shutdownBlock.indexOf(
+const hasUnlisten =
+  shutdownBlock.includes(
+    'UNLISTEN meleo_live'
+  ) ||
+  liveEventRuntime.includes(
     'UNLISTEN meleo_live'
   )
+
+const idxUnlisten =
+  shutdownBlock.includes(
+    'UNLISTEN meleo_live'
+  )
+    ? shutdownBlock.indexOf(
+        'UNLISTEN meleo_live'
+      )
+    : shutdownBlock.indexOf(
+        'await liveEventRuntime.closeListener()'
+      )
 
 const idxRedis =
   shutdownBlock.indexOf(
@@ -207,6 +248,7 @@ check(
 
 
 check(
+  hasSseShutdownEvent &&
   idxSse >= 0,
   'SSE clients receive explicit shutdown event'
 )
@@ -225,6 +267,7 @@ check(
 
 
 check(
+  hasUnlisten &&
   idxUnlisten >= 0,
   'PostgreSQL live-event listener is unregistered'
 )

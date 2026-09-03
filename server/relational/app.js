@@ -11,6 +11,7 @@ import { config, root, assertProductionReady } from '../config.js'
 import { mail } from '../mail.js'
 import { encryptSensitive, decryptSensitive, matchTotpStep } from '../security.js'
 import { getPool, sql, one, many, tx, migrate, closePool, id, now, sha256, hashPassword, verifyPassword, publicUser, pagination } from './pool.js'
+import { createLiveEventRuntime } from '../services/live-event-runtime.service.js'
 import { Users, Sessions, Professionals, Notifications, Bookings, Analytics, Admin, audit } from './repositories.js'
 import Stripe from 'stripe'
 import { canViewBooking, canEditBooking, canViewPatientContact, canReviewBooking } from './authorization.js'
@@ -2613,8 +2614,15 @@ registerReportRoutes(
 )
 
 // Multi-instance SSE via Postgres LISTEN/NOTIFY + persisted live_events.
-const liveClients=new Map();const listener=await getPool().connect();await listener.query('LISTEN meleo_live');listener.on('notification',msg=>{let meta;try{meta=JSON.parse(msg.payload||'{}')}catch{return}const uid=meta.userId,clients=liveClients.get(uid);if(!clients?.size)return;one('SELECT payload FROM live_events WHERE id=$1 AND user_id=$2',[meta.eventId,uid]).then(e=>{if(!e)return;for(const r of [...clients])try{r.write(`event: meleo\ndata: ${JSON.stringify(e.payload)}\n\n`)}catch{clients.delete(r)}}).catch(()=>{})})
-app.get('/api/live',auth,async(req,res)=>{res.setHeader('Content-Type','text/event-stream');res.setHeader('Cache-Control','no-cache');res.setHeader('Connection','keep-alive');res.flushHeaders?.();const set=liveClients.get(req.user.id)||new Set();set.add(res);liveClients.set(req.user.id,set);res.write(`event: ready\ndata: {}\n\n`);const ping=setInterval(()=>{try{res.write(': ping\n\n')}catch{}},25000);req.on('close',()=>{clearInterval(ping);set.delete(res);if(!set.size)liveClients.delete(req.user.id)})})
+const liveEventRuntime =
+  await createLiveEventRuntime(
+    app,
+    {
+      auth,
+      getPool,
+      one
+    }
+  )
 
 
 registerBookingCalendarRoutes(
@@ -2922,25 +2930,7 @@ async function shutdown(
      * Close SSE clients immediately so server.close()
      * can drain successfully.
      */
-    for(
-      const clients
-      of liveClients.values()
-    ){
-      for(const client of clients){
-        try{
-          client.write(
-            'event: shutdown\n' +
-            'data: {"reason":"server_restart"}\n\n'
-          )
-        }catch{}
-
-        try{
-          client.end()
-        }catch{}
-      }
-    }
-
-    liveClients.clear()
+    liveEventRuntime.closeClients()
 
     /*
      * Close idle keep-alive connections where
@@ -2953,9 +2943,7 @@ async function shutdown(
     await httpClosed
 
     try{
-      await listener.query(
-        'UNLISTEN meleo_live'
-      )
+      await liveEventRuntime.closeListener()
     }catch(err){
       log.warn(
         'api.shutdown.unlisten_failed',
@@ -2966,10 +2954,6 @@ async function shutdown(
         }
       )
     }
-
-    try{
-      listener.release()
-    }catch{}
 
     await closeRedis()
     await closePool()
