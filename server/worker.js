@@ -47,6 +47,21 @@ const stripeReconcileIntervalSeconds=Math.max(
 )
 let stopping=false, active=0
 
+const stripeScheduleGuardMs=
+  Math.max(
+    5000,
+    Math.min(
+      60000,
+      Math.floor(
+        stripeReconcileIntervalSeconds*
+        1000/
+        4
+      )
+    )
+  )
+
+let lastStripeScheduleCheckAt=0
+
 const accountDeletion=
   createAccountDeletionService({
     Users,
@@ -79,6 +94,64 @@ async function publishHeartbeat(force=false){
     observeError('redis','worker_heartbeat_failed')
   }
 }
+
+
+async function ensureStripeReconciliationSchedule({
+  force=false,
+  reason='supervisor'
+}={}){
+
+  const current=Date.now()
+
+  if(
+    !force &&
+    current-lastStripeScheduleCheckAt <
+      stripeScheduleGuardMs
+  ){
+    return
+  }
+
+  lastStripeScheduleCheckAt=current
+
+  try{
+
+    const result=
+      await scheduleStripeReconciliation({
+        delaySeconds:
+          stripeReconcileIntervalSeconds,
+        reason
+      })
+
+    if(result?.scheduled){
+      log.info(
+        'stripe.reconcile.chain_repaired',
+        {
+          jobId:result.jobId,
+          reason
+        }
+      )
+    }
+
+    return result
+
+  }catch(err){
+
+    observeError('stripe','reconcile_schedule_failed')
+
+    log.error(
+      'stripe.reconcile.schedule_failed',
+      {
+        reason,
+        message:
+          err?.message||
+          String(err)
+      }
+    )
+
+    return null
+  }
+}
+
 
 async function execute(job){
   if(job.job_type==='email'){
@@ -160,20 +233,7 @@ async function execute(job){
       }
     )
 
-    /*
-     * Self-schedule the next run.
-     *
-     * scheduleStripeReconciliation()
-     * prevents duplicate pending/processing
-     * reconciliation jobs.
-     */
-    await scheduleStripeReconciliation({
-      delaySeconds:
-        stripeReconcileIntervalSeconds,
 
-      reason:
-        'periodic'
-    })
 
     return
   }
@@ -197,9 +257,37 @@ async function runJob(job){
   active++
 
   try{
-    await jobRuntime.run(
-      job
-    )
+
+    const result=
+      await jobRuntime.run(
+        job
+      )
+
+    /*
+     * D10H.5
+     *
+     * Only schedule the next periodic reconciliation AFTER
+     * the generic runtime has persisted this job as completed
+     * or terminally failed.
+     *
+     * Retrying jobs remain pending and therefore already own
+     * the singleton slot.
+     */
+    if(
+      job.job_type==='stripe_reconcile' &&
+      (
+        result?.status==='completed' ||
+        result?.terminal
+      )
+    ){
+      await ensureStripeReconciliationSchedule({
+        force:true,
+        reason:
+          result?.terminal
+            ? 'terminal_recovery'
+            : 'periodic'
+      })
+    }
   }
   finally{
     active--
@@ -236,6 +324,7 @@ log.info(
 )
 while(!stopping){
   await publishHeartbeat()
+  await ensureStripeReconciliationSchedule()
   while(!stopping&&active<concurrency){const job=await jobRuntime.claim();if(!job)break;runJob(job)}
   await new Promise(r=>setTimeout(r,pollMs))
 }

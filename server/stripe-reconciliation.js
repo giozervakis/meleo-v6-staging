@@ -4,6 +4,7 @@ import {
   one,
   many,
   sql,
+  tx,
   id,
   now
 } from './relational/pool.js'
@@ -665,88 +666,126 @@ export async function scheduleStripeReconciliation({
 
 
   /*
-   * At most one pending/processing reconciliation job.
-   * This makes the scheduler safe with multiple workers.
+   * D10H.5
+   *
+   * Serialize the pending/processing singleton decision in
+   * PostgreSQL itself.
+   *
+   * A plain SELECT followed by INSERT is race-prone when
+   * multiple workers perform scheduling simultaneously.
+   * The transaction-scoped advisory lock makes the check +
+   * insert one serialized scheduler critical section.
    */
-  const existing =
-    await one(
-      `SELECT id
-       FROM background_jobs
-       WHERE job_type='stripe_reconcile'
-         AND status IN (
-           'pending',
-           'processing'
-         )
-       LIMIT 1`
+  const delay =
+    String(
+      Math.max(
+        0,
+        Number(delaySeconds) || 0
+      )
     )
 
 
-  if (existing?.id) {
+  const result =
+    await tx(
+      async client=>{
 
-    return {
-      scheduled: false,
-      reason: 'already_queued',
-      jobId: existing.id
-    }
-  }
-
-
-  const jobId =
-    id('job')
-
-
-  await sql(
-    `INSERT INTO background_jobs(
-       id,
-       job_type,
-       payload,
-       status,
-       priority,
-       attempts,
-       max_attempts,
-       run_at
-     )
-     VALUES(
-       $1,
-       'stripe_reconcile',
-       $2::jsonb,
-       'pending',
-       40,
-       0,
-       5,
-       now()+($3||' seconds')::interval
-     )`,
-    [
-      jobId,
-
-      JSON.stringify({
-        reason,
-        createdAt:
-          new Date().toISOString()
-      }),
-
-      String(
-        Math.max(
-          0,
-          Number(delaySeconds) || 0
+        await client.query(
+          `SELECT pg_advisory_xact_lock(
+             hashtext($1)
+           )`,
+          [
+            'meleo:stripe_reconcile:scheduler'
+          ]
         )
-      )
-    ]
-  )
 
 
-  log.info(
-    'stripe.reconcile.scheduled',
-    {
-      jobId,
-      delaySeconds,
-      reason
-    }
-  )
+        const existingResult =
+          await client.query(
+            `SELECT id
+             FROM background_jobs
+             WHERE job_type='stripe_reconcile'
+               AND status IN (
+                 'pending',
+                 'processing'
+               )
+             ORDER BY created_at ASC
+             LIMIT 1`
+          )
 
 
-  return {
-    scheduled: true,
-    jobId
+        const existing =
+          existingResult.rows?.[0] ||
+          null
+
+
+        if(existing?.id){
+          return {
+            scheduled:false,
+            reason:'already_queued',
+            jobId:existing.id
+          }
+        }
+
+
+        const jobId =
+          id('job')
+
+
+        await client.query(
+          `INSERT INTO background_jobs(
+             id,
+             job_type,
+             payload,
+             status,
+             priority,
+             attempts,
+             max_attempts,
+             run_at
+           )
+           VALUES(
+             $1,
+             'stripe_reconcile',
+             $2::jsonb,
+             'pending',
+             40,
+             0,
+             5,
+             now()+($3||' seconds')::interval
+           )`,
+          [
+            jobId,
+
+            JSON.stringify({
+              reason,
+              createdAt:
+                new Date().toISOString()
+            }),
+
+            delay
+          ]
+        )
+
+
+        return {
+          scheduled:true,
+          jobId
+        }
+      }
+    )
+
+
+  if(result.scheduled){
+    log.info(
+      'stripe.reconcile.scheduled',
+      {
+        jobId:result.jobId,
+        delaySeconds:
+          Number(delay),
+        reason
+      }
+    )
   }
+
+
+  return result
 }
