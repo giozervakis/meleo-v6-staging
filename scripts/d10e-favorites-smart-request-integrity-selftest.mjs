@@ -8,6 +8,11 @@ const read = path =>
 const app =
   read('server/relational/app.js')
 
+const smartLearningService = fs.readFileSync(
+  'server/services/smart-learning.service.js',
+  'utf8'
+)
+
 const favorites =
   read('server/routes/favorites.routes.js')
 
@@ -184,9 +189,7 @@ check(
 // ----------------------------------------------------------
 
 check(
-  app.includes(
-    'normalized_text text NOT NULL UNIQUE'
-  ),
+  /normalized_text[^\n]*UNIQUE|UNIQUE\s*\([^)]*normalized_text[^)]*\)/i.test(smartLearningService),
   'smart-request normalized text unique constraint exists'
 )
 
