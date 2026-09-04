@@ -129,7 +129,11 @@ app.put('/api/professional/profile',auth,requireRole('professional'),limits.writ
         `${column}=$${i++}`
       )
 
-      vals.push(value)
+      vals.push(
+        ['languages','credentials','services','availability'].includes(key)
+          ? JSON.stringify(value)
+          : value
+      )
     }
 
     if(sets.length){
