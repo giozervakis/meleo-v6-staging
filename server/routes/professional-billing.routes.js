@@ -45,6 +45,107 @@ export function registerProfessionalBillingRoutes(app,deps) {
   const isoFromUnix=value=>
     value ? new Date(Number(value)*1000).toISOString() : null
 
+  const addBillingMonth=value=>{
+    const source=new Date(value)
+    const year=source.getUTCFullYear()
+    const month=source.getUTCMonth()
+    const day=source.getUTCDate()
+
+    const firstOfTarget=new Date(Date.UTC(
+      year,
+      month+1,
+      1,
+      source.getUTCHours(),
+      source.getUTCMinutes(),
+      source.getUTCSeconds(),
+      source.getUTCMilliseconds()
+    ))
+
+    const lastDay=new Date(Date.UTC(
+      firstOfTarget.getUTCFullYear(),
+      firstOfTarget.getUTCMonth()+1,
+      0
+    )).getUTCDate()
+
+    firstOfTarget.setUTCDate(Math.min(day,lastDay))
+    return firstOfTarget
+  }
+
+  const demoPeriodEnd=p=>{
+    const current=p?.currentPeriodEnd
+      ? new Date(p.currentPeriodEnd)
+      : null
+
+    if(current && Number.isFinite(current.getTime()) && current.getTime()>Date.now()){
+      return current
+    }
+
+    const anchor=p?.subscriptionSince
+      ? new Date(p.subscriptionSince)
+      : new Date()
+
+    const safeAnchor=
+      Number.isFinite(anchor.getTime())
+        ? anchor
+        : new Date()
+
+    let next=addBillingMonth(safeAnchor)
+
+    while(next.getTime()<=Date.now()){
+      next=addBillingMonth(next)
+    }
+
+    return next
+  }
+
+  async function materializeDemoBilling(p){
+    if(!p || p.billingMode!=='demo')return p
+
+    const effectiveAt=p.scheduledPlanEffectiveAt
+      ? new Date(p.scheduledPlanEffectiveAt)
+      : null
+
+    const periodEnd=p.currentPeriodEnd
+      ? new Date(p.currentPeriodEnd)
+      : null
+
+    if(
+      p.scheduledPlan &&
+      effectiveAt &&
+      Number.isFinite(effectiveAt.getTime()) &&
+      effectiveAt.getTime()<=Date.now()
+    ){
+      const nextEnd=addBillingMonth(effectiveAt)
+
+      return Professionals.update(p.id,{
+        subscriptionPlan:p.scheduledPlan,
+        subscriptionPrice:PLANS[p.scheduledPlan].price,
+        subscriptionStatus:'active',
+        featured:p.scheduledPlan==='premium',
+        scheduledPlan:null,
+        scheduledPlanEffectiveAt:null,
+        currentPeriodEnd:nextEnd.toISOString()
+      })
+    }
+
+    if(
+      p.cancelAtPeriodEnd &&
+      periodEnd &&
+      Number.isFinite(periodEnd.getTime()) &&
+      periodEnd.getTime()<=Date.now()
+    ){
+      return Professionals.update(p.id,{
+        subscriptionStatus:'cancelled',
+        featured:false,
+        cancelAtPeriodEnd:false,
+        scheduledPlan:null,
+        scheduledPlanEffectiveAt:null
+      })
+    }
+
+    return p
+  }
+
   async function scheduleState(s,sub){
     const sid=scheduleIdOf(sub)
     if(!sid)return null
@@ -162,8 +263,10 @@ export function registerProfessionalBillingRoutes(app,deps) {
   }
 
   app.get('/api/professional/subscription',auth,requireRole('professional'),async(req,res)=>{
-    const p=await Professionals.byUser(req.user.id)
+    let p=await Professionals.byUser(req.user.id)
     if(!p)return res.status(404).json({error:'Δεν βρέθηκε επαγγελματικό προφίλ'})
+
+    p=await materializeDemoBilling(p)
 
     const invoices=await many(
       `SELECT id,invoice_id "invoiceId",amount,currency,status,provider,hosted_invoice_url "hostedInvoiceUrl",created_at "createdAt"
@@ -174,8 +277,15 @@ export function registerProfessionalBillingRoutes(app,deps) {
       [p.id]
     )
 
-    let scheduledPlan=null
-    let scheduledPlanEffectiveAt=null
+    let scheduledPlan=
+      p.billingMode==='demo'
+        ? p.scheduledPlan||null
+        : null
+
+    let scheduledPlanEffectiveAt=
+      p.billingMode==='demo'
+        ? p.scheduledPlanEffectiveAt||null
+        : null
 
     const s=getStripe()
     if(s&&p.stripeSubscriptionId){
@@ -208,20 +318,118 @@ export function registerProfessionalBillingRoutes(app,deps) {
     const plan=str(req.body.plan,20)
     if(!isPlan(plan))return res.status(400).json({error:'Μη έγκυρο πακέτο.'})
 
-    const p=await Professionals.byUser(req.user.id)
+    let p=await Professionals.byUser(req.user.id)
     if(!p)return res.status(404).json({error:'Δεν βρέθηκε επαγγελματικό προφίλ'})
 
+    p=await materializeDemoBilling(p)
+
     if(config.demoCheckout){
-      await Professionals.update(p.id,{
-        subscriptionPlan:plan,
-        subscriptionPrice:PLANS[plan].price,
+      const currentPlan=String(p.subscriptionPlan||'').toLowerCase()
+
+      /*
+       * First demo activation.
+       */
+      if(
+        p.subscriptionStatus!=='active' ||
+        !isPlan(currentPlan)
+      ){
+        const startedAt=p.subscriptionSince||now()
+        const periodEnd=demoPeriodEnd({
+          ...p,
+          subscriptionSince:startedAt
+        })
+
+        const professional=await Professionals.update(p.id,{
+          subscriptionPlan:plan,
+          subscriptionPrice:PLANS[plan].price,
+          subscriptionStatus:'active',
+          billingMode:'demo',
+          subscriptionSince:startedAt,
+          currentPeriodEnd:periodEnd.toISOString(),
+          cancelAtPeriodEnd:false,
+          scheduledPlan:null,
+          scheduledPlanEffectiveAt:null,
+          featured:plan==='premium',
+          onboardingStage:'profile'
+        })
+
+        return res.json({
+          mode:'demo',
+          demo:true,
+          changed:true,
+          professional
+        })
+      }
+
+      /*
+       * No-op when requesting the current active plan.
+       */
+      if(plan===currentPlan){
+        return res.json({
+          mode:'demo',
+          demo:true,
+          changed:false,
+          scheduledPlan:p.scheduledPlan||null,
+          scheduledPlanEffectiveAt:p.scheduledPlanEffectiveAt||null,
+          professional:await Professionals.byId(p.id)
+        })
+      }
+
+      /*
+       * PREMIUM -> BASIC
+       *
+       * Keep every PREMIUM entitlement through currentPeriodEnd.
+       * Only the future transition is stored.
+       */
+      if(currentPlan==='premium'&&plan==='basic'){
+        const periodEnd=demoPeriodEnd(p)
+
+        const professional=await Professionals.update(p.id,{
+          currentPeriodEnd:periodEnd.toISOString(),
+          scheduledPlan:'basic',
+          scheduledPlanEffectiveAt:periodEnd.toISOString(),
+          cancelAtPeriodEnd:false,
+          featured:true
+        })
+
+        return res.json({
+          mode:'demo',
+          demo:true,
+          changed:true,
+          scheduled:true,
+          scheduledPlan:'basic',
+          scheduledPlanEffectiveAt:periodEnd.toISOString(),
+          professional
+        })
+      }
+
+      /*
+       * BASIC -> PREMIUM
+       *
+       * Demo mirrors the production entitlement timing:
+       * upgrade activates immediately and keeps the same billing-cycle end.
+       */
+      const periodEnd=demoPeriodEnd(p)
+
+      const professional=await Professionals.update(p.id,{
+        subscriptionPlan:'premium',
+        subscriptionPrice:PLANS.premium.price,
         subscriptionStatus:'active',
         billingMode:'demo',
-        subscriptionSince:p.subscriptionSince||now(),
-        featured:plan==='premium',
-        onboardingStage:'profile'
+        currentPeriodEnd:periodEnd.toISOString(),
+        cancelAtPeriodEnd:false,
+        scheduledPlan:null,
+        scheduledPlanEffectiveAt:null,
+        featured:true
       })
-      return res.json({mode:'demo',demo:true,professional:await Professionals.byId(p.id)})
+
+      return res.json({
+        mode:'demo',
+        demo:true,
+        changed:true,
+        charged:false,
+        professional
+      })
     }
 
     const s=getStripe()
@@ -535,7 +743,30 @@ export function registerProfessionalBillingRoutes(app,deps) {
   })
 
   app.post('/api/professional/subscription/downgrade/cancel',auth,requireRole('professional'),async(req,res)=>{
-    const p=await Professionals.byUser(req.user.id)
+    let p=await Professionals.byUser(req.user.id)
+    p=await materializeDemoBilling(p)
+
+    if(config.demoCheckout){
+      if(!p?.scheduledPlan){
+        return res.json({
+          changed:false,
+          professional:p
+        })
+      }
+
+      const professional=await Professionals.update(p.id,{
+        scheduledPlan:null,
+        scheduledPlanEffectiveAt:null
+      })
+
+      return res.json({
+        changed:true,
+        scheduledPlan:null,
+        scheduledPlanEffectiveAt:null,
+        professional
+      })
+    }
+
     if(!p?.stripeSubscriptionId)return res.status(409).json({error:'Δεν υπάρχει ενεργή Stripe συνδρομή.'})
 
     const s=getStripe()
@@ -611,8 +842,17 @@ export function registerProfessionalBillingRoutes(app,deps) {
     const p=await Professionals.byUser(req.user.id)
 
     if(config.demoCheckout){
-      await Professionals.update(p.id,{subscriptionStatus:'cancelled',featured:false})
-      return res.json({professional:await Professionals.byId(p.id)})
+      const current=await materializeDemoBilling(p)
+      const periodEnd=demoPeriodEnd(current)
+
+      const professional=await Professionals.update(current.id,{
+        currentPeriodEnd:periodEnd.toISOString(),
+        cancelAtPeriodEnd:true,
+        scheduledPlan:null,
+        scheduledPlanEffectiveAt:null
+      })
+
+      return res.json({professional})
     }
 
     const s=getStripe()
@@ -637,11 +877,15 @@ export function registerProfessionalBillingRoutes(app,deps) {
     const p=await Professionals.byUser(req.user.id)
 
     if(config.demoCheckout){
-      await Professionals.update(p.id,{
+      const current=await materializeDemoBilling(p)
+
+      const professional=await Professionals.update(current.id,{
         subscriptionStatus:'active',
-        featured:p.subscriptionPlan==='premium'
+        cancelAtPeriodEnd:false,
+        featured:current.subscriptionPlan==='premium'
       })
-      return res.json({professional:await Professionals.byId(p.id)})
+
+      return res.json({professional})
     }
 
     const sub=await getStripe().subscriptions.update(

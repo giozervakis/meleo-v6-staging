@@ -76,6 +76,8 @@ export function professionalFromRow(r, user=null){
     stripeSubscriptionId:r.stripe_subscription_id,
     currentPeriodEnd:r.current_period_end,
     cancelAtPeriodEnd:r.cancel_at_period_end,
+    scheduledPlan:r.scheduled_plan,
+    scheduledPlanEffectiveAt:r.scheduled_plan_effective_at,
     pastDueSince:r.past_due_since,
     adminSuspended:r.admin_suspended
   }
@@ -183,7 +185,7 @@ byId: async pid=>{
 },
   async createForUser(userId){const pid=id('pro');await sql(`INSERT INTO professionals(id,user_id,onboarding_stage) VALUES($1,$2,'plan') ON CONFLICT(user_id) DO NOTHING`,[pid,userId]);return this.byUser(userId)},
   async update(pid, patch){
-    const map={title:'title',specialty:'specialty',verified:'verified',featured:'featured',adminSuspended:'admin_suspended',city:'city',area:'area',region:'region',countryCode:'country_code',latitude:'latitude',longitude:'longitude',serviceRadiusKm:'service_radius_km',subscriptionPlan:'subscription_plan',subscriptionPrice:'subscription_price',subscriptionStatus:'subscription_status',billingMode:'billing_mode',onboardingCompleted:'onboarding_completed',onboardingStage:'onboarding_stage',subscriptionSince:'subscription_since',stripeSubscriptionId:'stripe_subscription_id',currentPeriodEnd:'current_period_end',cancelAtPeriodEnd:'cancel_at_period_end',pastDueSince:'past_due_since',available:'available',bio:'bio',languages:'languages',credentials:'credentials',responseTime:'response_time',years:'years',price:'price',pricingMode:'pricing_mode',services:'services',availability:'availability',showPhone:'show_phone',showEmail:'show_email',preferPlatformContact:'prefer_platform_contact'}
+    const map={title:'title',specialty:'specialty',verified:'verified',featured:'featured',adminSuspended:'admin_suspended',city:'city',area:'area',region:'region',countryCode:'country_code',latitude:'latitude',longitude:'longitude',serviceRadiusKm:'service_radius_km',subscriptionPlan:'subscription_plan',subscriptionPrice:'subscription_price',subscriptionStatus:'subscription_status',billingMode:'billing_mode',onboardingCompleted:'onboarding_completed',onboardingStage:'onboarding_stage',subscriptionSince:'subscription_since',stripeSubscriptionId:'stripe_subscription_id',currentPeriodEnd:'current_period_end',cancelAtPeriodEnd:'cancel_at_period_end',scheduledPlan:'scheduled_plan',scheduledPlanEffectiveAt:'scheduled_plan_effective_at',pastDueSince:'past_due_since',available:'available',bio:'bio',languages:'languages',credentials:'credentials',responseTime:'response_time',years:'years',price:'price',pricingMode:'pricing_mode',services:'services',availability:'availability',showPhone:'show_phone',showEmail:'show_email',preferPlatformContact:'prefer_platform_contact'}
     const sets=[],vals=[];let i=1
     for(const [k,v] of Object.entries(patch)){const col=map[k];if(!col)continue;sets.push(`${col}=$${i++}`);vals.push(['languages','credentials','services','availability'].includes(k)?JSON.stringify(v):v)}
     if(!sets.length)return this.byId(pid);vals.push(pid);await sql(`UPDATE professionals SET ${sets.join(',')},updated_at=now() WHERE id=$${i}`,[...vals]);return this.byId(pid)
