@@ -67,6 +67,15 @@ function BookingFlow({
   const [contactConsent,setContactConsent]=
     useState(false)
 
+  const addressRef=
+    useRef<HTMLInputElement>(null)
+
+  const consentRef=
+    useRef<HTMLInputElement>(null)
+
+  const [validationError,setValidationError]=
+    useState<'address'|'consent'|''>('')
+
   const [form,setForm]=
     useState({
       service:
@@ -240,6 +249,35 @@ function BookingFlow({
       return
     }
 
+    if(!form.address.trim()){
+      setValidationError('address')
+
+      setToast(
+        t('booking.validation.address')
+      )
+
+      requestAnimationFrame(
+        ()=>addressRef.current?.focus()
+      )
+
+      return
+    }
+
+    if(!contactConsent){
+      setValidationError('consent')
+
+      setToast(
+        t('booking.validation.contactConsent')
+      )
+
+      requestAnimationFrame(
+        ()=>consentRef.current?.focus()
+      )
+
+      return
+    }
+
+    setValidationError('')
     setBusy(true)
 
     try{
@@ -336,7 +374,42 @@ function BookingFlow({
           <div className="eyebrow">{t('booking.step2.eyebrow')}</div>
           <h1 ref={stepHeadingRef} tabIndex={-1}>{t('booking.step2.title')}</h1>
           <div className="booking-selected-slot"><span>{t('booking.selected.heading')}</span><strong>{selectedDateLabel} · {form.time}</strong><button type="button" onClick={()=>setStep(1)}>{t('booking.actions.change')}</button></div>
-          <label>{t('booking.fields.address')}<input autoComplete="street-address" placeholder={t('booking.fields.addressPlaceholder')} value={form.address} aria-required="true" onChange={e=>setForm({...form,address:e.target.value})}/></label>
+          <label>
+            {t('booking.fields.address')}
+            <input
+              ref={addressRef}
+              autoComplete="street-address"
+              placeholder={t('booking.fields.addressPlaceholder')}
+              value={form.address}
+              aria-required="true"
+              aria-invalid={validationError==='address'}
+              aria-describedby={
+                validationError==='address'
+                  ? 'booking-address-error'
+                  : undefined
+              }
+              onChange={e=>{
+                setForm({
+                  ...form,
+                  address:e.target.value
+                })
+
+                if(validationError==='address'){
+                  setValidationError('')
+                }
+              }}
+            />
+          </label>
+
+          {validationError==='address'&&
+            <div
+              id="booking-address-error"
+              className="error"
+              role="alert"
+            >
+              {t('booking.validation.address')}
+            </div>
+          }
           <label>{t('booking.fields.notes')}<textarea placeholder={t('booking.fields.notesPlaceholder')} value={form.notes} onChange={e=>setForm({...form,notes:e.target.value})}/></label>
           <div className="summary-box" aria-label={t('booking.summary.label')}>
             <div><span>{t('booking.summary.service')}</span><b>{form.service}</b></div>
@@ -344,8 +417,50 @@ function BookingFlow({
             <div><span>{t('booking.summary.baseCost')}</span><b>{priceLabel(p,true)}</b></div>
             <div><span>{t('booking.summary.finalCost')}</span><b>{t('booking.summary.byAgreement')}</b></div>
           </div>
-          <label className="consent-row booking-consent"><input type="checkbox" checked={contactConsent} onChange={e=>setContactConsent(e.target.checked)}/><span>{t('booking.consent')}</span></label>
-          <button className="btn btn-dark wide" disabled={!form.address.trim()||!contactConsent||!form.time||busy} aria-busy={busy} onClick={submit}>{busy?t('booking.actions.submitting'):t('booking.actions.submit')}</button>
+          <label className="consent-row booking-consent">
+            <input
+              ref={consentRef}
+              type="checkbox"
+              checked={contactConsent}
+              aria-invalid={validationError==='consent'}
+              aria-describedby={
+                validationError==='consent'
+                  ? 'booking-consent-error'
+                  : undefined
+              }
+              onChange={e=>{
+                setContactConsent(
+                  e.target.checked
+                )
+
+                if(validationError==='consent'){
+                  setValidationError('')
+                }
+              }}
+            />
+            <span>{t('booking.consent')}</span>
+          </label>
+
+          {validationError==='consent'&&
+            <div
+              id="booking-consent-error"
+              className="error"
+              role="alert"
+            >
+              {t('booking.validation.contactConsent')}
+            </div>
+          }
+
+          <button
+            className="btn btn-dark wide"
+            disabled={busy}
+            aria-busy={busy}
+            onClick={submit}
+          >
+            {busy
+              ? t('booking.actions.submitting')
+              : t('booking.actions.submit')}
+          </button>
           <button className="text-btn" onClick={()=>setStep(1)}>← {t('booking.actions.changeTime')}</button>
         </div>}
 
