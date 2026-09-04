@@ -127,6 +127,8 @@ const mailOperations = [
   'subscriptionUpgradeCharged',
   'subscriptionDowngradeScheduled',
   'subscriptionDowngradeCancelled',
+  'subscriptionCancellationScheduled',
+  'subscriptionCancellationCancelled',
   'paymentFailed',
   'verificationDecision',
   'newBooking',

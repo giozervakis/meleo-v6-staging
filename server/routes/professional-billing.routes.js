@@ -840,9 +840,18 @@ export function registerProfessionalBillingRoutes(app,deps) {
 
   app.post('/api/professional/subscription/cancel',auth,requireRole('professional'),async(req,res)=>{
     const p=await Professionals.byUser(req.user.id)
+    const u=await Users.byEmail(req.user.email)
 
     if(config.demoCheckout){
       const current=await materializeDemoBilling(p)
+
+      if(current.cancelAtPeriodEnd){
+        return res.json({
+          changed:false,
+          professional:current
+        })
+      }
+
       const periodEnd=demoPeriodEnd(current)
 
       const professional=await Professionals.update(current.id,{
@@ -852,11 +861,29 @@ export function registerProfessionalBillingRoutes(app,deps) {
         scheduledPlanEffectiveAt:null
       })
 
-      return res.json({professional})
+      mail.subscriptionCancellationScheduled(
+        u.email,
+        u.name,
+        String(current.subscriptionPlan||'').toUpperCase(),
+        periodEnd.toLocaleDateString('el-GR')
+      ).catch(()=>{})
+
+      return res.json({
+        changed:true,
+        professional
+      })
     }
 
     const s=getStripe()
     const current=await s.subscriptions.retrieve(p.stripeSubscriptionId)
+
+    if(current.cancel_at_period_end){
+      return res.json({
+        changed:false,
+        professional:await Professionals.byId(p.id)
+      })
+    }
+
     const scheduled=await scheduleState(s,current)
 
     if(scheduled?.scheduleId){
@@ -870,14 +897,41 @@ export function registerProfessionalBillingRoutes(app,deps) {
     })
     await applyStripeSubscription(sub)
 
-    res.json({professional:await Professionals.byId(p.id)})
+    const professional=
+      await Professionals.byId(p.id)
+
+    const effectiveAt=
+      professional.currentPeriodEnd ||
+      isoFromUnix(sub.current_period_end)
+
+    mail.subscriptionCancellationScheduled(
+      u.email,
+      u.name,
+      String(professional.subscriptionPlan||'').toUpperCase(),
+      effectiveAt
+        ? new Date(effectiveAt).toLocaleDateString('el-GR')
+        : 'το τέλος της τρέχουσας περιόδου'
+    ).catch(()=>{})
+
+    res.json({
+      changed:true,
+      professional
+    })
   })
 
   app.post('/api/professional/subscription/resume',auth,requireRole('professional'),async(req,res)=>{
     const p=await Professionals.byUser(req.user.id)
+    const u=await Users.byEmail(req.user.email)
 
     if(config.demoCheckout){
       const current=await materializeDemoBilling(p)
+
+      if(!current.cancelAtPeriodEnd){
+        return res.json({
+          changed:false,
+          professional:current
+        })
+      }
 
       const professional=await Professionals.update(current.id,{
         subscriptionStatus:'active',
@@ -885,7 +939,28 @@ export function registerProfessionalBillingRoutes(app,deps) {
         featured:current.subscriptionPlan==='premium'
       })
 
-      return res.json({professional})
+      mail.subscriptionCancellationCancelled(
+        u.email,
+        u.name,
+        String(current.subscriptionPlan||'').toUpperCase()
+      ).catch(()=>{})
+
+      return res.json({
+        changed:true,
+        professional
+      })
+    }
+
+    const current=
+      await getStripe().subscriptions.retrieve(
+        p.stripeSubscriptionId
+      )
+
+    if(!current.cancel_at_period_end){
+      return res.json({
+        changed:false,
+        professional:await Professionals.byId(p.id)
+      })
     }
 
     const sub=await getStripe().subscriptions.update(
@@ -894,6 +969,19 @@ export function registerProfessionalBillingRoutes(app,deps) {
     )
 
     await applyStripeSubscription(sub)
-    res.json({professional:await Professionals.byId(p.id)})
+
+    const professional=
+      await Professionals.byId(p.id)
+
+    mail.subscriptionCancellationCancelled(
+      u.email,
+      u.name,
+      String(professional.subscriptionPlan||'').toUpperCase()
+    ).catch(()=>{})
+
+    res.json({
+      changed:true,
+      professional
+    })
   })
 }

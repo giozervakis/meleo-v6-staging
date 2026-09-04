@@ -177,6 +177,19 @@ export const mail = {
     html: layout('Η αλλαγή πακέτου ακυρώθηκε', `<p>Γεια σου ${escapeHtml(name)}, η προγραμματισμένη αλλαγή πακέτου ακυρώθηκε.</p>
       <p>Η συνδρομή σου παραμένει <b>${escapeHtml(currentPlan)}</b> και θα συνεχίσει να ανανεώνεται κανονικά.</p>`)
   }),
+  subscriptionCancellationScheduled: (to, name, plan, effectiveDate) => deliver({
+    to,
+    subject: 'Η ακύρωση της συνδρομής σου προγραμματίστηκε — MELEO',
+    html: layout('Η ακύρωση προγραμματίστηκε', `<p>Γεια σου ${escapeHtml(name)}, λάβαμε το αίτημα ακύρωσης της συνδρομής σου.</p>
+      <p>Το πακέτο <b>${escapeHtml(plan)}</b> παραμένει ενεργό μέχρι <b>${escapeHtml(effectiveDate)}</b>.</p>
+      <p>Δεν θα γίνει νέα ανανέωση μετά από αυτή την ημερομηνία. Μέχρι τότε μπορείς να αναιρέσεις την ακύρωση από τη διαχείριση συνδρομής.</p>`)
+  }),
+  subscriptionCancellationCancelled: (to, name, plan) => deliver({
+    to,
+    subject: 'Η ακύρωση της συνδρομής σου αναιρέθηκε — MELEO',
+    html: layout('Η συνδρομή σου συνεχίζεται', `<p>Γεια σου ${escapeHtml(name)}, η προγραμματισμένη ακύρωση αναιρέθηκε.</p>
+      <p>Η συνδρομή <b>${escapeHtml(plan)}</b> παραμένει ενεργή και θα συνεχίσει να ανανεώνεται κανονικά.</p>`)
+  }),
   paymentFailed: (to, name) => deliver({
     to,
     subject: 'Αποτυχία πληρωμής συνδρομής — MELEO',
