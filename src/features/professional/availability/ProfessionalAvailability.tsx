@@ -671,6 +671,9 @@ export default function ProfessionalAvailability({
                           ? 'selected'
                           : ''
                       ].filter(Boolean).join(' ')}
+                      aria-pressed={
+                        selectedSlots.includes(time)
+                      }
                       onClick={()=>
                         toggleTime(
                           selectedDay,

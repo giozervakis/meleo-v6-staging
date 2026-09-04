@@ -344,14 +344,24 @@
 }
 
 .availability-time-grid{
+  position:relative;
+  z-index:1;
+  isolation:isolate;
   display:grid;
   grid-template-columns:repeat(5,minmax(0,1fr));
   gap:8px;
   margin-top:14px;
 }
 
+.availability-time-grid > .availability-time{
+  min-width:0;
+  pointer-events:auto;
+  touch-action:manipulation;
+}
+
 .availability-time{
   position:relative;
+  z-index:1;
   display:flex;
   align-items:center;
   justify-content:center;
@@ -376,10 +386,12 @@
   border-color:#bdd0c7;
 }
 
-.availability-time.active{
-  border-color:#1b5a49;
-  background:#edf6f1;
-  color:#174b3e;
+.availability-time.selected{
+  border-color:#17483e;
+  background:#17483e;
+  color:#fff;
+  box-shadow:
+    0 7px 18px rgba(23,72,62,.16);
 }
 
 .availability-check{
