@@ -50,13 +50,19 @@ const pkg=
 // createToken
 // ==========================================================
 
+const tokenService=
+  fs.readFileSync(
+    'server/services/one-time-token.service.js',
+    'utf8'
+  )
+
 const createTokenStart=
-  app.indexOf(
+  tokenService.indexOf(
     'async function createToken('
   )
 
 const consumeTokenStart=
-  app.indexOf(
+  tokenService.indexOf(
     'async function consumeToken(',
     createTokenStart
   )
@@ -66,7 +72,7 @@ const createToken=
     createTokenStart>=0 &&
     consumeTokenStart>createTokenStart
   )
-    ? app.slice(
+    ? tokenService.slice(
         createTokenStart,
         consumeTokenStart
       )

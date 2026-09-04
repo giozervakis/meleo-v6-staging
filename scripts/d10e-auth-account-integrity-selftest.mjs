@@ -139,11 +139,17 @@ check(
 // consumeToken
 // ==========================================================
 
+const tokenService =
+  fs.readFileSync(
+    'server/services/one-time-token.service.js',
+    'utf8'
+  )
+
 const consume=
   section(
-    app,
+    tokenService,
     'async function consumeToken(',
-    'const PROFILE_EDITABLE'
+    'return Object.freeze({'
   )
 
 
