@@ -185,9 +185,19 @@ test.describe('MELEO subscription flow', () => {
 
       expect(checkout.mode).toBe('demo')
 
-      expect(
-        checkout.professional.subscriptionPlan
-      ).toBe(targetPlan)
+      if(before.plan==='premium'&&targetPlan==='basic'){
+        expect(
+          checkout.professional.subscriptionPlan
+        ).toBe('premium')
+
+        expect(checkout.scheduled).toBe(true)
+        expect(checkout.scheduledPlan).toBe('basic')
+        expect(checkout.scheduledPlanEffectiveAt).toBeTruthy()
+      }else{
+        expect(
+          checkout.professional.subscriptionPlan
+        ).toBe(targetPlan)
+      }
 
       expect(
         checkout.professional.subscriptionStatus
@@ -213,11 +223,17 @@ test.describe('MELEO subscription flow', () => {
         JSON.stringify(after, null, 2)
       )
 
-      expect(after.plan).toBe(targetPlan)
+      if(before.plan==='premium'&&targetPlan==='basic'){
+        expect(after.plan).toBe('premium')
+        expect(after.scheduledPlan).toBe('basic')
+        expect(after.scheduledPlanEffectiveAt).toBeTruthy()
+      }else{
+        expect(after.plan).toBe(targetPlan)
+        expect(after.plan).not.toBe(before.plan)
+      }
+
       expect(after.status).toBe('active')
       expect(after.billingMode).toBe('demo')
-
-      expect(after.plan).not.toBe(before.plan)
     }
   )
 
@@ -338,7 +354,15 @@ test.describe('MELEO subscription flow', () => {
 
       expect(
         cancelled.professional.subscriptionStatus
-      ).toBe('cancelled')
+      ).toBe('active')
+
+      expect(
+        cancelled.professional.cancelAtPeriodEnd
+      ).toBe(true)
+
+      expect(
+        cancelled.professional.currentPeriodEnd
+      ).toBeTruthy()
 
       const afterResponse =
         await page.request.get(
@@ -355,7 +379,9 @@ test.describe('MELEO subscription flow', () => {
       const after =
         await afterResponse.json()
 
-      expect(after.status).toBe('cancelled')
+      expect(after.status).toBe('active')
+      expect(after.cancelAtPeriodEnd).toBe(true)
+      expect(after.currentPeriodEnd).toBeTruthy()
       expect(after.plan).toBe(before.plan)
     }
   )
@@ -382,7 +408,11 @@ test.describe('MELEO subscription flow', () => {
 
       expect(
         cancelled.professional.subscriptionStatus
-      ).toBe('cancelled')
+      ).toBe('active')
+
+      expect(
+        cancelled.professional.cancelAtPeriodEnd
+      ).toBe(true)
 
       const resumeResponse =
         await page.request.post(
@@ -403,6 +433,10 @@ test.describe('MELEO subscription flow', () => {
         resumed.professional.subscriptionStatus
       ).toBe('active')
 
+      expect(
+        resumed.professional.cancelAtPeriodEnd
+      ).toBe(false)
+
       const afterResponse =
         await page.request.get(
           `${API}/api/professional/subscription`
@@ -419,6 +453,7 @@ test.describe('MELEO subscription flow', () => {
         await afterResponse.json()
 
       expect(after.status).toBe('active')
+      expect(after.cancelAtPeriodEnd).toBe(false)
     }
   )
 })
