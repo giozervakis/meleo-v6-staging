@@ -32,7 +32,7 @@ app.get('/api/care-team',auth,async(req,res)=>{
   for(const f of favs){
     const p=await Professionals.byId(f.professionalId)
     if(!p||!p.verified||p.adminSuspended||!allowsVisibility(p))continue
-    const last=await one(`SELECT id,service,date,time,address,status,agreed_price "agreedPrice" FROM bookings WHERE patient_id=$1 AND professional_id=$2 AND status='completed' ORDER BY date DESC,time DESC,created_at DESC LIMIT 1`,[req.user.id,p.id])
+    const last=await one(`SELECT id,service,visit_date "date",visit_time "time",address,status,agreed_price "agreedPrice" FROM bookings WHERE patient_id=$1 AND professional_id=$2 AND status='completed' ORDER BY visit_date DESC,visit_time DESC,created_at DESC LIMIT 1`,[req.user.id,p.id])
     const trust=await meleoTrustForProfessional(p.id)
     items.push({...p,trust,lastCompleted:last||null})
   }
