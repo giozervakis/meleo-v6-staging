@@ -36,7 +36,7 @@ export function registerBookingQuoteRoutes(
         return res
           .status(404)
           .json({
-            error:'??? ??????? ??????'
+            error:'Δεν βρέθηκε αίτημα'
           })
       }
 
@@ -52,7 +52,7 @@ export function registerBookingQuoteRoutes(
         return res
           .status(403)
           .json({
-            error:'??? ???????????'
+            error:'Δεν επιτρέπεται'
           })
       }
 
@@ -69,7 +69,7 @@ export function registerBookingQuoteRoutes(
           .status(409)
           .json({
             error:
-              '?? ?????? ??? ??????? ??????? ??????? ?? ???? ??? ?????????',
+              'Το αίτημα δεν δέχεται πρόταση κόστους σε αυτή την κατάσταση',
             code:
               'BOOKING_QUOTE_STATE_INVALID'
           })
@@ -88,7 +88,7 @@ export function registerBookingQuoteRoutes(
         return res
           .status(400)
           .json({
-            error:'?? ?????? ????',
+            error:'Μη έγκυρο ποσό',
             code:
               'BOOKING_QUOTE_AMOUNT_INVALID'
           })
@@ -118,7 +118,7 @@ export function registerBookingQuoteRoutes(
           return res
             .status(404)
             .json({
-              error:'??? ??????? ??????',
+              error:'Δεν βρέθηκε αίτημα',
               code:
                 'BOOKING_NOT_FOUND'
             })
@@ -132,7 +132,7 @@ export function registerBookingQuoteRoutes(
             .status(409)
             .json({
               error:
-                '?? ?????? ??? ??????? ??????? ??????? ?? ???? ??? ?????????',
+                'Το αίτημα δεν δέχεται πρόταση κόστους σε αυτή την κατάσταση',
               code:
                 write.code
             })
@@ -174,7 +174,7 @@ export function registerBookingQuoteRoutes(
         return res
           .status(404)
           .json({
-            error:'??? ??????? ??????'
+            error:'Δεν βρέθηκε αίτημα'
           })
       }
 
@@ -184,7 +184,7 @@ export function registerBookingQuoteRoutes(
         return res
           .status(403)
           .json({
-            error:'??? ???????????'
+            error:'Δεν επιτρέπεται'
           })
       }
 
@@ -193,7 +193,7 @@ export function registerBookingQuoteRoutes(
           .status(409)
           .json({
             error:
-              '??? ??????? ?????? ??????? ???????',
+              'Δεν υπάρχει ενεργή πρόταση κόστους',
             code:
               'BOOKING_QUOTE_NOT_ACTIVE'
           })
@@ -226,7 +226,7 @@ export function registerBookingQuoteRoutes(
           .status(400)
           .json({
             error:
-              '?? ?????? ??????? ????????',
+              'Μη έγκυρη απόφαση πρότασης',
             code:
               'BOOKING_QUOTE_DECISION_INVALID'
           })
@@ -242,7 +242,7 @@ export function registerBookingQuoteRoutes(
           .status(409)
           .json({
             error:
-              '? ????????????? ??? ????? ??????????',
+              'Ο επαγγελματίας δεν είναι διαθέσιμος',
             code:
               'BOOKING_PROFESSIONAL_MISSING'
           })
@@ -265,7 +265,7 @@ export function registerBookingQuoteRoutes(
           return res
             .status(404)
             .json({
-              error:'??? ??????? ??????',
+              error:'Δεν βρέθηκε αίτημα',
               code:
                 'BOOKING_NOT_FOUND'
             })
@@ -279,7 +279,7 @@ export function registerBookingQuoteRoutes(
             .status(409)
             .json({
               error:
-                '? ?????? ??????? ??? ???? ?????? ????',
+                'Η πρόταση κόστους δεν έχει έγκυρο ποσό',
               code:
                 write.code
             })
@@ -293,7 +293,7 @@ export function registerBookingQuoteRoutes(
             .status(409)
             .json({
               error:
-                '??? ??????? ?????? ??????? ???????',
+                'Δεν υπάρχει ενεργή πρόταση κόστους',
               code:
                 write.code
             })
