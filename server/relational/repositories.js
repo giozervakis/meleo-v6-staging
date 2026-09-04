@@ -2003,7 +2003,7 @@ async markMessagesRead(
         await Notifications.create(
           recipientUserId,
           'quote',
-          '??? ??????? ???????',
+          'Νέα πρόταση κόστους',
           proposedPrice.toFixed(2)+
             '? ? '+
             (
@@ -2228,14 +2228,14 @@ async markMessagesRead(
             ? 'accepted'
             : 'quote',
           accepted
-            ? '? ??????? ??????? ????? ????????'
-            : '? ??????? ??????? ??? ????? ????????',
+            ? 'Η πρόταση κόστους έγινε αποδεκτή'
+            : 'Η πρόταση κόστους δεν έγινε αποδεκτή',
           accepted
             ? (
                 sender.name+
-                ' ? '+
+                ' · '+
                 agreedPrice.toFixed(2)+
-                '?'
+                '€'
               )
             : booking.service,
           {
