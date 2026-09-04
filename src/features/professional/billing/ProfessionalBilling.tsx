@@ -516,13 +516,24 @@ export default function ProfessionalBilling({
 
           <section>
             <strong>
-              {t('proBilling.scheduledChange.title',{plan:String(info.scheduledPlan).toUpperCase()})}
+              {t('proBilling.scheduledChange.title',{
+                plan:String(info.scheduledPlan).toUpperCase(),
+                date:dateLabel(
+                  info.scheduledPlanEffectiveAt,
+                  i18n.resolvedLanguage==='en'?'en-GB':'el-GR'
+                )
+              })}
             </strong>
 
             <p>
-              {t('proBilling.residue.until')} {' '}
-              <b>{dateLabel(info.scheduledPlanEffectiveAt,i18n.resolvedLanguage==='en'?'en-GB':'el-GR')}</b>
-              {' '}{t('proBilling.scheduledChange.text',{current:current.toUpperCase(),plan:String(info.scheduledPlan).toUpperCase()})}
+              {t('proBilling.scheduledChange.text',{
+                current:current.toUpperCase(),
+                plan:String(info.scheduledPlan).toUpperCase(),
+                date:dateLabel(
+                  info.scheduledPlanEffectiveAt,
+                  i18n.resolvedLanguage==='en'?'en-GB':'el-GR'
+                )
+              })}
             </p>
           </section>
 

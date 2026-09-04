@@ -62,9 +62,19 @@ need(
 
 need(
   billing.includes(
-    "t('proBilling.residue.until')"
+    "t('proBilling.scheduledChange.title',{"
+  ) &&
+  billing.includes(
+    "date:dateLabel("
   ),
-  'translated Until label missing'
+  'scheduled downgrade title date interpolation missing'
+)
+
+need(
+  billing.includes(
+    "t('proBilling.scheduledChange.text',{"
+  ),
+  'scheduled downgrade body translation missing'
 )
 
 need(
