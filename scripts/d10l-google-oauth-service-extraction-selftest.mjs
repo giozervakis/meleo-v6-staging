@@ -87,12 +87,17 @@ assert.equal(
 
 pass('provider implementation removed from app')
 
-assert.match(
+assert.doesNotMatch(
   app,
   /async function resolveGoogleAccount\s*\(/
 )
 
-pass('MELEO account linking remains domain-owned')
+assert.match(
+  app,
+  /createSocialIdentityService/
+)
+
+pass('MELEO account linking remains domain-owned behind dedicated service boundary')
 
 assert.match(
   service,
