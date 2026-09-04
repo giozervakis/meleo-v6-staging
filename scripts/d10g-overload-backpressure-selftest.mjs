@@ -38,6 +38,11 @@ const app =
     'server/relational/app.js'
   )
 
+const rateLimitService =
+  read(
+    'server/services/rate-limit.service.js'
+  )
+
 const config =
   read(
     'server/config.js'
@@ -80,7 +85,7 @@ check(
 
 
 check(
-  app.includes(
+  rateLimitService.includes(
     "return res.status(429)"
   ),
   'rate limiter rejects overload with HTTP 429'
@@ -88,7 +93,7 @@ check(
 
 
 check(
-  app.includes(
+  rateLimitService.includes(
     "res.setHeader('Retry-After'"
   ),
   'rate limiter provides Retry-After guidance'
@@ -100,6 +105,39 @@ check(
     "app.use('/api',limits.global)"
   ),
   'global API rate limiter is installed'
+)
+
+
+check(
+  app.includes(
+    "import { createRateLimitService } from '../services/rate-limit.service.js'"
+  ) &&
+  app.includes(
+    'createRateLimitService({'
+  ),
+  'rate limiter is composed by application root'
+)
+
+
+check(
+  rateLimitService.includes(
+    'export function createRateLimitService'
+  ) &&
+  rateLimitService.includes(
+    'const limits = {'
+  ),
+  'rate limiter implementation is service-owned'
+)
+
+
+check(
+  !app.includes(
+    'INSERT INTO rate_limits'
+  ) &&
+  !app.includes(
+    "res.setHeader('Retry-After'"
+  ),
+  'request-time rate limiting no longer belongs to application root'
 )
 
 
@@ -122,7 +160,7 @@ for(
   const name of namedLimits
 ){
   check(
-    app.includes(
+    rateLimitService.includes(
       `${name}: rateLimit({`
     ),
     `specialized ${name} rate limit exists`
@@ -131,7 +169,7 @@ for(
 
 
 check(
-  app.includes(
+  rateLimitService.includes(
     'redisRateLimit('
   ),
   'rate limiting can use shared Redis state'
@@ -139,7 +177,7 @@ check(
 
 
 check(
-  app.includes(
+  rateLimitService.includes(
     'INSERT INTO rate_limits'
   ),
   'rate limiting has persistent PostgreSQL fallback'
@@ -147,10 +185,10 @@ check(
 
 
 check(
-  app.includes(
+  rateLimitService.includes(
     'count>max'
   ) ||
-  app.includes(
+  rateLimitService.includes(
     'count > max'
   ),
   'rate limiter enforces explicit request ceiling'
