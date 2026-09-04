@@ -11738,3 +11738,363 @@
     font-size:11px;
   }
 }
+
+/* ============================================================
+   MELEO D10M-F06 — PATIENT DASHBOARD READABILITY
+   Desktop-only visual hierarchy and accessibility pass
+   ============================================================ */
+
+@media (min-width:901px){
+
+  /* ----------------------------------------------------------
+     Main patient typography
+     ---------------------------------------------------------- */
+
+  .patient-care-page{
+    font-size:16px;
+  }
+
+  .patient-panel-head small{
+    font-size:11px;
+    line-height:1.3;
+    letter-spacing:.13em;
+  }
+
+  .patient-panel-head h3{
+    font-size:25px;
+    line-height:1.18;
+  }
+
+  .patient-panel-head > span{
+    font-size:12px;
+    padding:7px 11px;
+  }
+
+  .patient-panel-intro{
+    font-size:14px;
+    line-height:1.6;
+  }
+
+
+  /* ----------------------------------------------------------
+     Booking / request cards
+     ---------------------------------------------------------- */
+
+  .patient-command-panel .booking-card-premium{
+    padding:26px 27px 26px 30px;
+    gap:24px;
+  }
+
+  .patient-command-panel .premium-date{
+    min-width:76px;
+    width:76px;
+    min-height:88px;
+  }
+
+  .patient-command-panel .premium-date b{
+    font-size:29px;
+    line-height:1;
+  }
+
+  .patient-command-panel .premium-date span{
+    font-size:13px;
+  }
+
+  .patient-command-panel .booking-service{
+    font-size:20px;
+    line-height:1.3;
+  }
+
+  .patient-command-panel .booking-professional{
+    margin-top:6px;
+    font-size:16px;
+    line-height:1.4;
+  }
+
+  .patient-command-panel .booking-meta{
+    margin-top:10px;
+    gap:6px 16px;
+    font-size:14px;
+    line-height:1.45;
+  }
+
+  .patient-command-panel .booking-price{
+    font-size:22px;
+  }
+
+  .patient-command-panel .premium-status{
+    font-size:12.5px;
+    padding:7px 11px;
+  }
+
+  .patient-command-panel .premium-details-btn{
+    min-height:46px;
+    padding:11px 17px;
+    font-size:14px;
+    font-weight:800;
+  }
+
+
+  /* ----------------------------------------------------------
+     Expanded booking details
+     ---------------------------------------------------------- */
+
+  .patient-command-panel .patient-request-detail{
+    padding:28px;
+  }
+
+  .patient-request-detail
+  .request-detail-grid > div{
+    padding:18px;
+  }
+
+  .patient-request-detail
+  .request-detail-grid small,
+  .patient-request-detail
+  .request-contact-strip small,
+  .patient-request-detail
+  .request-description small{
+    font-size:11.5px;
+    line-height:1.4;
+    letter-spacing:.11em;
+  }
+
+  .patient-request-detail
+  .request-detail-grid b{
+    font-size:15px;
+    line-height:1.4;
+  }
+
+  .patient-request-detail
+  .request-detail-grid span{
+    font-size:14px;
+    line-height:1.55;
+  }
+
+  .patient-request-detail
+  .request-contact-strip b{
+    font-size:15px;
+  }
+
+  .patient-request-detail
+  .request-contact-strip a{
+    font-size:14px;
+  }
+
+  .patient-request-detail
+  .request-description p{
+    font-size:15px;
+    line-height:1.65;
+  }
+
+
+  /* ----------------------------------------------------------
+     Reply / communication composer
+     ---------------------------------------------------------- */
+
+  .patient-request-detail
+  .reply-box textarea{
+    min-height:112px;
+    padding:15px 16px;
+    font-size:15px;
+    line-height:1.55;
+    color:#173f36;
+  }
+
+  .patient-request-detail
+  .reply-box textarea::placeholder{
+    color:#778680;
+    opacity:1;
+  }
+
+  .patient-request-detail
+  .reply-box .btn{
+    min-height:50px;
+    padding-left:22px;
+    padding-right:22px;
+    font-size:15px;
+  }
+
+  .patient-request-detail
+  .danger{
+    font-size:15px;
+    font-weight:650;
+  }
+
+
+  /* ----------------------------------------------------------
+     Conversation
+     ---------------------------------------------------------- */
+
+  .patient-request-detail
+  .conversation-title{
+    font-size:12px;
+  }
+
+  .patient-request-detail
+  .conversation-msg b{
+    font-size:14px;
+  }
+
+  .patient-request-detail
+  .conversation-msg small{
+    font-size:12px;
+  }
+
+  .patient-request-detail
+  .conversation-msg p{
+    font-size:14.5px;
+    line-height:1.6;
+  }
+
+
+  /* ----------------------------------------------------------
+     Recent activity
+     ---------------------------------------------------------- */
+
+  .patient-activity-list{
+    gap:16px;
+  }
+
+  .patient-activity-item{
+    gap:13px;
+  }
+
+  .activity-dot{
+    width:10px;
+    height:10px;
+    flex-basis:10px;
+    margin-top:6px;
+  }
+
+  .patient-activity-item b{
+    font-size:14px;
+    line-height:1.35;
+  }
+
+  .patient-activity-item span{
+    margin-top:3px;
+    font-size:12.5px;
+    line-height:1.4;
+  }
+
+  .patient-activity-item small{
+    margin-top:4px;
+    font-size:11.5px;
+    line-height:1.4;
+    color:#788681;
+  }
+
+
+  /* ----------------------------------------------------------
+     Quick actions
+     ---------------------------------------------------------- */
+
+  .patient-quick-actions{
+    gap:10px;
+  }
+
+  .patient-quick-actions > button{
+    min-height:64px;
+    padding:14px;
+    grid-template-columns:
+      38px minmax(0,1fr) auto;
+    gap:12px;
+    border-radius:15px;
+  }
+
+  .patient-quick-actions > button > span{
+    width:38px;
+    height:38px;
+    font-size:16px;
+  }
+
+  .patient-quick-actions > button b{
+    font-size:14px;
+    line-height:1.3;
+  }
+
+  .patient-quick-actions > button small{
+    margin-top:3px;
+    font-size:11.5px;
+    line-height:1.4;
+    color:#71807a;
+  }
+
+
+  /* ----------------------------------------------------------
+     Care status side panel
+     ---------------------------------------------------------- */
+
+  .care-status-list{
+    gap:9px;
+  }
+
+  .care-status-list > div{
+    padding:11px 12px;
+  }
+
+  .care-status-list span{
+    font-size:12px;
+  }
+
+  .care-status-list b{
+    font-size:13px;
+  }
+
+  .care-continuity-score span{
+    font-size:11px;
+  }
+
+
+  /* ----------------------------------------------------------
+     Attention / informative text
+     ---------------------------------------------------------- */
+
+  .patient-attention-panel small{
+    font-size:10px;
+  }
+
+  .patient-attention-panel h3{
+    font-size:16px;
+  }
+
+  .patient-attention-panel p{
+    font-size:13px;
+    line-height:1.55;
+  }
+
+
+  /* ----------------------------------------------------------
+     Care team
+     ---------------------------------------------------------- */
+
+  .patient-care-team-top b{
+    font-size:14px;
+  }
+
+  .patient-care-team-top span{
+    font-size:12px;
+  }
+
+  .patient-care-team-meta span{
+    font-size:11px;
+    padding:5px 8px;
+  }
+
+
+  /* ----------------------------------------------------------
+     Metric explanatory labels
+     ---------------------------------------------------------- */
+
+  .patient-care-metric > b{
+    font-size:12.5px;
+  }
+
+  .patient-care-metric > small{
+    font-size:11px;
+    line-height:1.45;
+  }
+}
+
+/* End MELEO D10M-F06 */
