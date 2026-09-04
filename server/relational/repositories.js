@@ -2005,7 +2005,7 @@ async markMessagesRead(
           'quote',
           'Νέα πρόταση κόστους',
           proposedPrice.toFixed(2)+
-            '? ? '+
+            '€ · '+
             (
               extra ||
               booking.service
