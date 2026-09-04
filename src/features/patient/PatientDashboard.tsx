@@ -210,6 +210,11 @@ useEffect(()=>{
     f
   )
 
+  window.addEventListener(
+    'meleo:favorites-changed',
+    f
+  )
+
   return()=>{
 
     window.removeEventListener(
@@ -219,6 +224,11 @@ useEffect(()=>{
 
     window.removeEventListener(
       'meleo:communication-refresh',
+      f
+    )
+
+    window.removeEventListener(
+      'meleo:favorites-changed',
       f
     )
 

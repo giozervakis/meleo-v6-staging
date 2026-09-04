@@ -810,7 +810,44 @@ useEffect(()=>{
   setToast(t('accountFlow.welcome',{name:u.name.split(' ')[0]}))
 }
   async function logout(){try{await api('/auth/logout',{method:'POST'},token)}catch{}setToken('cookie');setUser(null);setProfessional(null);setView('home')}
-  async function toggleFav(id:string){if(!user){setView('auth');return}if(!['patient','professional'].includes(user.role))return;const r=await api('/favorites/'+id,{method:'POST'},token);setFavorites(x=>r.favorite?[...x,id]:x.filter(v=>v!==id))}
+  async function toggleFav(id:string){
+  if(!user){
+    setView('auth')
+    return
+  }
+
+  if(
+    !['patient','professional'].includes(
+      user.role
+    )
+  ){
+    return
+  }
+
+  const r=
+    await api(
+      '/favorites/'+id,
+      {method:'POST'},
+      token
+    )
+
+  setFavorites(
+    x=>
+      r.favorite
+        ? (
+            x.includes(id)
+              ? x
+              : [...x,id]
+          )
+        : x.filter(v=>v!==id)
+  )
+
+  window.dispatchEvent(
+    new Event(
+      'meleo:favorites-changed'
+    )
+  )
+}
   function openPro(p:Professional){setSelected(p);setViewState('profile');history.pushState({view:'profile'},'',`/professionals/${p.id}`);window.scrollTo({top:0,behavior:'smooth'})}
   function requireAuth(next='home'){if(user){setView(next);return}setAuthReturn(next);setView('auth')}
 
