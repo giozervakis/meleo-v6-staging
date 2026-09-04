@@ -12355,3 +12355,92 @@ button{
 }
 
 /* End MELEO D10M-F07.1 */
+
+/* D10M-F09 patient quote decision readability */
+
+/*
+ * Patient quote decision panel:
+ * stronger hierarchy for final price + actions.
+ */
+.patient-dashboard .booking-detail-card .quote-decision-panel,
+.patient-dashboard .booking-detail-card .patient-quote-decision,
+.patient-dashboard .booking-detail-card [data-quote-decision]{
+  padding:24px !important;
+  border-radius:18px !important;
+}
+
+.patient-dashboard .booking-detail-card .quote-decision-panel .quote-label,
+.patient-dashboard .booking-detail-card .patient-quote-decision .quote-label,
+.patient-dashboard .booking-detail-card [data-quote-decision] .quote-label{
+  font-size:14px !important;
+  line-height:1.4 !important;
+  font-weight:700 !important;
+  letter-spacing:.01em !important;
+}
+
+.patient-dashboard .booking-detail-card .quote-decision-panel .quote-amount,
+.patient-dashboard .booking-detail-card .patient-quote-decision .quote-amount,
+.patient-dashboard .booking-detail-card [data-quote-decision] .quote-amount{
+  font-size:42px !important;
+  line-height:1.05 !important;
+  font-weight:800 !important;
+  margin-top:8px !important;
+  margin-bottom:10px !important;
+}
+
+.patient-dashboard .booking-detail-card .quote-decision-panel .quote-help,
+.patient-dashboard .booking-detail-card .patient-quote-decision .quote-help,
+.patient-dashboard .booking-detail-card [data-quote-decision] .quote-help{
+  font-size:13.5px !important;
+  line-height:1.55 !important;
+  margin-bottom:18px !important;
+}
+
+.patient-dashboard .booking-detail-card .quote-decision-panel .quote-actions,
+.patient-dashboard .booking-detail-card .patient-quote-decision .quote-actions,
+.patient-dashboard .booking-detail-card [data-quote-decision] .quote-actions{
+  display:flex !important;
+  gap:14px !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  flex-wrap:wrap !important;
+}
+
+.patient-dashboard .booking-detail-card .quote-decision-panel .quote-actions .btn,
+.patient-dashboard .booking-detail-card .patient-quote-decision .quote-actions .btn,
+.patient-dashboard .booking-detail-card [data-quote-decision] .quote-actions .btn{
+  min-height:54px !important;
+  padding:0 22px !important;
+  border-radius:12px !important;
+  font-size:15.5px !important;
+  font-weight:700 !important;
+}
+
+@media (max-width: 640px){
+  .patient-dashboard .booking-detail-card .quote-decision-panel,
+  .patient-dashboard .booking-detail-card .patient-quote-decision,
+  .patient-dashboard .booking-detail-card [data-quote-decision]{
+    padding:20px !important;
+  }
+
+  .patient-dashboard .booking-detail-card .quote-decision-panel .quote-amount,
+  .patient-dashboard .booking-detail-card .patient-quote-decision .quote-amount,
+  .patient-dashboard .booking-detail-card [data-quote-decision] .quote-amount{
+    font-size:38px !important;
+  }
+
+  .patient-dashboard .booking-detail-card .quote-decision-panel .quote-actions,
+  .patient-dashboard .booking-detail-card .patient-quote-decision .quote-actions,
+  .patient-dashboard .booking-detail-card [data-quote-decision] .quote-actions{
+    flex-direction:column !important;
+    align-items:stretch !important;
+  }
+
+  .patient-dashboard .booking-detail-card .quote-decision-panel .quote-actions .btn,
+  .patient-dashboard .booking-detail-card .patient-quote-decision .quote-actions .btn,
+  .patient-dashboard .booking-detail-card [data-quote-decision] .quote-actions .btn{
+    width:100% !important;
+    min-height:54px !important;
+    font-size:15.5px !important;
+  }
+}
