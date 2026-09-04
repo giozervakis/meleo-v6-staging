@@ -115,10 +115,18 @@ assert(
 )
 
 assert(
-  app.includes(
-    'async function smartMatchDiagnosticsForProfessional'
-  ),
-  'Smart Match diagnostics helper moved prematurely'
+  /createSmartMatchingService/.test(app),
+  'Smart Match diagnostics service composition missing'
+)
+
+assert(
+  /smartMatchDiagnosticsForProfessional/.test(app),
+  'Smart Match diagnostics DI contract missing'
+)
+
+assert(
+  !/async function smartMatchDiagnosticsForProfessional\s*\(/.test(app),
+  'Smart Match diagnostics implementation unexpectedly remains app-owned'
 )
 
 assert(
