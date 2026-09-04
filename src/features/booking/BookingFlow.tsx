@@ -234,9 +234,26 @@ function BookingFlow({
 
   useEffect(()=>{
     if(step===1 || step===2){
-      requestAnimationFrame(()=>stepHeadingRef.current?.focus())
+      requestAnimationFrame(
+        ()=>stepHeadingRef.current?.focus()
+      )
     }else if(step===3){
-      requestAnimationFrame(()=>statusRef.current?.focus())
+      requestAnimationFrame(()=>{
+        const target=statusRef.current
+
+        if(!target){
+          return
+        }
+
+        target.scrollIntoView({
+          behavior:'smooth',
+          block:'start'
+        })
+
+        target.focus({
+          preventScroll:true
+        })
+      })
     }
   },[step])
 
