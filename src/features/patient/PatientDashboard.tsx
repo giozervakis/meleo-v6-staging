@@ -348,6 +348,47 @@ async function sendPatientInboxMessage(){
  async function bookAgain(b:any){try{const d=await api('/professionals/'+b.professionalId);const p=d.professional||d;startBooking(p,{service:b.service,address:b.address,repeat:b.repeat||'once'});setToast(t('patient.feedback.bookAgainReady'))}catch(e:any){setToast(e.message)}}
 const now = new Date()
 
+function patientBookingDateTime(
+  booking:any
+){
+  const rawDate =
+    String(
+      booking?.date||''
+    ).trim()
+
+  if(!rawDate){
+    return null
+  }
+
+  const datePart =
+    rawDate.match(/^\d{4}-\d{2}-\d{2}/)?.[0]
+    ||
+    rawDate.slice(0,10)
+
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(datePart)){
+    return null
+  }
+
+  const rawTime =
+    String(
+      booking?.time||'00:00'
+    ).trim()
+
+  const timePart =
+    /^\d{2}:\d{2}(:\d{2})?$/.test(rawTime)
+      ? rawTime
+      : '00:00'
+
+  const value =
+    new Date(
+      `${datePart}T${timePart}`
+    )
+
+  return Number.isNaN(value.getTime())
+    ? null
+    : value
+}
+
 const patientMessageBookings=
   [...bookings]
     .filter(
@@ -397,8 +438,16 @@ const upcomingBookings = bookings
     ['pending','clarification','quoted','accepted'].includes(b.status)
   )
   .sort((a:any,b:any)=>{
-    const ad = new Date(`${a.date}T${a.time||'00:00'}`).getTime()
-    const bd = new Date(`${b.date}T${b.time||'00:00'}`).getTime()
+    const ad =
+      patientBookingDateTime(a)?.getTime()
+      ??
+      Number.MAX_SAFE_INTEGER
+
+    const bd =
+      patientBookingDateTime(b)?.getTime()
+      ??
+      Number.MAX_SAFE_INTEGER
+
     return ad-bd
   })
 
@@ -432,11 +481,13 @@ const pendingReviews = completedBookings.filter(
 
 const nextBooking =
   upcomingBookings.find((b:any)=>{
-    const when = new Date(
-      `${b.date}T${b.time||'00:00'}`
-    )
+    const when =
+      patientBookingDateTime(b)
 
-    return when.getTime() >= now.getTime()
+    return (
+      when &&
+      when.getTime() >= now.getTime()
+    )
   }) || upcomingBookings[0] || null
 
 const activeRequests =
@@ -461,13 +512,15 @@ const careActivity = [
   ...bookings
 ]
   .sort((a:any,b:any)=>{
-    const ad = new Date(
-      `${a.date||''}T${a.time||'00:00'}`
-    ).getTime()
+    const ad =
+      patientBookingDateTime(a)?.getTime()
+      ??
+      0
 
-    const bd = new Date(
-      `${b.date||''}T${b.time||'00:00'}`
-    ).getTime()
+    const bd =
+      patientBookingDateTime(b)?.getTime()
+      ??
+      0
 
     return bd-ad
   })
@@ -1445,9 +1498,15 @@ onClick={e=>{
                       </span>
 
                       <small>
-                        {new Date(
-                          `${b.date}T${b.time||'00:00'}`
-                        ).toLocaleDateString(i18n.language==='en'?'en-US':'el-GR')}
+                        {patientBookingDateTime(b)
+                          ?.toLocaleDateString(
+                            i18n.language==='en'
+                              ? 'en-US'
+                              : 'el-GR'
+                          )
+                          ||
+                          String(b.date||'').slice(0,10)
+                        }
                         {' · '}
                         {statusLabel(b.status)}
                       </small>
