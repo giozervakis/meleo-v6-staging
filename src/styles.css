@@ -12444,3 +12444,81 @@ button{
     font-size:15.5px !important;
   }
 }
+
+/* D10M-F09.1 exact patient quote-box readability */
+
+.patient-dashboard .quote-box{
+  padding:24px 26px !important;
+  border-radius:18px !important;
+}
+
+.patient-dashboard .quote-box > span{
+  display:block !important;
+  font-size:14px !important;
+  line-height:1.45 !important;
+  font-weight:700 !important;
+  letter-spacing:.01em !important;
+  margin-bottom:6px !important;
+}
+
+.patient-dashboard .quote-box > strong{
+  display:block !important;
+  font-size:42px !important;
+  line-height:1.05 !important;
+  font-weight:800 !important;
+  margin:4px 0 10px !important;
+}
+
+.patient-dashboard .quote-box > small{
+  display:block !important;
+  font-size:13.5px !important;
+  line-height:1.55 !important;
+  margin-bottom:20px !important;
+}
+
+.patient-dashboard .quote-box > div{
+  display:flex !important;
+  align-items:center !important;
+  justify-content:space-between !important;
+  gap:14px !important;
+  flex-wrap:wrap !important;
+}
+
+.patient-dashboard .quote-box > div > button{
+  min-height:54px !important;
+  padding:0 22px !important;
+  border-radius:12px !important;
+  font-size:15.5px !important;
+  font-weight:700 !important;
+  line-height:1.2 !important;
+}
+
+.patient-dashboard .quote-box > div > button.accept{
+  min-width:220px !important;
+}
+
+.patient-dashboard .quote-box > div > button.small-action{
+  min-width:150px !important;
+}
+
+@media (max-width:640px){
+
+  .patient-dashboard .quote-box{
+    padding:20px !important;
+  }
+
+  .patient-dashboard .quote-box > strong{
+    font-size:38px !important;
+  }
+
+  .patient-dashboard .quote-box > div{
+    flex-direction:column !important;
+    align-items:stretch !important;
+  }
+
+  .patient-dashboard .quote-box > div > button{
+    width:100% !important;
+    min-width:0 !important;
+    min-height:54px !important;
+  }
+}
