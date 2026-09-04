@@ -36,7 +36,7 @@ import { observeRequest, observeError, metricsText } from '../metrics.js'
 import { collectOperationalMetrics } from '../operational-metrics.js'
 import { createHttpErrorHandler } from '../error-observability.js'
 import { queueStats } from '../jobs.js'
-import { verificationObjectKey,profilePhotoObjectKey, putVerificationObject, getVerificationObject, deleteVerificationObject, storageReady, createTemporaryDocumentSignature, verifyTemporaryDocumentSignature } from '../object-storage.js'
+import { createObjectStorageService } from '../services/object-storage.service.js'
 import { APP_VERSION, RELEASE_CHANNEL } from '../version.js'
 import { registerSystemRoutes } from '../routes/system.routes.js'
 import { registerLifecycleRoutes } from '../routes/lifecycle.routes.js'
@@ -76,6 +76,17 @@ import { registerPublicWebRoutes } from '../routes/public-web.routes.js'
 assertProductionReady()
 await migrate()
 assertGoogleOAuthConfiguration()
+
+const {
+  verificationObjectKey,
+  profilePhotoObjectKey,
+  putVerificationObject,
+  getVerificationObject,
+  deleteVerificationObject,
+  storageReady,
+  createTemporaryDocumentSignature,
+  verifyTemporaryDocumentSignature
+} = createObjectStorageService()
 
 
 
