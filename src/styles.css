@@ -12522,3 +12522,173 @@ button{
     min-height:54px !important;
   }
 }
+
+/* MELEO D10M-F22.4 PATIENT NOTIFICATION READABILITY */
+
+/*
+ * Patient Notification Center readability pass.
+ * Keep the main "Κέντρο Ειδοποιήσεων" hero heading unchanged.
+ */
+
+/* Hero supporting copy */
+
+.notifications-command-hero p{
+  font-size:13px;
+  line-height:1.65;
+}
+
+.notifications-command-hero .eyebrow,
+.notifications-command-hero small{
+  font-size:10px;
+}
+
+
+/* Unread summary */
+
+.notifications-command-summary small{
+  font-size:10px;
+}
+
+.notifications-command-summary strong{
+  line-height:1;
+}
+
+
+/* Toolbar / category tabs */
+
+.notifications-toolbar-v2 button{
+  min-height:40px;
+  font-size:11px;
+}
+
+.notifications-toolbar-v2 button span,
+.notifications-toolbar-v2 button b{
+  font-size:10px;
+}
+
+.notifications-mark-all{
+  font-size:11px;
+}
+
+
+/* Notification cards */
+
+.notification-row-v2{
+  min-height:92px;
+  padding-top:16px;
+  padding-bottom:16px;
+}
+
+.notification-v2-head b{
+  font-size:12px;
+  line-height:1.4;
+}
+
+.notification-v2-head small{
+  font-size:9px;
+  line-height:1.4;
+}
+
+.notification-v2-content > p{
+  margin:5px 0 9px;
+  font-size:11px;
+  line-height:1.55;
+}
+
+
+/* Notification metadata / badges */
+
+.notification-v2-meta > span{
+  padding:5px 8px;
+  font-size:9px;
+  line-height:1.2;
+}
+
+.notification-priority{
+  font-size:9px;
+}
+
+.notification-v2-unread{
+  font-size:9px;
+}
+
+
+/* Action */
+
+.notification-action-hint{
+  font-size:10px;
+  line-height:1.4;
+}
+
+
+/* Live status footer */
+
+.notifications-live-info{
+  font-size:10px;
+  line-height:1.55;
+}
+
+.notifications-live-info strong{
+  font-size:10px;
+}
+
+.notifications-live-info small,
+.notifications-live-info span{
+  font-size:9px;
+  line-height:1.5;
+}
+
+
+/* Mobile readability */
+
+@media(max-width:760px){
+
+  .notifications-command-hero p{
+    font-size:13px;
+  }
+
+  .notifications-toolbar-v2 button{
+    min-height:42px;
+    font-size:11px;
+  }
+
+  .notifications-mark-all{
+    font-size:11px;
+  }
+
+  .notification-row-v2{
+    padding-top:17px;
+    padding-bottom:17px;
+  }
+
+  .notification-v2-head{
+    gap:4px;
+  }
+
+  .notification-v2-head b{
+    font-size:12px;
+  }
+
+  .notification-v2-head small{
+    font-size:9px;
+  }
+
+  .notification-v2-content > p{
+    font-size:11px;
+  }
+
+  .notification-v2-meta > span,
+  .notification-v2-unread{
+    font-size:9px;
+  }
+
+  .notification-action-hint{
+    font-size:10px;
+  }
+
+  .notifications-live-info,
+  .notifications-live-info strong{
+    font-size:10px;
+  }
+
+}
