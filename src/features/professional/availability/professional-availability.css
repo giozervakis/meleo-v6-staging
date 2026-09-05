@@ -1309,3 +1309,186 @@
   }
 
 }
+/* MELEO D10M-F20.1A FINAL AVAILABILITY POLISH */
+
+/* ----------------------------------------------------------
+   Secondary copy action
+   ---------------------------------------------------------- */
+
+.availability-secondary-action{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:44px;
+  padding:0 16px;
+  border:1px solid #d3ded8;
+  border-radius:13px;
+  background:#fff;
+  box-shadow:0 5px 14px rgba(25,60,51,.045);
+  font:inherit;
+  font-size:12px;
+  font-weight:800;
+  line-height:1;
+  color:#24483e;
+  cursor:pointer;
+  transition:
+    transform .15s ease,
+    border-color .15s ease,
+    background .15s ease,
+    box-shadow .15s ease;
+}
+
+.availability-secondary-action:hover{
+  transform:translateY(-1px);
+  border-color:#adc4ba;
+  background:#f7faf8;
+  box-shadow:0 7px 18px rgba(25,60,51,.07);
+}
+
+.availability-secondary-action:active{
+  transform:translateY(0);
+}
+
+.availability-secondary-action:focus-visible{
+  outline:3px solid rgba(35,105,86,.22);
+  outline-offset:2px;
+}
+
+
+/* ----------------------------------------------------------
+   Weekly live summary
+   ---------------------------------------------------------- */
+
+.availability-side{
+  min-width:0;
+}
+
+.availability-side > *{
+  min-width:0;
+}
+
+.availability-side .availability-summary-card{
+  overflow:hidden;
+}
+
+.availability-summary-card{
+  padding:24px;
+}
+
+.availability-summary-card > span:first-child{
+  display:block;
+  margin-bottom:7px;
+  font-size:10px;
+  font-weight:850;
+  letter-spacing:.13em;
+  text-transform:uppercase;
+  color:#92753f;
+}
+
+.availability-summary-card h3{
+  margin-bottom:16px;
+  font-size:22px;
+  line-height:1.2;
+  color:#17332d;
+}
+
+.availability-summary-card > div:not(.availability-summary-times):not(.availability-summary-empty){
+  display:grid;
+  gap:8px;
+}
+
+.availability-summary-card > div:not(.availability-summary-times):not(.availability-summary-empty) > div{
+  display:grid;
+  grid-template-columns:minmax(42px,auto) minmax(0,1fr);
+  gap:10px;
+  align-items:start;
+  min-height:38px;
+  padding:8px 0;
+  border-bottom:1px solid #edf0ec;
+}
+
+.availability-summary-card > div:not(.availability-summary-times):not(.availability-summary-empty) > div:last-child{
+  border-bottom:0;
+}
+
+.availability-summary-card > div:not(.availability-summary-times):not(.availability-summary-empty) > div > strong,
+.availability-summary-card > div:not(.availability-summary-times):not(.availability-summary-empty) > div > span:first-child{
+  font-size:12px;
+  font-weight:850;
+  line-height:1.45;
+  color:#263f39;
+}
+
+.availability-summary-card > div:not(.availability-summary-times):not(.availability-summary-empty) > div > span:last-child{
+  min-width:0;
+  font-size:12px;
+  line-height:1.5;
+  color:#677772;
+  overflow-wrap:anywhere;
+}
+
+.availability-summary-times{
+  gap:8px;
+}
+
+.availability-summary-times span{
+  min-height:35px;
+  padding:0 11px;
+  font-size:12px;
+}
+
+
+/* ----------------------------------------------------------
+   Section separation / rhythm
+   ---------------------------------------------------------- */
+
+.availability-main{
+  min-width:0;
+}
+
+.availability-workspace{
+  min-width:0;
+}
+
+.availability-section-head{
+  gap:18px;
+}
+
+.availability-section-head > div{
+  min-width:0;
+}
+
+.availability-editor-foot{
+  min-height:56px;
+}
+
+.availability-exceptions{
+  margin-top:0;
+}
+
+
+/* ----------------------------------------------------------
+   Mobile
+   ---------------------------------------------------------- */
+
+@media (max-width:720px){
+
+  .availability-section-head{
+    display:grid;
+    grid-template-columns:1fr;
+  }
+
+  .availability-secondary-action{
+    width:100%;
+    min-height:48px;
+  }
+
+  .availability-summary-card{
+    padding:20px;
+  }
+
+  .availability-summary-card > div:not(.availability-summary-times):not(.availability-summary-empty) > div{
+    grid-template-columns:52px minmax(0,1fr);
+  }
+
+}
