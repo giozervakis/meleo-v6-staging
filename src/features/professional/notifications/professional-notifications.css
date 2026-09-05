@@ -353,3 +353,157 @@
     animation:none!important;
   }
 }
+/* MELEO D10M-F21.1 NOTIFICATION READABILITY */
+
+/* Hero supporting typography only - keep main headline unchanged */
+
+.pro-notifications-hero > div > span{
+  font-size:11px;
+}
+
+.pro-notifications-hero p{
+  font-size:14px;
+  line-height:1.7;
+}
+
+.pro-notifications-hero aside small{
+  font-size:10px;
+}
+
+.pro-notifications-hero aside span{
+  font-size:11px;
+}
+
+
+/* Toolbar */
+
+.pro-notifications-filters button,
+.pro-notifications-actions button{
+  min-height:43px;
+  font-size:12px;
+}
+
+.pro-notifications-filters b{
+  min-width:22px;
+  height:22px;
+  font-size:10px;
+}
+
+.pro-notifications-actions input{
+  min-height:43px;
+  font-size:12px;
+}
+
+
+/* Notification rows */
+
+.pro-notifications-list article{
+  min-height:104px;
+  padding:22px 23px;
+}
+
+.pro-notification-meta{
+  margin-bottom:7px;
+}
+
+.pro-notification-meta span{
+  font-size:10px;
+}
+
+.pro-notification-meta time{
+  font-size:10px;
+}
+
+.pro-notification-content > strong{
+  font-size:14px;
+  line-height:1.35;
+}
+
+.pro-notification-content p{
+  margin-top:6px;
+  font-size:12px;
+  line-height:1.65;
+}
+
+.pro-notification-state button{
+  min-height:39px;
+  padding:0 14px;
+  font-size:11px;
+}
+
+.pro-notification-state span{
+  font-size:11px;
+}
+
+
+/* Empty state */
+
+.pro-notifications-empty{
+  font-size:12px;
+}
+
+.pro-notifications-empty strong{
+  font-size:15px;
+}
+
+.pro-notifications-empty p{
+  font-size:12px;
+  line-height:1.6;
+}
+
+
+/* Error text */
+
+.pro-notifications-error{
+  font-size:12px;
+  line-height:1.55;
+}
+
+
+/* Mobile */
+
+@media(max-width:760px){
+
+  .pro-notifications-hero p{
+    font-size:13px;
+  }
+
+  .pro-notifications-toolbar{
+    gap:11px;
+  }
+
+  .pro-notifications-filters button,
+  .pro-notifications-actions button{
+    min-height:44px;
+    font-size:12px;
+  }
+
+  .pro-notifications-actions input{
+    min-height:44px;
+    font-size:12px;
+  }
+
+  .pro-notifications-list article{
+    min-height:0;
+    padding:18px;
+  }
+
+  .pro-notification-meta span,
+  .pro-notification-meta time{
+    font-size:10px;
+  }
+
+  .pro-notification-content > strong{
+    font-size:14px;
+  }
+
+  .pro-notification-content p{
+    font-size:12px;
+  }
+
+  .pro-notification-state button,
+  .pro-notification-state span{
+    font-size:11px;
+  }
+
+}
